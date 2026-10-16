@@ -72,7 +72,10 @@ xcrun simctl push booted <your bundle id> /tmp/push.apns
    - Health sync: `POST /hk/ingest`
 
    You can implement only one half. Use HTTPS; plain HTTP is allowed only for `localhost`.
-2. Generate a long random token on the server.
+   Or run the reference server in [`server/`](server/README.md) — Python 3 + SQLite, multi-tenant,
+   with a `bridge` CLI for queueing jobs and reading results. See its README for setup.
+2. Generate a long random token on the server (`bridge account create <label>` does this for you
+   if you run the reference server).
 3. In the app → **Settings**, replace the prefilled `https://boringbox.dev` with your server URL, then enter the token and a device id (any name, e.g. `my-iphone`). Tap **Save**, then **Test connection**.
 
 To try it without a server, use the stdlib mock:
@@ -104,6 +107,8 @@ Bridge/UI/                  Status and Settings screens
 BridgeTests/                Unit tests (Swift Testing)
 docs/                       API contract, capability guide
 tools/mock_box.py           Local mock server
+server/                     Reference server (Python 3 + FastAPI + SQLite) — see server/README.md
+server/tools/mock_phone.py  Fake iPhone, for testing a server without one
 ```
 
 ## Related projects

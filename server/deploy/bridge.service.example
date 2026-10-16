@@ -1,0 +1,23 @@
+# Template for the systemd unit. Render it with deploy/render-unit.sh — that writes
+# deploy/bridge.service (untracked) with this box's absolute paths filled in.
+# The repo stays free of usernames and host paths; see server/README.md.
+[Unit]
+Description=bridge - Bridge box: job relay and result store for the Bridge iPhone app
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__BRIDGE_DIR__
+ExecStart=__BRIDGE_DIR__/run.sh
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__DATA_DIR__
+# Results carry health and location data: everything this service writes is owner-only.
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

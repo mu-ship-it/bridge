@@ -1,0 +1,5 @@
+#!/bin/sh
+# Thin shim so the CLI runs with the server's venv from anywhere: `server/bridge account list`
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+exec "$here/.venv/bin/python" "$here/cli.py" "$@"

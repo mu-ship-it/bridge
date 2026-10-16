@@ -150,3 +150,51 @@ This is the Health Auto Export shape. The periodic sync (BG refresh about every 
 ```
 Metric names used: `heart_rate`, `resting_heart_rate`, `heart_rate_variability`, `respiratory_rate`, `blood_oxygen_saturation`, `step_count`, `sleep_analysis`.
 Note for the box: sleep goes out as **unaggregated segments** (one row per stage segment, `qty` in hours), not as HAE's nightly aggregate. The ingest parser should accept `value`/`startDate`/`endDate`.
+
+---
+
+## Server notes (box side)
+
+The phone half of this document is the contract; this section is what a server implementing it
+has to decide anyway, written down so two implementations agree. The reference server lives in
+[`server/`](../server/README.md). Nothing here changes what the app sends.
+
+**Which device id wins.** Every request carries `X-Bridge-Device`, and `/bridge/jobs` and
+`/bridge/ping` also take `?device=`, while `/bridge/devices` and `/bridge/results` carry
+`device` in the body. The reference server takes the first non-empty of query → header → body;
+they are the same value in practice. A request that resolves to no device id at all is a `400`
+(the one exception is `/bridge/ping`, which answers without one).
+
+**Error bodies.** Any non-2xx carries `{"error": "<short reason>"}`. The app only reads the
+status code, but a human running curl needs something. The server's own rejection is
+`{"error": "unauthorized"}` — deliberately distinct, so when a reverse proxy or SSO layer in
+front of the box answers first you can tell which layer said no.
+
+**`/bridge/*` must not sit behind another auth gate.** The phone sends a Bridge bearer token and
+nothing else: no cookie, no SSO redirect to follow. A site-wide gate in front of these paths
+turns every call into "token rejected" in the Status screen.
+
+**A job that is never answered.** The contract says a leased job is offered again once its lease
+runs out, which on its own loops forever. The server caps it: after `max attempts` leases with
+no result (3 by default) the job is marked failed with the already-documented `timeout` error
+code, so a job always reaches a terminal state and `job wait` always returns.
+
+**Unknown devices.** A device does not have to call `POST /bridge/devices` before it polls —
+that call exists to hand over an APNs token. The server records a device on first authenticated
+sight; registration then fills in the token, app version and capability list.
+
+**Multi-tenancy.** A token identifies an *account*, not a device. A device id only has to be
+unique within its account, and every query is scoped by account, so two tenants may both use
+`my-iphone`. Revoking an account invalidates its token at once.
+
+**Extra response fields.** `POST /bridge/results` answers `{"ok": true, "accepted": n,
+"duplicate": n, "unknown": n, "invalid": n}` — the contract only requires 2xx, and the app
+ignores the body; the counts are there for curl and for the smoke script. `duplicate` is the
+at-least-once case the contract tells the box to swallow.
+
+### `GET /bridge/health` (server only)
+Unauthenticated liveness, for systemd and deployment checks. Not part of the phone contract —
+the app never calls it.
+```json
+{ "ok": true, "service": "bridge", "version": "0.1.0" }
+```

@@ -27,3 +27,8 @@ secrets/
 .idea/
 .vscode/
 __pycache__/
+.pytest_cache/
+
+# Bridge server: local venv, rendered systemd unit, operator data
+server/.venv/
+server/deploy/bridge.service
