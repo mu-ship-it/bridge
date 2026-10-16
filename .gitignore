@@ -1,0 +1,29 @@
+# Xcode / build output
+build/
+DerivedData/
+*.log
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.ipa
+*.dSYM
+*.dSYM.zip
+.swiftpm/
+.build/
+
+# Local config & secrets — never commit
+Config/Local.xcconfig
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+.env
+.env.*
+secrets/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+__pycache__/

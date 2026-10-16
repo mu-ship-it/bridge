@@ -1,0 +1,75 @@
+name: Bridge
+configFiles:
+  Debug: Config/Bridge.xcconfig
+  Release: Config/Bridge.xcconfig
+options:
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Bundle id, team and default server URL come from Config/Bridge.xcconfig (+ your gitignored Config/Local.xcconfig).
+    # Simulator builds are ad-hoc signed ("sign to run locally"); no team needed.
+    "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+targets:
+  Bridge:
+    type: application
+    platform: iOS
+    sources: [Bridge]
+    settings:
+      base:
+        PRODUCT_NAME: Bridge
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID)
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_CFBundleDisplayName: Bridge
+    info:
+      path: Bridge/Info.plist
+      properties:
+        CFBundleDisplayName: Bridge
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSHealthShareUsageDescription: "Bridge reads your health data (heart rate, HRV, sleep, workouts, steps…) and sends it only to the server URL you configure."
+        NSLocationWhenInUseUsageDescription: "Bridge reports your current location to your server when it asks."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Bridge uses significant location changes to wake up and check your server for jobs, and reports a one-shot location when the server asks. No continuous GPS."
+        UIBackgroundModes: [fetch, processing, remote-notification, location]
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).refresh
+          - $(PRODUCT_BUNDLE_IDENTIFIER).processing
+        BridgeDefaultServerURL: $(BRIDGE_DEFAULT_SERVER_URL)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    entitlements:
+      path: Bridge/Bridge.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.healthkit.background-delivery: true
+        aps-environment: development
+  BridgeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [BridgeTests]
+    dependencies:
+      - target: Bridge
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bridge"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  Bridge:
+    build:
+      targets:
+        Bridge: all
+        BridgeTests: [test]
+    test:
+      targets: [BridgeTests]
+      gatherCoverageData: false

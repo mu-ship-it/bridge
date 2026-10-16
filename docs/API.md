@@ -1,0 +1,152 @@
+# Bridge ⇄ box API contract (v0.1)
+
+The app is a client of **your server** (called "the box" in code and below). The server URL is whatever the user enters in Settings (prefilled with `https://boringbox.dev`, the author's server; replace it with yours); the phone only ever talks to that URL. Any server implementing this contract works.
+Plain `http` is accepted only for `localhost` (mock server).
+
+Endpoints: `/bridge/*` (job loop) and `/hk/ingest` (health sync, Health Auto Export–compatible). A server may implement only one half; the other simply reports errors in the Status screen. A reference mock lives in `tools/mock_box.py`.
+
+## Auth
+
+| Endpoint | Header |
+|---|---|
+| `/bridge/*` | `Authorization: Bearer <token>` |
+| `/hk/ingest` | `Authorization: <token>` (raw, no `Bearer`; matches the existing Health Auto Export setup) |
+
+All requests also send `X-Bridge-Device: <device id>` and `User-Agent: Bridge/<version> (<build>)`.
+On a bad token the box returns `401`, and the phone shows "token rejected".
+
+---
+
+## `GET /bridge/ping?device=<id>`
+Used by the "Test connection" button.
+```json
+{ "ok": true, "server_time": "2026-10-16T08:00:00+08:00" }
+```
+
+## `POST /bridge/devices`
+Sent after APNs hands the phone a device token (at launch, once the box is configured). The box keeps the latest token per device, which it needs to send silent pushes.
+```json
+{
+  "device": "my-iphone",
+  "apns_token": "a1b2…64 hex chars",
+  "apns_environment": "development",
+  "app_version": "0.1.0 (1)",
+  "capabilities": ["device.info", "health.query", "location.now"]
+}
+```
+Response: any 2xx.
+
+## `GET /bridge/jobs?device=<id>`
+```json
+{
+  "jobs": [
+    {
+      "id": "j_01JA9X",
+      "capability": "health.query",
+      "params": { "metric": "hrv", "from": "2026-10-15T00:00:00+08:00", "to": "2026-10-16T00:00:00+08:00", "interval": "hour" },
+      "created_at": "2026-10-16T08:00:00+08:00"
+    },
+    { "id": "j_01JA9Y", "capability": "location.now", "params": { "timeout": 15 } },
+    { "id": "j_01JA9Z", "capability": "device.info" }
+  ],
+  "poll_after_seconds": 30
+}
+```
+- Box semantics: when it returns a job, the box **leases** it (suggested lease: 120 s). A leased job is not returned again until the lease runs out or a result arrives. A job with no result after the lease is offered again. This gives at-least-once delivery, so the box ignores duplicate results for the same `job_id`.
+- Empty queue: `{"jobs": []}`.
+- `poll_after_seconds` is a hint for the client. It is parsed but not used yet (the foreground poll runs every 30 s).
+
+## `POST /bridge/results`
+```json
+{
+  "device": "my-iphone",
+  "results": [
+    {
+      "job_id": "j_01JA9X",
+      "ok": true,
+      "result": { "...capability-specific..." : "" },
+      "started_at": "2026-10-16T00:00:01Z",
+      "finished_at": "2026-10-16T00:00:02Z"
+    },
+    {
+      "job_id": "j_01JA9Y",
+      "ok": false,
+      "error": { "code": "permission_missing", "message": "Location not requested yet — …" },
+      "started_at": "2026-10-16T00:00:02Z",
+      "finished_at": "2026-10-16T00:00:02Z"
+    }
+  ]
+}
+```
+Response: any 2xx. If the POST fails, the phone keeps the results in memory and sends them again at the start of the next poll. A process kill loses them, and the job lease covers that case.
+
+Error codes: `unknown_capability`, `bad_params`, `permission_missing`, `permission_denied`, `unavailable`, `timeout`, `location_failed`, `cancelled`, `failed`.
+
+## Silent push (box → APNs → phone)
+```json
+{ "aps": { "content-available": 1 }, "bridge": "poll" }
+```
+- APNs headers: `apns-push-type: background`, `apns-priority: 5`, `apns-topic: <your app bundle id>`.
+- The phone runs one job poll. With `"bridge": "sync"`, it also runs one health sync.
+- iOS throttles background pushes (roughly a few per hour). Do not rely on them for latency. Silent pushes need the APNs key and the push entitlement (see the report).
+
+---
+
+## Capabilities
+
+### `health.query`
+| param | meaning |
+|---|---|
+| `metric` (required) | `heart_rate`/`hr`, `resting_heart_rate`/`rhr`, `heart_rate_variability`/`hrv`, `respiratory_rate`, `blood_oxygen_saturation`/`spo2`, `step_count`/`steps`, `sleep`, `workouts` |
+| `from`, `to` | ISO-8601 or `yyyy-MM-dd`. Defaults to the last 24 h |
+| `interval` | `raw` (default), `minute`, `hour`, `day`, `week`, `month`, `<n>m`, `<n>h`, `<n>d` (ignored for sleep and workouts) |
+| `limit` | max raw samples (default 5000, cap 20000) |
+
+Result (raw):
+```json
+{
+  "from": "2026-10-15T00:00:00Z", "to": "2026-10-16T00:00:00Z", "interval": "raw", "count": 2,
+  "metric": { "name": "heart_rate", "units": "count/min",
+              "data": [ { "date": "2026-10-16 08:00:00 +0800", "qty": 72, "source": "Apple Watch" } ] }
+}
+```
+Bucketed, discrete metrics: `data` items are `{"date","qty","Avg","Min","Max"}`, with `qty` equal to Avg. For cumulative metrics (steps), `qty` is the sum.
+Sleep: `metric.name = "sleep_analysis"`, `units = "hr"`, items `{"date","startDate","endDate","value":"Core|Deep|REM|Awake|In Bed|Asleep","qty":<hours>,"source"}`.
+Workouts: `metric.name = "workouts"`, items `{"id","name","start","end","duration"(s),"activeEnergyBurned":{"qty","units":"kcal"},"distance":{"qty","units":"km"},"source"}`.
+SpO2 is reported as 0–100 (HealthKit stores 0–1).
+
+### `location.now`
+params: `timeout` (s, 1–60, default 20).
+```json
+{ "lat": 37.3349, "lon": -122.009, "horizontal_accuracy_m": 35, "altitude_m": 12.0, "speed_mps": 0, "course_deg": 90, "timestamp": "2026-10-16T00:00:00Z" }
+```
+
+### `device.info`
+No params.
+```json
+{
+  "battery_level": 0.82, "battery_state": "unplugged", "low_power_mode": false,
+  "model": "iPhone", "model_identifier": "iPhone17,1", "system_name": "iOS", "system_version": "27.0",
+  "app_version": "0.1.0 (1)", "last_sync": "2026-10-16T00:00:00Z", "last_poll": "2026-10-16T00:05:00Z",
+  "background_refresh": "Available"
+}
+```
+
+---
+
+## `POST /hk/ingest` (existing)
+This is the Health Auto Export shape. The periodic sync (BG refresh about every 15 min and BG processing about every hour, both at iOS's discretion) sends only the samples **added since the last successful sync**. It keeps one HealthKit anchor per type and moves an anchor forward only after a 2xx. The first sync looks back 7 days, with a limit of 2000 samples per type per run, so a backlog drains over several runs. Nothing is sent when there is nothing new.
+```json
+{
+  "data": {
+    "metrics": [
+      { "name": "heart_rate", "units": "count/min", "data": [ { "date": "2026-10-16 08:00:00 +0800", "qty": 72, "source": "Apple Watch" } ] },
+      { "name": "step_count", "units": "count", "data": [ { "date": "2026-10-16 08:00:00 +0800", "qty": 120 } ] },
+      { "name": "sleep_analysis", "units": "hr", "data": [ { "date": "2026-10-16 01:00:00 +0800", "startDate": "2026-10-16 01:00:00 +0800", "endDate": "2026-10-16 02:30:00 +0800", "value": "Deep", "qty": 1.5 } ] }
+    ],
+    "workouts": [ { "id": "UUID", "name": "Running", "start": "…", "end": "…", "duration": 1800, "activeEnergyBurned": { "qty": 301.4, "units": "kcal" }, "distance": { "qty": 5.02, "units": "km" } } ]
+  }
+}
+```
+Metric names used: `heart_rate`, `resting_heart_rate`, `heart_rate_variability`, `respiratory_rate`, `blood_oxygen_saturation`, `step_count`, `sleep_analysis`.
+Note for the box: sleep goes out as **unaggregated segments** (one row per stage segment, `qty` in hours), not as HAE's nightly aggregate. The ingest parser should accept `value`/`startDate`/`endDate`.

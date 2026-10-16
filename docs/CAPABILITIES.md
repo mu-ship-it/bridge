@@ -1,0 +1,57 @@
+# Adding a capability
+
+A capability is something your server can ask the phone to do. The server queues a job `{"id", "capability", "params"}`; the phone runs it and posts back `{"job_id", "ok", "result" | "error"}` (see [API.md](API.md)).
+
+## 1. One file in `Bridge/Capabilities/`
+
+```swift
+// Bridge/Capabilities/ClipboardReadCapability.swift
+import UIKit
+
+/// Returns the current pasteboard text. No params.
+struct ClipboardReadCapability: Capability {
+    let name = "clipboard.read"
+
+    func run(_ job: Job) async throws -> JSONValue {
+        let text = await MainActor.run { UIPasteboard.general.string }
+        guard let text else { throw CapabilityError(code: "empty", message: "Pasteboard has no text") }
+        return .object(["text": .string(text)])
+    }
+}
+```
+
+Rules:
+- **Name**: dotted, `area.verb` (`health.query`, `location.now`). This is what the server puts in `job.capability`.
+- **Params**: read them from `job.params` (`[String: JSONValue]?`) and validate. On bad input, throw `CapabilityError.badParams("…")`.
+- **Errors**: throw `CapabilityError(code:message:)` to send the server a stable `code`, such as `permission_missing`, `permission_denied`, `unavailable` or `timeout`. Any other error is reported as `failed`. You never build a `JobResult` yourself; `JobDispatcher` does that.
+- **Concurrency**: the type must be `Sendable`, which a struct with `let`s already is. Hop to `MainActor` for UIKit, CoreLocation and similar APIs.
+- **Background**: jobs can run during a silent push or a background task, where iOS allows only about 30 s. Keep `run` short and put a timeout on anything that waits.
+- **Privacy**: return only what the job asked for. Data leaves the phone only through `BoxClient`, which talks to the configured server.
+- If you need a new permission, add the usage string to `info.properties` in `project.yml` and add a request button to `StatusView`.
+
+## 2. One line in `Bridge/Capabilities/CapabilityRegistry.swift`
+
+```swift
+static let all: [any Capability] = [
+    HealthQueryCapability(),
+    LocationNowCapability(),
+    DeviceInfoCapability(),
+    ClipboardReadCapability(),   // ← new
+]
+```
+
+## 3. Regenerate, document, test
+
+```sh
+xcodegen generate   # new files must be added to the Xcode project
+```
+- Add the capability's params and result shape to `docs/API.md` under **Capabilities**.
+- Put pure parsing and mapping logic in plain types and unit-test it. See `HealthQueryParams` and `BridgeTests/`.
+- Try it end to end with the mock server:
+  ```sh
+  python3 tools/mock_box.py --token devtoken
+  curl -s -XPOST localhost:8787/_enqueue -d '{"capability":"clipboard.read"}'
+  ```
+  The result is printed by the mock within one poll (30 s in the foreground, or tap **Poll now**).
+
+The phone reports its capability names to the server in `POST /bridge/devices`, so a server can see what a given phone supports.

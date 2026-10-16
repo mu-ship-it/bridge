@@ -1,0 +1,7 @@
+// Committed defaults. Do NOT put your own values here — copy Local.xcconfig.example to Local.xcconfig (gitignored).
+BRIDGE_BUNDLE_ID = com.example.bridge
+DEVELOPMENT_TEAM =
+// Settings prefill (the user can change it in the app). xcconfig treats "//" as a comment, so write https:/$()/host
+BRIDGE_DEFAULT_SERVER_URL = https:/$()/boringbox.dev
+
+#include? "Local.xcconfig"
