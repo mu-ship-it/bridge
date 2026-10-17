@@ -40,6 +40,9 @@ struct StatusView: View {
                     Button("Request Contacts") { run { _ = await ContactsSearchCapability.requestAuthorization() } }
                     Button("Request Photos") { run { _ = await PhotosRecentCapability.requestAuthorization() } }
                     Button("Request Motion") { run { await MotionTodayCapability.requestAuthorization() } }
+                    Button("Request Camera") { run { await CameraAccess.requestAuthorization() } }
+                    Button("Request Microphone") { run { await MicRecordCapability.requestMicrophone() } }
+                    Button("Request Speech Recognition") { run { await MicRecordCapability.requestSpeech() } }
                 }
                 Section("Capabilities") {
                     ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }

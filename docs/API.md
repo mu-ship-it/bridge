@@ -82,9 +82,9 @@ Response: any 2xx.
   ]
 }
 ```
-Response: any 2xx. If the POST fails, the phone keeps the results in memory and sends them again at the start of the next poll. A process kill loses them, and the job lease covers that case.
+Response: any 2xx. The phone posts each result as soon as its job finishes (one element per POST in practice; the box must accept any number). If the POST fails, the phone keeps the results in memory and sends them again at the start of the next poll. A process kill loses them, and the job lease covers that case.
 
-Error codes: `unknown_capability`, `bad_params`, `permission_missing`, `permission_denied`, `unavailable`, `timeout`, `location_failed`, `cancelled`, `failed`.
+Error codes: `unknown_capability`, `bad_params`, `permission_missing`, `permission_denied`, `unavailable`, `foreground_required`, `timeout`, `location_failed`, `cancelled`, `not_found`, `failed`.
 
 ## Silent push (box → APNs → phone)
 ```json
@@ -188,7 +188,81 @@ No params. CMPedometer totals since local midnight. `unavailable` on devices wit
 ### `agent.say`
 params: `text` (required, max 2000 chars), `notify` (bool, default false). Adds `text` to the app's activity feed: the job's own row shows it. This is how the agent narrates when nothing needs running. With `notify: true` it is also shown as a local notification titled with the app's display name. Result `{"ok": true, "notified": true}`. If the notification could not be shown, `notified` is false and `notify_error` holds the code (e.g. `permission_denied`), and the job still succeeds.
 
-Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap the matching **Request …** button on the Status screen), `permission_denied`, `unavailable`, `not_found`.
+### On-screen capabilities (v0.3)
+
+白手套 is a foreground app. Nothing in this group runs hidden: each one either shows Apple's own UI (camera, scanner, share sheet, compose sheets, the NFC sheet, the call prompt), or makes itself seen or heard (sound, haptics, torch, brightness, opening another app). iOS allows all of these only while the app is on screen. When it is not, the job fails with `foreground_required` and can be retried later. Every job carries its `note` into the Status activity feed as usual.
+
+Capabilities that wait for Mu (camera, scanner, share, compose) take `timeout` (5–110 s, default 90). If Mu hasn't answered by then, the sheet is closed and the job fails with `timeout`. The cap stays under the box's 120 s lease, so a forgotten sheet never gets the job offered twice. When Mu closes a sheet, the result is `cancelled`.
+
+Hardware the device lacks (every camera/NFC/torch/Wi-Fi/telephony/sensor capability in the simulator) gives a plain `unavailable`.
+
+### `camera.capture`
+params: `facing` (`back` default, `front`), `max_px` (64–4096, default 1024; longest edge), `timeout`. Opens the camera on screen; Mu takes the picture.
+```json
+{ "jpeg_base64": "/9j/…", "width": 1024, "height": 768 }
+```
+
+### `barcode.scan`
+params: `timeout`. Opens a live scanner (VisionKit) and returns the first code in view: QR, EAN/UPC, Code 128, PDF417, Aztec, Data Matrix…
+```json
+{ "payload": "https://example.com/ticket/42", "symbology": "qr" }
+```
+
+### `mic.record`
+params: `seconds` (1–60, default 10), `transcribe` (default true), `audio` (default true; include the clip), `locale` (e.g. `zh-CN`; default the phone's language). Records from the microphone while the app is open; iOS shows its orange dot. Transcription uses Apple's speech recognizer, on the phone when the locale supports it (`on_device`). A transcription problem doesn't lose the clip: it comes back as `transcript_error`, and the job still succeeds.
+```json
+{ "seconds": 10, "m4a_base64": "AAAAHGZ0eXBNNEEg…", "transcript": "remind me to call the bank", "on_device": true, "locale": "en_US" }
+```
+Needs Microphone, plus Speech Recognition for `transcribe` (Status → Request …).
+
+### `speak`
+params: `text` (required, ≤ 4000 chars), `rate` (0–1, default 0.5 = normal speed), `voice` (a language like `zh-CN`, or a voice identifier; default is a voice for the text's own language). Reads aloud, even with the ring switch on silent, and answers once it has finished: `{"spoken": true, "voice": "com.apple.voice.compact.zh-CN.Tingting", "seconds": 3.4}`.
+
+### `haptic`, `torch`, `screen.brightness`
+- `haptic` `{style?}`: `light`, `medium` (default), `heavy`, `soft`, `rigid`, `selection`, `success`, `warning`, `error`. Returns `{"style": "medium"}`.
+- `torch` `{on, level?}`: `level` is 0.01–1 (default 1). Returns `{"on": true, "level": 1}`.
+- `screen.brightness` `{level}`: `level` is 0–1. Returns `{"level": 0.8, "previous": 0.42}`. iOS may restore the old level when the phone locks.
+
+### `open.url`
+params: `url` (required; any scheme: `https:`, `maps:`, `tel:`, `weixin:`, …). iOS opens the app that owns the scheme, and 白手套 leaves the screen. Returns `{"opened": true}`; `false` means no installed app handles the scheme. The result reaches the box even though the app has just left the screen. Later jobs in the same batch wait until Mu comes back.
+
+### `shortcuts.run`
+params: `name` (required; the shortcut's exact name), `input` (optional; a string, or any JSON value sent as its JSON text). Opens `shortcuts://run-shortcut?name=…&input=text&text=…`, and the Shortcuts app runs it on screen. Returns `{"opened": true}`. **The shortcut's output does not come back to the agent through this job.** A shortcut that should report back must call the box itself, for example with a "Get Contents of URL" action.
+
+### `settings.open`
+params: `section`, one of `app` (default; 白手套's own page), `app_notifications`, `wifi`, `bluetooth`, `cellular`, `notifications`, `privacy`, `battery`, `display`, `focus`, `general`. Returns `{"opened": true, "section": "wifi"}`. `app` and `app_notifications` use Apple's public links. The system pages use Settings' `App-prefs:` links, which Apple does not document, so on some iOS versions they open the top of Settings rather than the exact page. Opening a page changes nothing; Mu makes the change.
+
+### `compose.sms`, `compose.mail`, `call`
+**iOS never lets an app send a message, send an email or place a call by itself.** These fill in Apple's own sheet, and Mu reads it and decides.
+- `compose.sms` `{to, body?}`: `to` is a phone number or email (iMessage), a comma list or an array, 1–20 of them.
+- `compose.mail` `{to, cc?, subject?, body?, html?}`.
+- `call` `{number}`: iOS always shows its "Call …?" prompt first.
+
+Result: `{"shown": true}`. For SMS and mail, iOS also reports which button Mu pressed, as `user_action` (`sent`, `saved` for mail, `cancelled`, `failed`). The app itself sent nothing either way. Whether a call was actually placed is never reported to apps. `unavailable` when the device cannot text, has no Mail account, or is the simulator.
+
+### `files.write`, `files.read`, `files.list`
+The app's Documents folder, which the Files app shows as **On My iPhone › 白手套**. It is flat (plain names, no folders), and each file is ≤ 10 MB.
+- `files.write` `{name, text | base64, append?}` → `{"name": "notes.txt", "size": 42}`
+- `files.read` `{name, as?}` → `{"name", "size", "text"}` for a UTF-8 file, or `"base64"` otherwise (or with `as: "base64"`). An unknown name is `not_found`.
+- `files.list` → `{"count": 2, "files": [{"name": "a.txt", "size": 42, "modified": "2026-10-16T08:00:00Z"}]}`
+
+### `share`
+params: at least one of `text`, `url`, `file` (a name from `files.list`), plus `timeout`. Presents the share sheet, and Mu picks the destination. Returns `{"completed": true, "activity": "com.apple.UIKit.activity.Message"}`.
+
+### `wifi.info`
+No params. Returns `{"connected": true, "ssid": "Home", "bssid": "aa:bb:cc:dd:ee:ff", "signal": 0.8, "secure": true}`, or `{"connected": false}` when the phone isn't on Wi-Fi. iOS gives the network name only to apps with location access.
+
+### `nfc.read`
+params: `timeout` (5–60 s, default 30; iOS ends any NFC scan at 60 s). iOS shows its "Ready to Scan" sheet, and Mu holds the phone to a tag. Returns the first NDEF message:
+```json
+{ "records": [ { "tnf": 1, "type": "U", "payload_base64": "BGV4YW1wbGUuY29t", "uri": "https://example.com" } ] }
+```
+
+### `sensors.sample`
+params: `seconds` (1–10, default 2), `hz` (1–50, default 10). Raw readings over that window. Each sensor is `{available, samples}`, where each sample is an array starting with `t` (seconds from the start):
+`accelerometer` `[t, x, y, z]` g · `gyro` `[t, x, y, z]` rad/s · `magnetometer` `[t, x, y, z]` µT · `barometer` `[t, kPa, relative_altitude_m]` (about 1 Hz; needs Motion & Fitness, otherwise `available: false` with a `reason`).
+
+Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap the matching **Request …** button on the Status screen), `permission_denied`, `unavailable`, `not_found`, `foreground_required`, `cancelled`, `timeout`.
 
 ---
 

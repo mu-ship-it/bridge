@@ -42,7 +42,13 @@ targets:
         NSRemindersFullAccessUsageDescription: "Bridge lists and adds reminders when your server asks, and sends them only to the server URL you configure."
         NSContactsUsageDescription: "Bridge looks up a contact's name, phone numbers and emails when your server asks, and sends at most 20 matches to the server URL you configure."
         NSPhotoLibraryUsageDescription: "Bridge sends small, downscaled copies of your most recent photos to your server when it asks. Full-resolution images never leave the phone."
-        NSMotionUsageDescription: "Bridge reports today's steps, distance and floors to your server when it asks."
+        NSMotionUsageDescription: "Bridge reports today's steps, distance and floors, and barometer readings, to your server when it asks."
+        NSCameraUsageDescription: "Bridge opens the camera on screen when your server asks for a photo or a barcode scan. You see what the camera sees the whole time, and you take photos yourself."
+        NSMicrophoneUsageDescription: "Bridge records a short voice clip when your server asks, while the app is open (iOS shows the orange dot). The clip goes only to the server URL you configure."
+        NSSpeechRecognitionUsageDescription: "Bridge turns a voice clip it just recorded into text, on the phone when possible, and sends the text only to the server URL you configure."
+        NFCReaderUsageDescription: "Bridge reads an NFC tag you hold the phone to when your server asks, and sends what the tag contains to the server URL you configure."
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
         UIBackgroundModes: [fetch, processing, remote-notification, location]
         BGTaskSchedulerPermittedIdentifiers:
           - $(PRODUCT_BUNDLE_IDENTIFIER).refresh
@@ -57,6 +63,8 @@ targets:
         com.apple.developer.healthkit.access: []
         com.apple.developer.healthkit.background-delivery: true
         aps-environment: development
+        com.apple.developer.networking.wifi-info: true
+        com.apple.developer.nfc.readersession.formats: [TAG]
   BridgeTests:
     type: bundle.unit-test
     platform: iOS

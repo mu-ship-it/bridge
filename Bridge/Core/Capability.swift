@@ -30,6 +30,17 @@ struct CapabilityError: Error, LocalizedError, Sendable, Equatable {
     static func permissionDenied(_ what: String) -> CapabilityError {
         CapabilityError(code: "permission_denied", message: "\(what) access denied. Enable it in Settings.")
     }
+
+    /// Mu dismissed the system sheet (camera, scanner, share…) without finishing.
+    static let cancelled = CapabilityError(code: "cancelled", message: "Cancelled on the phone")
+
+    /// The capability shows system UI, and iOS only allows that while the app is open on screen.
+    static let foregroundRequired = CapabilityError(code: "foreground_required", message: "Needs 白手套 open on screen. Retry when the app is in the foreground.")
+
+    /// Mu did not answer the sheet in time; it was closed so the job finishes inside its lease.
+    static func timedOut(_ seconds: Int) -> CapabilityError {
+        CapabilityError(code: "timeout", message: "No answer on the phone within \(seconds) s; the sheet was closed")
+    }
 }
 
 /// Routes jobs to capabilities by name and always produces a result (never throws).
@@ -88,6 +99,23 @@ enum Params {
         guard let value = p[key], value != .null else { return nil }
         guard let n = value.doubleValue, n.isFinite else { throw CapabilityError.badParams("'\(key)' must be a number") }
         return min(max(Int(n), range.lowerBound), range.upperBound)
+    }
+
+    /// Optional number clamped to `range`; present-but-invalid is `bad_params`.
+    static func double(_ p: [String: JSONValue], _ key: String, in range: ClosedRange<Double>) throws -> Double? {
+        guard let value = p[key], value != .null else { return nil }
+        guard let n = value.doubleValue, n.isFinite else { throw CapabilityError.badParams("'\(key)' must be a number") }
+        return min(max(n, range.lowerBound), range.upperBound)
+    }
+
+    /// Optional string that must be one of `allowed`; present-but-invalid is `bad_params`.
+    static func choice(_ p: [String: JSONValue], _ key: String, _ allowed: [String]) throws -> String? {
+        guard let s = try string(p, key) else { return nil }
+        let lower = s.lowercased()
+        guard allowed.contains(lower) else {
+            throw CapabilityError.badParams("'\(key)' must be one of: \(allowed.joined(separator: ", "))")
+        }
+        return lower
     }
 
     /// Optional string, trimmed; empty counts as absent.

@@ -50,6 +50,26 @@ enum ActivitySummary {
             return "shown: \(clip(job.params?["title"]?.stringValue ?? job.params?["body"]?.stringValue ?? ""))"
         case "reminders.add":
             return "added: \(clip(r["title"]?.stringValue ?? ""))"
+        case "camera.capture":
+            return "photo \(r["width"]?.stringValue ?? "?")×\(r["height"]?.stringValue ?? "?")"
+        case "mic.record":
+            if let t = r["transcript"]?.stringValue { return clip("“\(t)”") }
+            return "\(r["seconds"]?.stringValue ?? "?") s recorded"
+        case "speak":
+            return "said: \(clip(job.params?["text"]?.stringValue ?? ""))"
+        case "open.url", "shortcuts.run", "settings.open":
+            let target = job.params?["url"]?.stringValue ?? job.params?["name"]?.stringValue ?? job.params?["section"]?.stringValue ?? ""
+            return (r["opened"] == .bool(true) ? "opened " : "could not open ") + clip(target, 80)
+        case "compose.sms", "compose.mail", "call":
+            return "sheet shown" + (r["user_action"]?.stringValue.map { " · \($0)" } ?? "")
+        case "files.write":
+            return "wrote \(r["name"]?.stringValue ?? "") (\(r["size"]?.stringValue ?? "?") bytes)"
+        case "barcode.scan":
+            return clip("\(r["symbology"]?.stringValue ?? ""): \(r["payload"]?.stringValue ?? "")")
+        case "wifi.info":
+            return r["connected"] == .bool(true) ? "on \(r["ssid"]?.stringValue ?? "?")" : "not on Wi-Fi"
+        case "nfc.read":
+            return "\(r["records"]?.arrayValue?.count ?? 0) record(s)"
         default:
             if let count = r["count"]?.stringValue { return "\(count) item(s)" }
             return "ok"

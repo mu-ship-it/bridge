@@ -37,29 +37,28 @@ actor JobLoop {
         let client = BoxClient(config: config)
         do {
             if !unsent.isEmpty {
-                try await client.postResults(unsent)
-                unsent.removeAll()
+                try await deliver(client)
             }
             let response = try await client.fetchJobs(wait: wait)
             lastPollAfter = response.pollAfterSeconds
             log.info("poll (\(trigger, privacy: .public)): \(response.jobs.count) job(s)")
             await AppStatus.shared.setPending(response.jobs.count)
 
-            var results: [JobResult] = []
+            // Each result goes out as soon as its job ends: an interactive job (camera, share
+            // sheet) can take a minute, and earlier results must not wait behind it past their lease.
             for (index, job) in response.jobs.enumerated() {
+                // Backgrounded (e.g. open.url just handed Mu to another app): leave the rest
+                // unrun; the box offers them again when their lease runs out.
+                try Task.checkCancellation()
                 await AppStatus.shared.jobStarted(job)
                 let result = await dispatcher.dispatch(job)
-                results.append(result)
                 await AppStatus.shared.jobFinished(job, result)
                 await AppStatus.shared.setPending(response.jobs.count - index - 1)
+                unsent.append(result)
+                try await deliver(client)
             }
-            if !results.isEmpty {
-                unsent.append(contentsOf: results)
-                try await client.postResults(unsent)
-                unsent.removeAll()
-            }
-            await AppStatus.shared.recordPoll(success: true, message: "OK via \(trigger) — \(results.count) job(s)", unsent: 0)
-            return .ran(jobs: results.count)
+            await AppStatus.shared.recordPoll(success: true, message: "OK via \(trigger) — \(response.jobs.count) job(s)", unsent: 0)
+            return .ran(jobs: response.jobs.count)
         } catch is CancellationError {
             // Backgrounded mid-poll: not an error. Anything leased but unrun is re-offered by the box.
             return .cancelled
@@ -68,6 +67,17 @@ actor JobLoop {
             await AppStatus.shared.recordPoll(success: false, message: error.localizedDescription, unsent: unsent.count)
             return .failed
         }
+    }
+}
+
+extension JobLoop {
+    /// Posts every unsent result. Not cancelled with the poll and given background time, so a
+    /// job that sends Mu to another app (open.url, call, shortcuts.run) still reports back.
+    fileprivate func deliver(_ client: BoxClient) async throws {
+        let batch = unsent
+        guard !batch.isEmpty else { return }
+        try await BackgroundTime.run("post results") { try await client.postResults(batch) }
+        unsent.removeFirst(batch.count)
     }
 }
 

@@ -69,9 +69,23 @@ xcodegen generate   # new files must be added to the Xcode project
 | `photos.recent` | `PhotosRecentCapability.swift` | Photos |
 | `motion.today` | `MotionTodayCapability.swift` | Motion & Fitness |
 | `agent.say` | `AgentSayCapability.swift` | Notifications, only with `notify: true` |
+| `camera.capture` | `CameraCaptureCapability.swift` | Camera · on screen |
+| `barcode.scan` | `BarcodeScanCapability.swift` | Camera · on screen |
+| `mic.record` | `MicRecordCapability.swift` | Microphone, Speech Recognition · on screen |
+| `speak` | `SpeakCapability.swift` | none · on screen |
+| `haptic`, `torch`, `screen.brightness` | `DeviceControlCapabilities.swift` | none · on screen (`torch`: none) |
+| `open.url`, `shortcuts.run`, `settings.open` | `OpenCapabilities.swift` | none · on screen |
+| `compose.sms`, `compose.mail`, `call` | `ComposeCapabilities.swift` | none · on screen; Mu taps Send / Call |
+| `files.write`, `files.read`, `files.list` | `FilesCapabilities.swift` | none (the Files app shows the folder) |
+| `share` | `ShareCapability.swift` | none · on screen |
+| `wifi.info` | `WiFiInfoCapability.swift` | Location + Access Wi-Fi Information entitlement |
+| `nfc.read` | `NFCReadCapability.swift` | NFC entitlement · on screen |
+| `sensors.sample` | `SensorsSampleCapability.swift` | none (barometer: Motion & Fitness) |
+
+"On screen" capabilities show system UI or make themselves seen or heard, which iOS allows only while the app is open. Build them on `Presenter` (`Core/Presenter.swift`): it refuses with `foreground_required` when the app isn't active, keeps the sheet's delegate alive, and closes the sheet at the job's `timeout`, before the box's lease runs out. Check for missing hardware before checking permissions, so the simulator gets a clean `unavailable`.
 
 Every job shows up in the **Activity** feed on the Status screen, newest first, with time · capability · note · status (running/done/failed) and a one-line result. The feed keeps the last 200 jobs and survives a relaunch. To give a new capability a better one-line result than "ok" / "N item(s)", add a case to `ActivitySummary` in `Core/Activity.swift`.
 
-Params for all of them are parsed by small pure types (`…Params`) using the `Params` helpers in `Core/Capability.swift`, and tested in `BridgeTests/CapabilityParamsTests.swift`. Shapes are in [API.md](API.md#capabilities).
+Params for all of them are parsed by small pure types (`…Params`) using the `Params` helpers in `Core/Capability.swift`, and tested in `BridgeTests/CapabilityParamsTests.swift` and `BridgeTests/PhoneCapabilityTests.swift`. Shapes are in [API.md](API.md#capabilities).
 
 The phone reports its capability names to the server in `POST /bridge/devices`, so a server can see what a given phone supports.
