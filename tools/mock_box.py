@@ -13,7 +13,7 @@ import json
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 QUEUE = []          # jobs not yet leased
 LEASED = {}         # job_id -> (job, lease_expiry)
@@ -46,23 +46,37 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
+    def _lease(self):
+        t = time.time()
+        for jid, (job, exp) in list(LEASED.items()):
+            if exp < t:
+                del LEASED[jid]
+                QUEUE.append(job)
+        jobs = QUEUE[:]
+        QUEUE.clear()
+        for j in jobs:
+            LEASED[j["id"]] = (j, t + LEASE_SECONDS)
+        return jobs
+
     def do_GET(self):
-        path = urlparse(self.path).path
+        url = urlparse(self.path)
+        path = url.path
         if path == "/bridge/ping":
             if self._authed(True):
                 self._send(200, {"ok": True, "server_time": now_iso()})
         elif path == "/bridge/jobs":
             if not self._authed(True):
                 return
-            t = time.time()
-            for jid, (job, exp) in list(LEASED.items()):
-                if exp < t:
-                    del LEASED[jid]
-                    QUEUE.append(job)
-            jobs = QUEUE[:]
-            QUEUE.clear()
-            for j in jobs:
-                LEASED[j["id"]] = (j, t + LEASE_SECONDS)
+            try:  # ?wait=<s>: long poll, as in docs/API.md (capped at 30 s)
+                wait = min(30.0, max(0.0, float(parse_qs(url.query).get("wait", ["0"])[0])))
+            except ValueError:
+                return self._send(400, {"error": "wait must be a number of seconds"})
+            deadline = time.time() + wait
+            while True:
+                jobs = self._lease()
+                if jobs or time.time() >= deadline:
+                    break
+                time.sleep(0.5)
             self._send(200, {"jobs": jobs, "poll_after_seconds": 30})
         else:
             self._send(404, {"error": "not found"})

@@ -13,7 +13,7 @@ There is no cloud service and no account. The app talks to exactly one URL, the 
 The app has two base behaviours:
 
 1. **Job loop.** The app polls `GET /bridge/jobs` on your server, runs each job with a *capability*, and posts results to `POST /bridge/results`. A poll is triggered by:
-   - a 30 s timer while the app is open
+   - a long poll while the app is open (`wait=25`, re-issued at once; stops when backgrounded)
    - a silent push from your server
    - iOS background refresh and processing tasks
    - significant location changes (used only as a keep-alive)

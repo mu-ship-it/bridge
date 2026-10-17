@@ -52,7 +52,7 @@ xcodegen generate   # new files must be added to the Xcode project
   python3 tools/mock_box.py --token devtoken
   curl -s -XPOST localhost:8787/_enqueue -d '{"capability":"clipboard.read"}'
   ```
-  The result is printed by the mock within one poll (30 s in the foreground, or tap **Poll now**).
+  The result is printed by the mock within about a second while the app is open (the foreground long poll), or tap **Poll now**.
 
 ## Built-in capabilities
 

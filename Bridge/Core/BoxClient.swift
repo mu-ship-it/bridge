@@ -44,9 +44,20 @@ struct BoxClient: Sendable {
         return (try? JSONDecoder().decode(JSONValue.self, from: data)) ?? .null
     }
 
-    func fetchJobs() async throws -> JobsResponse {
-        let data = try await send(request("bridge/jobs", query: [.init(name: "device", value: config.deviceId)], method: "GET", bearer: true))
+    /// `wait`: long poll — the box holds the request until a job exists or `wait` seconds pass.
+    /// nil = the instant v0.1 behaviour (push, BG refresh, the Poll-now button).
+    func fetchJobs(wait: Int? = nil) async throws -> JobsResponse {
+        let data = try await send(jobsRequest(wait: wait))
         return try JSONDecoder().decode(JobsResponse.self, from: data)
+    }
+
+    func jobsRequest(wait: Int?) -> URLRequest {
+        var query: [URLQueryItem] = [.init(name: "device", value: config.deviceId)]
+        if let wait { query.append(.init(name: "wait", value: String(wait))) }
+        var r = request("bridge/jobs", query: query, method: "GET", bearer: true)
+        // The box answers by `wait`; leave room for the network on top.
+        if let wait { r.timeoutInterval = max(r.timeoutInterval, TimeInterval(wait) + 15) }
+        return r
     }
 
     func postResults(_ results: [JobResult]) async throws {
@@ -87,6 +98,10 @@ struct BoxClient: Sendable {
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
         } catch {
             throw BoxError.transport(error.localizedDescription)
         }

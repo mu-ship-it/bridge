@@ -36,7 +36,7 @@ Sent after APNs hands the phone a device token (at launch, once the box is confi
 ```
 Response: any 2xx.
 
-## `GET /bridge/jobs?device=<id>`
+## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {
   "jobs": [
@@ -56,7 +56,9 @@ Response: any 2xx.
 - Box semantics: when it returns a job, the box **leases** it (suggested lease: 120 s). A leased job is not returned again until the lease runs out or a result arrives. A job with no result after the lease is offered again. This gives at-least-once delivery, so the box ignores duplicate results for the same `job_id`.
 - `note` (optional string) is the agent's one-line, plain-words reason for the job. The phone shows it in the Status screen's activity feed. The phone also accepts it as `params.note`. The reference server rebuilds each job from id/capability/created_at/params, so today `params.note` is the form that reaches the phone through it. Capabilities ignore unknown params.
 - Empty queue: `{"jobs": []}`.
-- `poll_after_seconds` is a hint for the client. It is parsed but not used yet (the foreground poll runs every 30 s).
+- `wait` (optional, seconds) makes this a **long poll**: the box holds the request until a job is queued for this device or `wait` seconds pass, then answers in the same shape (an empty `jobs` list when time ran out). The reference server checks the queue every 0.5 s and caps `wait` at 30; a value that is not a non-negative number is a `400`. Without `wait` the box answers at once, as in v0.1. A box should not lease jobs to a request whose client has already hung up.
+- The phone's foreground connection: while the app is open and active it sends `wait=25` (request timeout 40 s) and re-issues the moment an answer arrives, so a queued job reaches the phone within about a second. Errors back off 2, 4, 8, 16, 32, then 60 s, and reset on the next success. Leaving the foreground cancels the in-flight request and stops the loop; the app never long-polls while hidden. Push, background refresh and the Poll-now button still make single instant polls (no `wait`).
+- `poll_after_seconds` is a hint for the client. The phone uses it only when a box answers a `wait` request empty in under a second (meaning that box ignores `wait`). It then falls back to polling at that interval.
 
 ## `POST /bridge/results`
 ```json

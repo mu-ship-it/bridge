@@ -1,5 +1,6 @@
 """HTTP contract: docs/API.md, exactly — plus the tenancy and audit rules around it."""
 import time
+from contextlib import closing
 
 import db as store
 from conftest import auth
@@ -176,3 +177,50 @@ def test_every_call_leaves_an_audit_row_and_no_bodies(client, conn, account):
     blob = " ".join(str(tuple(row)) for row in rows)
     for secret in ("37.3349", "-122.009", "battery", account["token"], "a" * 64):
         assert secret not in blob
+
+
+def test_jobs_without_wait_answers_at_once(client, account):
+    started = time.monotonic()
+    body = client.get("/bridge/jobs", headers=auth(account), params={"device": "my-iphone"}).json()
+    assert body["jobs"] == [] and time.monotonic() - started < 0.5
+
+
+def test_a_long_poll_returns_as_soon_as_a_job_is_queued(client, conn, account):
+    import threading
+
+    def enqueue_later():
+        time.sleep(1.0)
+        with closing(store.connect()) as other, other:
+            store.enqueue(other, account["id"], "my-iphone", "device.info")
+
+    threading.Thread(target=enqueue_later).start()
+    started = time.monotonic()
+    body = client.get("/bridge/jobs", headers=auth(account),
+                      params={"device": "my-iphone", "wait": "10"}).json()
+    elapsed = time.monotonic() - started
+    assert [job["capability"] for job in body["jobs"]] == ["device.info"]
+    assert 0.9 < elapsed < 3, elapsed
+
+
+def test_a_long_poll_with_an_empty_queue_ends_at_wait(client, conn, account):
+    started = time.monotonic()
+    body = client.get("/bridge/jobs", headers=auth(account),
+                      params={"device": "my-iphone", "wait": "1.2"}).json()
+    assert body["jobs"] == [] and 1.1 < time.monotonic() - started < 3
+    outcomes = [row["outcome"] for row in conn.execute("SELECT outcome FROM audit")]
+    assert "leased:0 wait:1.2" in outcomes
+
+
+def test_wait_is_capped_and_validated(client, account):
+    import app as app_module
+    from starlette.requests import Request
+
+    def request(value):
+        return Request({"type": "http", "query_string": f"wait={value}".encode(), "headers": []})
+
+    assert app_module.wait_seconds(request("600")) == app_module.WAIT_CAP_SECONDS
+    assert app_module.wait_seconds(request("")) == 0
+    for bad in ("soon", "-1", "nan"):
+        response = client.get("/bridge/jobs", headers=auth(account),
+                              params={"device": "my-iphone", "wait": bad})
+        assert response.status_code == 400 and "wait" in response.json()["error"]

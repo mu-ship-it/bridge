@@ -5,7 +5,9 @@ never logs a request or result body (results carry health and location data).
 
 Run under systemd via run.sh; see README.md.
 """
+import asyncio
 import logging
+import time
 from contextlib import closing
 
 from fastapi import FastAPI, Request
@@ -134,17 +136,60 @@ async def register_device(request: Request):
     return {"ok": True}
 
 
+WAIT_CAP_SECONDS = 30
+WAIT_TICK_SECONDS = 0.5
+
+
+def wait_seconds(request):
+    """`?wait=<s>` turns /bridge/jobs into a long poll. Absent = answer at once (the v0.1 shape)."""
+    raw = request.query_params.get("wait")
+    if raw is None or raw.strip() == "":
+        return 0.0
+    try:
+        value = float(raw)
+    except ValueError:
+        raise BadRequest("wait must be a number of seconds")
+    if value != value or value < 0:
+        raise BadRequest("wait must be a number of seconds")
+    return min(value, WAIT_CAP_SECONDS)
+
+
+def _lease_once(account_id, device_id):
+    # Runs on a worker thread: sqlite connections stay on the thread that opened them.
+    with closing(db.connect()) as conn:
+        return db.lease_jobs(conn, account_id, device_id)
+
+
 @app.get("/bridge/jobs")
-def jobs(request: Request):
+async def jobs(request: Request):
     endpoint = "GET /bridge/jobs"
     with closing(db.connect()) as conn:
         account, device_id = authenticate(conn, request, endpoint)
         require_device(conn, account, device_id, endpoint)
+        try:
+            wait = wait_seconds(request)
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:wait")
+            raise
         with conn:
             db.touch_device(conn, account["id"], device_id)
-        rows = db.lease_jobs(conn, account["id"], device_id)
-        with conn:
-            db.audit(conn, account["id"], device_id, endpoint, f"leased:{len(rows)}")
+
+    # Long poll: check the queue every WAIT_TICK_SECONDS until a job appears or `wait` runs out.
+    # A phone that hung up (backgrounded, lost signal) must not be handed jobs it will never see,
+    # so a gone client ends the wait before the next lease rather than after it.
+    deadline = time.monotonic() + wait
+    while True:
+        rows = await asyncio.to_thread(_lease_once, account["id"], device_id)
+        if rows or time.monotonic() >= deadline:
+            break
+        await asyncio.sleep(min(WAIT_TICK_SECONDS, max(0.0, deadline - time.monotonic())))
+        if await request.is_disconnected():
+            break
+
+    with closing(db.connect()) as conn, conn:
+        outcome = f"leased:{len(rows)}" + (f" wait:{wait:g}" if wait else "")
+        db.audit(conn, account["id"], device_id, endpoint, outcome)
     out = []
     for row in rows:
         job = {"id": row["id"], "capability": row["capability"], "created_at": row["created"]}

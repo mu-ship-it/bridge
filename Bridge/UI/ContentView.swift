@@ -8,14 +8,12 @@ struct ContentView: View {
             Tab("Status", systemImage: "antenna.radiowaves.left.and.right") { StatusView() }
             Tab("Settings", systemImage: "gearshape") { SettingsView() }
         }
-        // Foreground job loop: poll every 30 s while the app is active.
+        // Foreground connection: long poll while the app is active. Leaving .active cancels the
+        // task, which cancels the in-flight request — nothing polls once the app is hidden.
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await AppStatus.shared.refreshPermissions()
-            while !Task.isCancelled {
-                await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "foreground")
-                try? await Task.sleep(for: .seconds(30))
-            }
+            await ForegroundPoller(loop: BridgeRuntime.shared.jobLoop).run()
         }
     }
 }
