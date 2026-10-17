@@ -1,0 +1,14 @@
+{
+  "name": "白手套 dark mode",
+  "color": "gray",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.appearance",
+      "params": {
+        "operation": "set",
+        "style": "dark"
+      }
+    }
+  ]
+}

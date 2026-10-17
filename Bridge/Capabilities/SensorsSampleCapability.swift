@@ -83,7 +83,7 @@ struct SensorsSampleCapability: Capability {
             var s: [String: JSONValue] = ["available": .bool(isAvailable), "samples": .array(log.samples(sensor))]
             if sensor == "barometer", !isAvailable, CMAltimeter.isRelativeAltitudeAvailable() {
                 s["reason"] = .string(CMAltimeter.authorizationStatus() == .notDetermined
-                    ? "Motion & Fitness not asked yet: Status → Request Motion" : "Motion & Fitness access denied")
+                    ? "Motion & Fitness not asked yet: Status → Permissions → Ask" : "Motion & Fitness access denied")
             }
             o[sensor] = .object(s)
         }

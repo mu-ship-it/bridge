@@ -1,0 +1,17 @@
+{
+  "name": "白手套 Focus off",
+  "color": "indigo",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.dnd.set",
+      "params": {
+        "Enabled": 0,
+        "FocusModes": {
+          "Identifier": "com.apple.donotdisturb.mode.default",
+          "DisplayString": "Do Not Disturb"
+        }
+      }
+    }
+  ]
+}

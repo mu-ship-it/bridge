@@ -1,6 +1,6 @@
 # Bridge
 
-**Bridge is an agent-agnostic bridge to your iPhone.** It runs on the phone and exposes native iOS capabilities to a server you control, so anything running there can ask the phone a question and get a structured answer back. That could be Claude, Codex, a Hermes agent, a cron job or a ten-line shell script. Current capabilities are health queries, a one-shot location, device state, clipboard, local notifications, calendar, reminders, contacts, recent photos (downscaled), today's steps and `agent.say` (the agent narrates in the app's activity feed), and more can be added ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)).
+**Bridge is an agent-agnostic bridge to your iPhone.** It runs on the phone and exposes native iOS capabilities to a server you control, so anything running there can ask the phone a question and get a structured answer back. That could be Claude, Codex, a Hermes agent, a cron job or a ten-line shell script. It can read health data, location, calendar, reminders, contacts and recent photos. It can take a photo, scan a code, record and transcribe a voice clip, speak, open apps and Settings pages, run Shortcuts, fill in an SMS, email or call for you to confirm, work with files, read NFC tags, sample sensors and control HomeKit accessories. More can be added ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)).
 
 白手套 ("white glove") is the display name of the author's own build.
 
@@ -21,11 +21,35 @@ The app has two base behaviours:
 
 Built-in capabilities:
 
-| Capability | What it returns |
+| Capability | What it does |
 |---|---|
 | `health.query` | Heart rate, resting HR, HRV, respiratory rate, blood oxygen, steps, sleep stages, workouts. Raw samples or hour/day/… buckets |
 | `location.now` | One-shot location fix |
 | `device.info` | Battery, model, iOS version, app version, last sync time |
+| `clipboard.get`, `clipboard.set` | Read or set the pasteboard text |
+| `notify.show`, `agent.say` | A local notification; a line in the app's activity feed |
+| `calendar.events`, `reminders.list`, `reminders.add` | Upcoming events; reminders |
+| `contacts.search`, `photos.recent`, `motion.today` | Contact lookup; recent photos (downscaled); today's steps |
+| `camera.capture`, `barcode.scan` | Opens the camera on screen: a photo you take, or the first code in view |
+| `mic.record` | A short recording (orange dot), transcribed on the phone when the language allows |
+| `speak` | Reads text aloud |
+| `haptic`, `torch`, `screen.brightness` | A tap of the Taptic Engine; the flashlight; display brightness |
+| `open.url`, `shortcuts.run`, `settings.open` | Opens any URL scheme or app; runs one of your Shortcuts; opens a Settings page |
+| `compose.sms`, `compose.mail`, `call` | Fills in Apple's sheet or call prompt. **You** tap Send or Call |
+| `share` | The share sheet, with text, a link or a file |
+| `files.write`, `files.read`, `files.list` | The app's folder, visible in the Files app as "白手套" |
+| `wifi.info`, `nfc.read`, `sensors.sample` | Current Wi-Fi network; an NFC tag you hold the phone to; accelerometer/gyro/magnetometer/barometer |
+| `home.list`, `home.get`, `home.set` | HomeKit accessories already set up in Apple's Home app. Unlocking, opening or disarming asks you first |
+
+### Foreground only, nothing hidden
+
+白手套 is a foreground app by rule, not just because iOS requires it. The agent may use anything iOS permits, but every job carries a plain-words `note`, and the Status screen's activity feed shows each job as it runs and how it ended. The live connection (a long poll) runs only while the app is open; it stops when the app goes to the background. Capabilities that show UI, make a sound or touch hardware (camera, mic, speech, scanner, share and compose sheets, HomeKit…) refuse with `foreground_required` when the app isn't on screen, rather than finding a way around it. In the background the app does only what iOS itself schedules: silent pushes, background refresh and health sync, each of which still lands in the feed. The reason is trust. An agent that can see your health data and open your front door should never act where you can't see it, and iOS keeps the camera, mic and HomeKit behind the same line anyway. Sending, dialling and unlocking always stay one tap of yours.
+
+### Shortcuts and system settings
+
+iOS gives apps no API for Wi-Fi, Bluetooth, Focus, Low Power, appearance or volume, but Shortcuts can change all of them. [`shortcuts/`](shortcuts/README.md) holds a recipe for each, all named "白手套 …". `server/tools/make_shortcut.py` builds them into signed `.shortcut` files that the box hosts, and adding one to the phone is a single tap ("Add Shortcut"). After that the agent calls it with `shortcuts.run`. It runs on screen in the Shortcuts app, which shows it running, so nothing changes silently.
+
+The other direction needs no import. 白手套 ships App Intents ("Run 白手套 Capability", "Speak Text", "Open URL with 白手套", "Show 白手套 Notification", "Add to 白手套 Activity"), and they appear in the Shortcuts app on their own. A Shortcut you build can run any capability and get its JSON result back, and those runs appear in the feed too, noted "From Shortcuts".
 
 The full wire format is in **[docs/API.md](docs/API.md)**. To add your own capability (one file plus one line), see **[docs/CAPABILITIES.md](docs/CAPABILITIES.md)**.
 
@@ -60,11 +84,11 @@ xcrun simctl push booted <your bundle id> /tmp/push.apns
    - `DEVELOPMENT_TEAM`: your 10-character Team ID
    - `BRIDGE_DEFAULT_SERVER_URL` (optional): the URL Settings is prefilled with. The default is the author's server, `https://boringbox.dev`. Write it as `https:/$()/host`, because `//` starts a comment in xcconfig. You can also just type your URL in the app.
 2. `xcodegen generate`, then open the project in Xcode and select your iPhone.
-3. In the Apple Developer portal, enable **HealthKit** and **Push Notifications** for your App ID. Automatic signing usually does this for you. The entitlements are already in `Bridge/Bridge.entitlements`. Background modes come from `Info.plist` and need no portal setup.
+3. In the Apple Developer portal, enable **HealthKit**, **Push Notifications**, **HomeKit**, **Access Wi-Fi Information** and **NFC Tag Reading** for your App ID. Automatic signing usually does this for you, but NFC needs a paid developer account. The entitlements are already in `Bridge/Bridge.entitlements`. Background modes come from `Info.plist` and need no portal setup.
 4. For silent pushes, create an **APNs auth key (.p8)** and give it to your server (never commit it). Your server sends `apns-push-type: background` with your bundle id as `apns-topic`.
 5. On the phone:
-   - Open Bridge → **Status** → **Request Health access**.
-   - Tap **Request Location** twice. The second tap upgrades the permission to *Always*, which the background keep-alive needs.
+   - Open Bridge → **Status** → **Permissions**, and tap **Ask** next to each permission you want to give. Each row says what it is for.
+   - Ask for Location twice. The second tap upgrades the permission to *Always*, which the background keep-alive needs.
    - Make sure Background App Refresh is on.
 
 ## Point it at your own server
@@ -93,6 +117,7 @@ In the simulator app, set the server URL to `http://localhost:8787` and the toke
 - Health and location data are sent only to the configured server URL, over HTTPS.
 - HealthKit access is **read-only**. The app never writes health data.
 - Location: one-shot fixes on request, plus significant-change monitoring as a wake-up signal. No continuous GPS.
+- Camera, microphone, NFC and HomeKit work only while the app is on screen. The camera and scanner show you what they see, recording shows iOS' orange dot, and messages, mail and calls are only ever filled in for you to send.
 - Anyone holding your token can read your health data through your server. Treat the token like a password.
 
 ## Project layout
@@ -100,17 +125,20 @@ In the simulator app, set the server URL to `http://localhost:8787` and the toke
 ```
 project.yml                 XcodeGen spec (the .xcodeproj is generated from this)
 Config/                     Bridge.xcconfig (defaults) + your gitignored Local.xcconfig
-Bridge/App/                 App entry, AppDelegate (push), background tasks, runtime wiring
+Bridge/App/                 App entry, AppDelegate (push), background tasks, runtime wiring, App Intents
 Bridge/Core/                Models, Capability protocol + dispatcher, BoxClient (network), Keychain, job loop, status
 Bridge/Capabilities/        One file per capability + CapabilityRegistry.swift
 Bridge/Health/              HealthKit queries, anchored sync, HAE JSON mapping
 Bridge/Location/            One-shot + significant-change location
+Bridge/Home/                HomeKit (HomeStore: the one HMHomeManager)
 Bridge/UI/                  Status and Settings screens
 BridgeTests/                Unit tests (Swift Testing)
 docs/                       API contract, capability guide
 tools/mock_box.py           Local mock server
 server/                     Reference server (Python 3 + FastAPI + SQLite) — see server/README.md
 server/tools/mock_phone.py  Fake iPhone, for testing a server without one
+server/tools/make_shortcut.py  Builds (and signs) .shortcut files from JSON specs
+shortcuts/recipes/          System-settings recipes: Focus, Wi-Fi, Bluetooth, Low Power, appearance, brightness, volume, flashlight
 ```
 
 ## Related projects
@@ -126,7 +154,7 @@ Other projects connect AI agents and iPhones in different ways. Here is how Brid
 
 ## Status
 
-Early (v0.1). Planned: a watchOS companion with a complication, a Live Activity, and more capabilities.
+v0.3: a live foreground connection, on-screen capabilities, HomeKit and Shortcuts. Planned: a watchOS companion with a complication, a Live Activity, and more capabilities.
 
 ## License
 

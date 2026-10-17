@@ -3,7 +3,9 @@ import SwiftUI
 struct StatusView: View {
     private var status = AppStatus.shared
     @State private var busy = false
-    @State private var homeState = PermissionState.notAsked
+    @State private var filter = ActivityFilter.all
+    @State private var confirmClear = false
+    @State private var permissions: [PermissionKind: String] = [:]
 
     var body: some View {
         NavigationStack {
@@ -17,51 +19,107 @@ struct StatusView: View {
                     }
                     Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
                 }
-                Section("Activity") {
-                    if status.activity.isEmpty { Text("Nothing yet").foregroundStyle(.secondary) }
-                    ForEach(status.activity) { ActivityRow(entry: $0) }
-                }
+                activitySection
                 Section("Health sync") {
                     row("Last sync", status.lastSync)
                     LabeledContent("Result", value: status.lastSyncMessage)
                     Button("Sync now") { run { await BridgeRuntime.shared.healthSync.syncNow(trigger: "button") } }
                 }
-                Section("Permissions") {
-                    LabeledContent("Health", value: status.healthState)
-                    LabeledContent("Location", value: status.locationState)
-                    LabeledContent("Push", value: status.pushState)
-                    LabeledContent("Background refresh", value: status.backgroundRefreshState)
-                    Button("Request Health access") {
-                        run { try? await HealthService.shared.requestAuthorization() }
-                    }
-                    Button("Request Location (Always)") { LocationService.shared.requestAuthorization() }
-                    Button("Request Notifications") { run { _ = try? await NotifyShowCapability.requestAuthorization() } }
-                    Button("Request Calendar") { run { _ = await EventKitAccess.requestCalendar() } }
-                    Button("Request Reminders") { run { _ = await EventKitAccess.requestReminders() } }
-                    Button("Request Contacts") { run { _ = await ContactsSearchCapability.requestAuthorization() } }
-                    Button("Request Photos") { run { _ = await PhotosRecentCapability.requestAuthorization() } }
-                    Button("Request Motion") { run { await MotionTodayCapability.requestAuthorization() } }
-                    Button("Request Camera") { run { await CameraAccess.requestAuthorization() } }
-                    Button("Request Microphone") { run { await MicRecordCapability.requestMicrophone() } }
-                    Button("Request Speech Recognition") { run { await MicRecordCapability.requestSpeech() } }
-                }
-                Section {
-                    LabeledContent("Home access", value: homeState)
-                    Button("Request Home") { HomeStore.shared.requestAuthorization(); homeState = HomeStore.shared.state }
-                } header: {
-                    Text("Home")
-                } footer: {
-                    Text("Accessories are added and paired in Apple's Home app, not here. 白手套 sees and controls only what the Home app already has, and only while it is open. Unlocking, opening a garage door or disarming always asks you first.")
-                }
+                permissionsSection
                 Section("Capabilities") {
                     ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
                 }
             }
             .navigationTitle("Bridge")
             .disabled(busy)
-            .refreshable { await status.refreshPermissions(); homeState = HomeStore.shared.state }
-            .task { homeState = HomeStore.shared.state }
+            .refreshable { await refreshPermissions() }
+            .task { await refreshPermissions() }
         }
+    }
+
+    // MARK: Activity
+
+    private var activitySection: some View {
+        let shown = filter.apply(status.activity)
+        return Section {
+            HStack(spacing: 8) {
+                ForEach(ActivityFilter.allCases) { chip in
+                    let count = chip.apply(status.activity).count
+                    Button("\(chip.title) \(count)") { filter = chip }
+                        .buttonStyle(.bordered)
+                        .tint(filter == chip ? .accentColor : .secondary)
+                        .controlSize(.small)
+                        .accessibilityAddTraits(filter == chip ? .isSelected : [])
+                }
+                Spacer()
+                Button("Clear", role: .destructive) { confirmClear = true }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .disabled(status.activity.allSatisfy { $0.status == .running })
+            }
+            if shown.isEmpty {
+                Text(status.activity.isEmpty ? "Nothing yet" : "Nothing \(filter.rawValue)").foregroundStyle(.secondary)
+            }
+            ForEach(shown) { ActivityRow(entry: $0) }
+        } header: {
+            Text("Activity")
+        }
+        .confirmationDialog("Clear the activity feed?", isPresented: $confirmClear, titleVisibility: .visible) {
+            Button("Clear finished jobs", role: .destructive) { status.clearActivity() }
+        } message: {
+            Text("Running jobs stay. The box keeps its own record of every job and result.")
+        }
+    }
+
+    // MARK: Permissions
+
+    private var permissionsSection: some View {
+        Section {
+            ForEach(PermissionKind.allCases) { kind in
+                let state = permissions[kind] ?? "…"
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(kind.title)
+                        Text(kind.usedBy).font(.caption).foregroundStyle(.secondary)
+                        Text(state).font(.caption).foregroundStyle(color(state))
+                    }
+                    Spacer()
+                    switch kind.action(for: state) {
+                    case .ask:
+                        Button("Ask") { run { await kind.request(); await refreshPermissions() } }
+                            .buttonStyle(.bordered).controlSize(.small)
+                    case .openSettings:
+                        Button("Open Settings") { openSettings() }
+                            .buttonStyle(.bordered).controlSize(.small)
+                    case .none:
+                        EmptyView()
+                    }
+                }
+            }
+            LabeledContent("Push", value: status.pushState)
+            LabeledContent("Background refresh", value: status.backgroundRefreshState)
+        } header: {
+            Text("Permissions")
+        } footer: {
+            Text("iOS asks for each permission only once; after “Don't Allow” the switch lives in Settings. Home accessories are added and paired in Apple's Home app, not here: 白手套 sees only what the Home app already has. Unlocking, opening a garage door or disarming always asks you first.")
+        }
+    }
+
+    private func color(_ state: String) -> Color {
+        switch state {
+        case PermissionState.granted, "Always": .green
+        case PermissionState.denied, "Denied": .red
+        default: .secondary
+        }
+    }
+
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+    }
+
+    private func refreshPermissions() async {
+        await status.refreshPermissions()
+        for kind in PermissionKind.allCases { permissions[kind] = await kind.state() }
     }
 
     private func row(_ label: String, _ date: Date?) -> some View {
@@ -74,7 +132,7 @@ struct StatusView: View {
         busy = true
         Task {
             await action()
-            await status.refreshPermissions()
+            await refreshPermissions()
             busy = false
         }
     }
@@ -83,6 +141,7 @@ struct StatusView: View {
 /// One activity-feed row: time · capability · status, then the agent's note and a one-line result.
 private struct ActivityRow: View {
     let entry: ActivityEntry
+    @State private var copied = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -101,6 +160,18 @@ private struct ActivityRow: View {
                     if let note = entry.note { Text(note) }
                     if !entry.summary.isEmpty { Text(entry.summary).font(.caption).lineLimit(1) }
                 }
+            }
+            Spacer(minLength: 0)
+            if entry.status != .running {
+                Button {
+                    UIPasteboard.general.string = entry.copyText
+                    copied = true
+                    Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
+                } label: {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(copied ? "Copied" : "Copy result")
             }
         }
     }

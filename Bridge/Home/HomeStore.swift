@@ -8,7 +8,7 @@ import UIKit
 final class HomeStore: NSObject, HMHomeManagerDelegate {
     static let shared = HomeStore()
 
-    /// Set by the Status screen's "Request Home" button. Creating an HMHomeManager is what makes
+    /// Set by the Status screen's "Ask" button for Home. Creating an HMHomeManager is what makes
     /// iOS ask, so a job never creates one before Mu has asked for it on screen.
     private static let requestedKey = "home.requested"
     private var manager: HMHomeManager?

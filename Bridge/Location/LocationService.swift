@@ -44,7 +44,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         case .denied, .restricted:
             throw CapabilityError(code: "permission_denied", message: "Location access denied")
         case .notDetermined:
-            throw CapabilityError(code: "permission_missing", message: "Location not requested yet — open Bridge → Status → Request Location")
+            throw CapabilityError(code: "permission_missing", message: "Location not requested yet — open Bridge → Status → Permissions → Ask next to Location")
         default: break
         }
         let timer = Task { [weak self] in

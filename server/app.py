@@ -7,11 +7,13 @@ Run under systemd via run.sh; see README.md.
 """
 import asyncio
 import logging
+import re
 import time
 from contextlib import closing
+from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 import apns
 import config
@@ -100,6 +102,25 @@ async def json_body(request):
 def health():
     """Unauthenticated liveness for systemd and the smoke script. Reveals nothing, audits nothing."""
     return {"ok": True, "service": "bridge", "version": VERSION}
+
+
+SHORTCUT_FILE = re.compile(r"^[a-z0-9][a-z0-9-]*\.shortcut$")
+
+
+@app.get("/bridge/shortcuts/{name}")
+def shortcut_file(name: str):
+    """A signed shortcut for the phone to import (`shortcuts://import-shortcut?url=…`).
+
+    Unauthenticated on purpose: the Shortcuts app fetches the URL itself and cannot send a
+    bearer token. Only signed recipe files live here (no secrets, nothing per-user), and only
+    plain `<slug>.shortcut` names are served — never `*.unsigned.shortcut`, never a path.
+    """
+    if not SHORTCUT_FILE.match(name):
+        return JSONResponse({"error": "not found"}, status_code=404)
+    path = Path(config.get("BRIDGE_SHORTCUTS_DIR")).expanduser() / name
+    if not path.is_file():
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(path, media_type="application/octet-stream", filename=name)
 
 
 @app.get("/bridge/ping")

@@ -1,0 +1,13 @@
+{
+  "name": "白手套 flashlight on",
+  "color": "orange",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.flashlight",
+      "params": {
+        "WFFlashlightSetting": "On"
+      }
+    }
+  ]
+}

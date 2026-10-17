@@ -213,7 +213,7 @@ params: `seconds` (1–60, default 10), `transcribe` (default true), `audio` (de
 ```json
 { "seconds": 10, "m4a_base64": "AAAAHGZ0eXBNNEEg…", "transcript": "remind me to call the bank", "on_device": true, "locale": "en_US" }
 ```
-Needs Microphone, plus Speech Recognition for `transcribe` (Status → Request …).
+Needs Microphone, plus Speech Recognition for `transcribe` (Status → Permissions → Ask).
 
 ### `speak`
 params: `text` (required, ≤ 4000 chars), `rate` (0–1, default 0.5 = normal speed), `voice` (a language like `zh-CN`, or a voice identifier; default is a voice for the text's own language). Reads aloud, even with the ring switch on silent, and answers once it has finished: `{"spoken": true, "voice": "com.apple.voice.compact.zh-CN.Tingting", "seconds": 3.4}`.
@@ -263,7 +263,7 @@ params: `seconds` (1–10, default 2), `hz` (1–50, default 10). Raw readings o
 `accelerometer` `[t, x, y, z]` g · `gyro` `[t, x, y, z]` rad/s · `magnetometer` `[t, x, y, z]` µT · `barometer` `[t, kPa, relative_altitude_m]` (about 1 Hz; needs Motion & Fitness, otherwise `available: false` with a `reason`).
 
 ### HomeKit: `home.list`, `home.get`, `home.set`
-白手套 sees and controls the accessories **already set up in Apple's Home app**. Pairing, rooms, scenes and automations stay there. HomeKit answers only while the app is on screen (`foreground_required` otherwise). Mu grants access once with Status → **Request Home**. The simulator answers `unavailable`.
+白手套 sees and controls the accessories **already set up in Apple's Home app**. Pairing, rooms, scenes and automations stay there. HomeKit answers only while the app is on screen (`foreground_required` otherwise). Mu grants access once with Status → Permissions → **Ask** next to Home. The simulator answers `unavailable`.
 
 - `home.list` `{home?}`: every home → room → accessory → service → characteristic, with last-known values, plus `summary`, one plain line per accessory:
 ```json
@@ -283,7 +283,10 @@ params: `seconds` (1–10, default 2), `hz` (1–50, default 10). Raw readings o
 
 **Unlocking a lock, opening a garage door or disarming a security system asks Mu on screen first** ("Your agent asks to unlock “Front Door” (Hallway)"). "Don't Allow" is `cancelled`; no answer within `timeout` (default 90 s) is `timeout`. Locking, closing and arming never ask. An accessory that is off or out of range is `unavailable`.
 
-Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap the matching **Request …** button on the Status screen), `permission_denied`, `unavailable`, `not_found`, `foreground_required`, `cancelled`, `timeout`.
+Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap **Ask** next to it in the Status screen's Permissions section), `permission_denied`, `unavailable`, `not_found`, `foreground_required`, `cancelled`, `timeout`.
+
+### Called from the phone's own Shortcuts (App Intents)
+Shortcuts that Mu builds can call 白手套 directly, without the box: **Run 白手套 Capability** (any capability by name, params as JSON text, returns the result as JSON text), **Speak Text**, **Open URL with 白手套**, **Show 白手套 Notification** and **Add to 白手套 Activity**. They appear in the Shortcuts app with no import. Each one opens the app, runs through the same dispatcher, and shows in the activity feed with the note "From Shortcuts". A failure carries its error code. These runs are local, so nothing is posted to the box.
 
 ---
 
@@ -344,6 +347,9 @@ unique within its account, and every query is scoped by account, so two tenants 
 "duplicate": n, "unknown": n, "invalid": n}` — the contract only requires 2xx, and the app
 ignores the body; the counts are there for curl and for the smoke script. `duplicate` is the
 at-least-once case the contract tells the box to swallow.
+
+### `GET /bridge/shortcuts/<slug>.shortcut` (server only)
+Serves a signed shortcut file from `BRIDGE_SHORTCUTS_DIR`, for `shortcuts://import-shortcut?url=…` (see [shortcuts/README.md](../shortcuts/README.md)). This route takes **no token**, because the Shortcuts app fetches the file itself. Only plain `<slug>.shortcut` names are served: no paths, no `*.unsigned.shortcut`. Anything else is a `404`.
 
 ### `GET /bridge/health` (server only)
 Unauthenticated liveness, for systemd and deployment checks. Not part of the phone contract —

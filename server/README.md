@@ -53,6 +53,7 @@ BRIDGE_LISTEN=127.0.0.1:8798             # behind a reverse proxy that terminate
 BRIDGE_LEASE_SECONDS=120
 BRIDGE_MAX_ATTEMPTS=3
 BRIDGE_POLL_AFTER_SECONDS=30
+BRIDGE_SHORTCUTS_DIR=~/bridge-data/shortcuts   # signed .shortcut files served at /bridge/shortcuts/<slug>.shortcut
 
 # APNs — all four needed for silent push; leave empty and push becomes a logged no-op.
 APNS_KEY_PATH=/path/to/AuthKey_XXXXXXXXXX.p8

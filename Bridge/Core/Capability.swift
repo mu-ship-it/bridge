@@ -22,9 +22,9 @@ struct CapabilityError: Error, LocalizedError, Sendable, Equatable {
         CapabilityError(code: "unavailable", message: message)
     }
 
-    /// Never asked: open the app → Status → the matching "Request …" button.
+    /// Never asked: open the app → Status → Permissions → "Ask" next to it.
     static func permissionMissing(_ what: String) -> CapabilityError {
-        CapabilityError(code: "permission_missing", message: "\(what) access not granted yet. Open the app → Status → Request \(what).")
+        CapabilityError(code: "permission_missing", message: "\(what) access not asked yet. Open the app → Status → Permissions → Ask next to \(what).")
     }
 
     static func permissionDenied(_ what: String) -> CapabilityError {

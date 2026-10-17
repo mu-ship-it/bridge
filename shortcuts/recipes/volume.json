@@ -1,0 +1,24 @@
+{
+  "name": "白手套 volume",
+  "color": "pink",
+  "input": true,
+  "about": "Input: a number from 0 to 1 (0.6 = 60 percent). shortcuts.run {\"name\": \"白手套 volume\", \"input\": \"0.6\"}",
+  "actions": [
+    {
+      "id": "is.workflow.actions.detect.number",
+      "params": {
+        "WFInput": {
+          "$input": true
+        }
+      }
+    },
+    {
+      "id": "is.workflow.actions.setvolume",
+      "params": {
+        "WFVolume": {
+          "$output": "Numbers"
+        }
+      }
+    }
+  ]
+}

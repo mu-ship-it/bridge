@@ -10,6 +10,29 @@ struct ActivityEntry: Codable, Sendable, Equatable, Identifiable {
     let note: String?
     var status: Status
     var summary: String
+    /// The full result (or error) as pretty JSON, for the row's Copy button. Kept in memory only,
+    /// never persisted: it can hold contact details or file contents. Rows from before a relaunch copy `summary`.
+    var detail: String? = nil
+
+    enum CodingKeys: String, CodingKey { case id, time, capability, note, status, summary }
+
+    /// What Copy puts on the pasteboard.
+    var copyText: String { detail ?? summary }
+}
+
+/// The feed's filter chips.
+enum ActivityFilter: String, CaseIterable, Identifiable, Sendable {
+    case all, failed, running
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+
+    func apply(_ entries: [ActivityEntry]) -> [ActivityEntry] {
+        switch self {
+        case .all: entries
+        case .failed: entries.filter { $0.status == .failed }
+        case .running: entries.filter { $0.status == .running }
+        }
+    }
 }
 
 extension Job {
@@ -73,6 +96,32 @@ enum ActivitySummary {
         default:
             if let count = r["count"]?.stringValue { return "\(count) item(s)" }
             return "ok"
+        }
+    }
+
+    /// Pretty JSON of the whole result for copying. Long base64 strings (photos, audio, files) become
+    /// a size note so a copy stays readable; the text is capped at 64 000 characters.
+    static func detail(_ result: JobResult) -> String {
+        let value: JSONValue = result.ok
+            ? (result.result ?? .null)
+            : .object(["error": .object(["code": .string(result.error?.code ?? "error"), "message": .string(result.error?.message ?? "")])])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        guard let data = try? encoder.encode(elideBlobs(value)) else { return "" }
+        let text = String(decoding: data, as: UTF8.self)
+        return text.count > 64_000 ? String(text.prefix(64_000)) + "\n…" : text
+    }
+
+    static func elideBlobs(_ value: JSONValue, key: String = "") -> JSONValue {
+        switch value {
+        case .string(let s) where s.count > 512 && (key.hasSuffix("base64") || key == "base64"):
+            return .string("<\(key): \(s.count * 3 / 4 / 1024) KB, left out of the copy>")
+        case .object(let o):
+            return .object(Dictionary(uniqueKeysWithValues: o.map { ($0.key, elideBlobs($0.value, key: $0.key)) }))
+        case .array(let a):
+            return .array(a.map { elideBlobs($0, key: key) })
+        default:
+            return value
         }
     }
 

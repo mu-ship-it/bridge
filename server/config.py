@@ -20,6 +20,8 @@ DEFAULTS = {
     "BRIDGE_MAX_ATTEMPTS": "3",
     "BRIDGE_POLL_AFTER_SECONDS": "30",
     "BRIDGE_MAX_JOBS_PER_POLL": "20",
+    # Signed .shortcut files the phone may import (server/tools/make_shortcut.py --sign -o here).
+    "BRIDGE_SHORTCUTS_DIR": str(Path("~/bridge-data/shortcuts").expanduser()),
     # APNs is optional. Unset = pushes become a logged no-op; everything else still works.
     "APNS_KEY_PATH": "",
     "APNS_KEY_ID": "",

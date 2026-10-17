@@ -64,13 +64,21 @@ final class AppStatus {
     func jobFinished(_ job: Job, _ result: JobResult) {
         let summary = ActivitySummary.summarize(job, result)
         let status: ActivityEntry.Status = result.ok ? .done : .failed
+        let detail = ActivitySummary.detail(result)
         if let i = activity.firstIndex(where: { $0.id == job.id }) {
             activity[i].status = status
             activity[i].summary = summary
+            activity[i].detail = detail
         } else {
             activity.insert(ActivityEntry(id: job.id, time: Date(), capability: job.capability, note: job.displayNote,
-                                          status: status, summary: summary), at: 0)
+                                          status: status, summary: summary, detail: detail), at: 0)
         }
+        saveActivity()
+    }
+
+    /// Clears finished rows; a job still running keeps its row so its result has somewhere to land.
+    func clearActivity() {
+        activity.removeAll { $0.status != .running }
         saveActivity()
     }
 

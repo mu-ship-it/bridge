@@ -1,0 +1,13 @@
+{
+  "name": "白手套 Wi-Fi on",
+  "color": "blue",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.wifi.set",
+      "params": {
+        "OnValue": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "白手套 Low Power off",
+  "color": "yellow",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.lowpowermode.set",
+      "params": {
+        "OnValue": false
+      }
+    }
+  ]
+}

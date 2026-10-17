@@ -1,0 +1,13 @@
+{
+  "name": "白手套 Bluetooth off",
+  "color": "blue",
+  "input": false,
+  "actions": [
+    {
+      "id": "is.workflow.actions.bluetooth.set",
+      "params": {
+        "OnValue": false
+      }
+    }
+  ]
+}

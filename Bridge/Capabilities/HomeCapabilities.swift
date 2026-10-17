@@ -2,7 +2,7 @@ import Foundation
 
 // HomeKit: 白手套 sees and controls the accessories already set up in Apple's Home app.
 // Pairing, rooms and automations stay in the Home app. HomeKit answers only while the app is
-// on screen, and iOS asks Mu once for Home access (Status → Request Home).
+// on screen, and iOS asks Mu once for Home access (Status → Permissions → Ask).
 
 /// `home.list` {home?} → every home, room, accessory, service and characteristic, with
 /// last-known values, plus `summary`: one plain line per accessory ("Living Room / Lamp: power on, brightness 60").
