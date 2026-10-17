@@ -26,11 +26,11 @@ targets:
         PRODUCT_NAME: Bridge
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID)
         TARGETED_DEVICE_FAMILY: "1"
-        INFOPLIST_KEY_CFBundleDisplayName: Bridge
+        INFOPLIST_KEY_CFBundleDisplayName: 白手套
     info:
       path: Bridge/Info.plist
       properties:
-        CFBundleDisplayName: Bridge
+        CFBundleDisplayName: 白手套
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -38,6 +38,11 @@ targets:
         NSHealthShareUsageDescription: "Bridge reads your health data (heart rate, HRV, sleep, workouts, steps…) and sends it only to the server URL you configure."
         NSLocationWhenInUseUsageDescription: "Bridge reports your current location to your server when it asks."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Bridge uses significant location changes to wake up and check your server for jobs, and reports a one-shot location when the server asks. No continuous GPS."
+        NSCalendarsFullAccessUsageDescription: "Bridge lists your upcoming calendar events when your server asks, and sends them only to the server URL you configure."
+        NSRemindersFullAccessUsageDescription: "Bridge lists and adds reminders when your server asks, and sends them only to the server URL you configure."
+        NSContactsUsageDescription: "Bridge looks up a contact's name, phone numbers and emails when your server asks, and sends at most 20 matches to the server URL you configure."
+        NSPhotoLibraryUsageDescription: "Bridge sends small, downscaled copies of your most recent photos to your server when it asks. Full-resolution images never leave the phone."
+        NSMotionUsageDescription: "Bridge reports today's steps, distance and floors to your server when it asks."
         UIBackgroundModes: [fetch, processing, remote-notification, location]
         BGTaskSchedulerPermittedIdentifiers:
           - $(PRODUCT_BUNDLE_IDENTIFIER).refresh

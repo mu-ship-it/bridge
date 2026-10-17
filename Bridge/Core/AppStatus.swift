@@ -13,20 +13,33 @@ final class AppStatus {
     private(set) var unsentResults = 0
     private(set) var lastSync: Date?
     private(set) var lastSyncMessage = "Never synced"
-    private(set) var recentJobs: [String] = []
+    /// Newest first, max `activityLimit`, persisted so it survives relaunch.
+    private(set) var activity: [ActivityEntry] = []
     private(set) var healthState = "Unknown"
     private(set) var locationState = "Unknown"
     private(set) var pushState = "Not registered"
     private(set) var backgroundRefreshState = "Unknown"
 
     private let defaults = UserDefaults.standard
+    static let activityLimit = 200
 
     private init() {
         lastPoll = defaults.object(forKey: "status.lastPoll") as? Date
         lastPollMessage = defaults.string(forKey: "status.lastPollMessage") ?? lastPollMessage
         lastSync = defaults.object(forKey: "status.lastSync") as? Date
         lastSyncMessage = defaults.string(forKey: "status.lastSyncMessage") ?? lastSyncMessage
-        recentJobs = defaults.stringArray(forKey: "status.recentJobs") ?? []
+        if let data = defaults.data(forKey: "status.activity"),
+           let saved = try? JSONDecoder().decode([ActivityEntry].self, from: data) {
+            // Anything still "running" was cut off by a relaunch; the server re-offers it after the lease.
+            activity = saved.map { e in
+                guard e.status == .running else { return e }
+                var e = e
+                e.status = .failed
+                e.summary = "interrupted (app was suspended or quit)"
+                return e
+            }
+        }
+        defaults.removeObject(forKey: "status.recentJobs")
     }
 
     func recordPoll(success: Bool, message: String, unsent: Int) {
@@ -41,11 +54,29 @@ final class AppStatus {
 
     func setPending(_ count: Int) { pendingJobs = max(0, count) }
 
-    func recordJob(_ result: JobResult, capability: String) {
-        let time = Date().formatted(date: .omitted, time: .standard)
-        let line = "\(time) \(capability) \(result.ok ? "ok" : "✗ \(result.error?.code ?? "error")")"
-        recentJobs = Array(([line] + recentJobs).prefix(20))
-        defaults.set(recentJobs, forKey: "status.recentJobs")
+    func jobStarted(_ job: Job) {
+        activity.removeAll { $0.id == job.id } // a re-leased job replaces its earlier row
+        activity.insert(ActivityEntry(id: job.id, time: Date(), capability: job.capability, note: job.displayNote,
+                                      status: .running, summary: ""), at: 0)
+        saveActivity()
+    }
+
+    func jobFinished(_ job: Job, _ result: JobResult) {
+        let summary = ActivitySummary.summarize(job, result)
+        let status: ActivityEntry.Status = result.ok ? .done : .failed
+        if let i = activity.firstIndex(where: { $0.id == job.id }) {
+            activity[i].status = status
+            activity[i].summary = summary
+        } else {
+            activity.insert(ActivityEntry(id: job.id, time: Date(), capability: job.capability, note: job.displayNote,
+                                          status: status, summary: summary), at: 0)
+        }
+        saveActivity()
+    }
+
+    private func saveActivity() {
+        if activity.count > Self.activityLimit { activity.removeLast(activity.count - Self.activityLimit) }
+        if let data = try? JSONEncoder().encode(activity) { defaults.set(data, forKey: "status.activity") }
     }
 
     func recordSync(success: Bool, message: String) {

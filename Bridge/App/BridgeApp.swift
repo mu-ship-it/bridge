@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @main
 struct BridgeApp: App {
@@ -12,10 +13,11 @@ struct BridgeApp: App {
     }
 }
 
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         BackgroundTasks.register()
+        UNUserNotificationCenter.current().delegate = self
         BridgeRuntime.shared.start()
         // Silent (content-available) pushes don't need the user notification prompt.
         application.registerForRemoteNotifications()
@@ -29,6 +31,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         AppStatus.shared.setPushState("APNs unavailable: \(error.localizedDescription)")
+    }
+
+    /// Show `notify.show` banners even while the app is open.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                            willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
     }
 
     /// Silent push (`"aps":{"content-available":1}`) → one job poll.

@@ -5,5 +5,15 @@ enum CapabilityRegistry {
         HealthQueryCapability(),
         LocationNowCapability(),
         DeviceInfoCapability(),
+        ClipboardGetCapability(),
+        ClipboardSetCapability(),
+        NotifyShowCapability(),
+        CalendarEventsCapability(),
+        RemindersListCapability(),
+        RemindersAddCapability(),
+        ContactsSearchCapability(),
+        PhotosRecentCapability(),
+        MotionTodayCapability(),
+        AgentSayCapability(),
     ]
 }

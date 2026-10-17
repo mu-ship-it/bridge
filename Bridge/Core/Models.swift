@@ -52,6 +52,21 @@ enum JSONValue: Codable, Sendable, Equatable {
         }
     }
 
+    /// Accepts JSON booleans, 0/1 and "true"/"false" strings.
+    var boolValue: Bool? {
+        switch self {
+        case .bool(let b): return b
+        case .number(let n): return n != 0
+        case .string(let s):
+            switch s.lowercased() {
+            case "true", "yes", "1": return true
+            case "false", "no", "0": return false
+            default: return nil
+            }
+        default: return nil
+        }
+    }
+
     var arrayValue: [JSONValue]? {
         if case .array(let a) = self { return a }
         return nil
@@ -64,9 +79,11 @@ struct Job: Codable, Sendable, Equatable, Identifiable {
     let capability: String
     var params: [String: JSONValue]?
     var createdAt: String?
+    /// Optional one-line, plain-words reason from the agent, shown in the activity feed.
+    var note: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, capability, params
+        case id, capability, params, note
         case createdAt = "created_at"
     }
 }

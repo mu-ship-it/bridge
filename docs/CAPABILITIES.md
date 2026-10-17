@@ -54,4 +54,24 @@ xcodegen generate   # new files must be added to the Xcode project
   ```
   The result is printed by the mock within one poll (30 s in the foreground, or tap **Poll now**).
 
+## Built-in capabilities
+
+| name | file | permission |
+|---|---|---|
+| `health.query` | `HealthQueryCapability.swift` | Health |
+| `location.now` | `LocationNowCapability.swift` | Location |
+| `device.info` | `DeviceInfoCapability.swift` | none |
+| `clipboard.get`, `clipboard.set` | `ClipboardCapabilities.swift` | none (iOS may show "Allow Paste") |
+| `notify.show` | `NotifyShowCapability.swift` | Notifications (asked on first use) |
+| `calendar.events` | `EventKitCapabilities.swift` | Calendar (full access) |
+| `reminders.list`, `reminders.add` | `EventKitCapabilities.swift` | Reminders (full access) |
+| `contacts.search` | `ContactsSearchCapability.swift` | Contacts |
+| `photos.recent` | `PhotosRecentCapability.swift` | Photos |
+| `motion.today` | `MotionTodayCapability.swift` | Motion & Fitness |
+| `agent.say` | `AgentSayCapability.swift` | Notifications, only with `notify: true` |
+
+Every job shows up in the **Activity** feed on the Status screen, newest first, with time · capability · note · status (running/done/failed) and a one-line result. The feed keeps the last 200 jobs and survives a relaunch. To give a new capability a better one-line result than "ok" / "N item(s)", add a case to `ActivitySummary` in `Core/Activity.swift`.
+
+Params for all of them are parsed by small pure types (`…Params`) using the `Params` helpers in `Core/Capability.swift`, and tested in `BridgeTests/CapabilityParamsTests.swift`. Shapes are in [API.md](API.md#capabilities).
+
 The phone reports its capability names to the server in `POST /bridge/devices`, so a server can see what a given phone supports.

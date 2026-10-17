@@ -44,7 +44,8 @@ Response: any 2xx.
       "id": "j_01JA9X",
       "capability": "health.query",
       "params": { "metric": "hrv", "from": "2026-10-15T00:00:00+08:00", "to": "2026-10-16T00:00:00+08:00", "interval": "hour" },
-      "created_at": "2026-10-16T08:00:00+08:00"
+      "created_at": "2026-10-16T08:00:00+08:00",
+      "note": "Checking how you slept before suggesting a run"
     },
     { "id": "j_01JA9Y", "capability": "location.now", "params": { "timeout": 15 } },
     { "id": "j_01JA9Z", "capability": "device.info" }
@@ -53,6 +54,7 @@ Response: any 2xx.
 }
 ```
 - Box semantics: when it returns a job, the box **leases** it (suggested lease: 120 s). A leased job is not returned again until the lease runs out or a result arrives. A job with no result after the lease is offered again. This gives at-least-once delivery, so the box ignores duplicate results for the same `job_id`.
+- `note` (optional string) is the agent's one-line, plain-words reason for the job. The phone shows it in the Status screen's activity feed. The phone also accepts it as `params.note`. The reference server rebuilds each job from id/capability/created_at/params, so today `params.note` is the form that reaches the phone through it. Capabilities ignore unknown params.
 - Empty queue: `{"jobs": []}`.
 - `poll_after_seconds` is a hint for the client. It is parsed but not used yet (the foreground poll runs every 30 s).
 
@@ -131,6 +133,60 @@ No params.
   "background_refresh": "Available"
 }
 ```
+
+
+### `clipboard.get`
+No params. iOS may show "Allow Paste" in the foreground; in the background the text is usually `null`.
+```json
+{ "text": "hello", "has_image": false, "changed_at": "2026-10-16T00:00:00Z" }
+```
+`changed_at` is present only when the current content was written by `clipboard.set`.
+
+### `clipboard.set`
+params: `text` (string, required). Result `{"ok": true}`.
+
+### `notify.show`
+params: `title`, `body` (at least one; max 200 / 4000 chars), `sound` (bool, default true). Shows a local notification immediately. The first call asks for notification permission (the prompt only appears while the app is open; there is also a Status button). Result `{"ok": true, "id": "bridge.<job id>"}`.
+
+### `calendar.events`
+params: `from`, `to` (ISO-8601 or `yyyy-MM-dd`; default now → +7 days; max 366 days). Max 500 events.
+```json
+{ "from": "…", "to": "…", "count": 1,
+  "events": [ { "title": "Standup", "start": "2026-10-16T01:00:00Z", "end": "2026-10-16T01:15:00Z", "location": null, "calendar": "Work", "all_day": false } ] }
+```
+
+### `reminders.list`
+params: `completed` (bool, default false → open reminders). Max 500.
+```json
+{ "count": 1, "reminders": [ { "id": "…", "title": "Buy tea", "due": "2026-10-17", "completed": false, "list": "Errands", "notes": "…" } ] }
+```
+`due` is `yyyy-MM-dd` for date-only reminders, ISO-8601 otherwise; omitted when unset.
+
+### `reminders.add`
+params: `title` (required), `due` (ISO-8601 date-time adds an alarm; `yyyy-MM-dd` = date only), `list` (list name, case-insensitive; default list if omitted, `not_found` if no match). Result: the new reminder, same shape as a `reminders.list` item.
+
+### `contacts.search`
+params: `query` (required; name, email or phone number), `limit` (1–20, default 20).
+```json
+{ "count": 1, "contacts": [ { "name": "Alice Example", "phones": ["+1 555 0100"], "emails": ["alice@example.com"] } ] }
+```
+
+### `photos.recent`
+params: `count` (1–10, default 3), `max_px` (64–2048, default 512; longest edge). Images are always re-encoded at ≤ `max_px`; originals never leave the phone.
+```json
+{ "count": 1, "photos": [ { "id": "…/L0/001", "created": "2026-10-16T00:00:00Z", "lat": 41.8, "lon": 123.4, "width": 512, "height": 384, "jpeg_base64": "/9j/…" } ] }
+```
+
+### `motion.today`
+No params. CMPedometer totals since local midnight. `unavailable` on devices without a pedometer (and in the simulator).
+```json
+{ "from": "2026-10-15T16:00:00Z", "to": "2026-10-16T02:00:00Z", "steps": 4210, "distance_m": 3120.5, "floors_up": 3, "floors_down": 2 }
+```
+
+### `agent.say`
+params: `text` (required, max 2000 chars), `notify` (bool, default false). Adds `text` to the app's activity feed: the job's own row shows it. This is how the agent narrates when nothing needs running. With `notify: true` it is also shown as a local notification titled with the app's display name. Result `{"ok": true, "notified": true}`. If the notification could not be shown, `notified` is false and `notify_error` holds the code (e.g. `permission_denied`), and the job still succeeds.
+
+Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap the matching **Request …** button on the Status screen), `permission_denied`, `unavailable`, `not_found`.
 
 ---
 

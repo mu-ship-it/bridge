@@ -10,23 +10,32 @@
 		05593C0F240B04BA53CFFF1A /* CapabilityRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9C518902706C4C94B00988B /* CapabilityRegistry.swift */; };
 		0A7E11EA4C51CE7864C58D9D /* HealthQueryCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */; };
 		0E9CA1157F426BC4D3FC226C /* JobDispatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */; };
+		0FE0D827AFADCCA16B9BC292 /* AgentSayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */; };
 		15935896375547D61ED571AD /* Capability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3968868B373BD8B4DE7CB2B0 /* Capability.swift */; };
 		1D0C1709B6A8096DAA0F595C /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860AE021569E621E5BBD593E /* StatusView.swift */; };
 		1EDE8E8FD08940351D37252B /* HealthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */; };
 		2779736D5B845C5127F6FA9F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F20F0C79EBC19D3E04C82B /* SettingsView.swift */; };
+		2AE0D75CC53DD4BC9E3E4D0F /* PhotosRecentCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */; };
 		2BED3FD5D942CA90F403D655 /* HealthSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E87FD5E1B83D9815E538800 /* HealthSync.swift */; };
 		4310ACFB3206F250B0E981DC /* BridgeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5860DB83D9AFCAB3C0A8EF73 /* BridgeRuntime.swift */; };
+		43690CB0CCAB369FCB08CB1A /* NotifyShowCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = F446851E4D4315C73584E542 /* NotifyShowCapability.swift */; };
 		43E62EE8B9032E5354830394 /* BoxClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B562D310116C75DDACAEC73A /* BoxClient.swift */; };
 		4B089FA21C258175981C1059 /* AppStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */; };
 		547713C27C51D28169F50C37 /* HealthIngestMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2900BC96091AEC7AD7BB90 /* HealthIngestMapper.swift */; };
 		700FF6868189AED4CAB26DDA /* DeviceInfoCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */; };
+		7321248E84BADEC08C5F70B5 /* CapabilityParamsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */; };
+		7C58C5532C9EABEEB984BDCF /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F39C8726E9396DD2F947B90 /* Activity.swift */; };
+		7FDC68B43348D5FFDDABD9BD /* MotionTodayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047CE43C56A64BB5733B2D96 /* MotionTodayCapability.swift */; };
 		8F25D732899879483F91ABEE /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AAD43B48BC1F7A4509002A3 /* LocationService.swift */; };
 		966FE33CE58A6325CB8E3C71 /* LocationNowCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A59CF3CB3288DFCE70BA679 /* LocationNowCapability.swift */; };
 		9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */; };
 		BBDEA0480E90AB59157F87F6 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654D641B24FE0874A4024A66 /* Keychain.swift */; };
+		BD4DECD40FC830B04BBA9740 /* ClipboardCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */; };
 		D0E7ADF1D24E42164B024539 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1C51D6132CCFBA02B50D8B3 /* Models.swift */; };
 		EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E240E010D595FB217F2FE5 /* ContentView.swift */; };
+		EFF95A40664F1054C5422A85 /* ContactsSearchCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C709ADD9653249F93B632A2 /* ContactsSearchCapability.swift */; };
 		F1C480385EF1FF16E6607970 /* BridgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D837F755056487658E6977A8 /* BridgeApp.swift */; };
+		FA83B3EF013547E43C6A3E49 /* EventKitCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50DCE0C8036F84536B93A308 /* EventKitCapabilities.swift */; };
 		FC37A0C933D85227950982E1 /* BackgroundTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35F2CCC98BCF98DE6E439A5 /* BackgroundTasks.swift */; };
 		FE1BE4C482F186ECB643F282 /* JobLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7485F55BA6A1D49E41A285CD /* JobLoop.swift */; };
 /* End PBXBuildFile section */
@@ -43,12 +52,18 @@
 
 /* Begin PBXFileReference section */
 		015E0581D699A8D25C81E072 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		047CE43C56A64BB5733B2D96 /* MotionTodayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionTodayCapability.swift; sourceTree = "<group>"; };
 		09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapperTests.swift; sourceTree = "<group>"; };
+		0C709ADD9653249F93B632A2 /* ContactsSearchCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchCapability.swift; sourceTree = "<group>"; };
+		14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCapabilities.swift; sourceTree = "<group>"; };
 		1D35F189A98B879024C07A7D /* BridgeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatus.swift; sourceTree = "<group>"; };
+		2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSayCapability.swift; sourceTree = "<group>"; };
 		2EBA9446753DB8F5EF177141 /* Bridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bridge.entitlements; sourceTree = "<group>"; };
 		3968868B373BD8B4DE7CB2B0 /* Capability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capability.swift; sourceTree = "<group>"; };
 		3F2900BC96091AEC7AD7BB90 /* HealthIngestMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapper.swift; sourceTree = "<group>"; };
+		43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityParamsTests.swift; sourceTree = "<group>"; };
+		50DCE0C8036F84536B93A308 /* EventKitCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitCapabilities.swift; sourceTree = "<group>"; };
 		5860DB83D9AFCAB3C0A8EF73 /* BridgeRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeRuntime.swift; sourceTree = "<group>"; };
 		58E003C57BDD9F417908C0C4 /* Bridge.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthQueryCapability.swift; sourceTree = "<group>"; };
@@ -59,16 +74,19 @@
 		8A59CF3CB3288DFCE70BA679 /* LocationNowCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNowCapability.swift; sourceTree = "<group>"; };
 		902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobDispatcherTests.swift; sourceTree = "<group>"; };
 		9AAD43B48BC1F7A4509002A3 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		9F39C8726E9396DD2F947B90 /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
 		A1F20F0C79EBC19D3E04C82B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A3E240E010D595FB217F2FE5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoCapability.swift; sourceTree = "<group>"; };
 		B562D310116C75DDACAEC73A /* BoxClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxClient.swift; sourceTree = "<group>"; };
+		D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosRecentCapability.swift; sourceTree = "<group>"; };
 		D35F2CCC98BCF98DE6E439A5 /* BackgroundTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTasks.swift; sourceTree = "<group>"; };
 		D837F755056487658E6977A8 /* BridgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeApp.swift; sourceTree = "<group>"; };
 		D9C518902706C4C94B00988B /* CapabilityRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityRegistry.swift; sourceTree = "<group>"; };
 		E1C51D6132CCFBA02B50D8B3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
 		EDE03B14B0F50428EA16F213 /* Bridge.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Bridge.xcconfig; sourceTree = "<group>"; };
+		F446851E4D4315C73584E542 /* NotifyShowCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyShowCapability.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -83,6 +101,7 @@
 		3F622DD1487BC499B3268102 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				9F39C8726E9396DD2F947B90 /* Activity.swift */,
 				232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */,
 				B562D310116C75DDACAEC73A /* BoxClient.swift */,
 				3968868B373BD8B4DE7CB2B0 /* Capability.swift */,
@@ -96,6 +115,7 @@
 		7880A0828D56D9C8265F8E2F /* BridgeTests */ = {
 			isa = PBXGroup;
 			children = (
+				43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */,
 				09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */,
 				902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */,
 			);
@@ -158,10 +178,17 @@
 		DFD10356C59015C52975756D /* Capabilities */ = {
 			isa = PBXGroup;
 			children = (
+				2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */,
 				D9C518902706C4C94B00988B /* CapabilityRegistry.swift */,
+				14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */,
+				0C709ADD9653249F93B632A2 /* ContactsSearchCapability.swift */,
 				B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */,
+				50DCE0C8036F84536B93A308 /* EventKitCapabilities.swift */,
 				62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */,
 				8A59CF3CB3288DFCE70BA679 /* LocationNowCapability.swift */,
+				047CE43C56A64BB5733B2D96 /* MotionTodayCapability.swift */,
+				F446851E4D4315C73584E542 /* NotifyShowCapability.swift */,
+				D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */,
 			);
 			path = Capabilities;
 			sourceTree = "<group>";
@@ -267,6 +294,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7321248E84BADEC08C5F70B5 /* CapabilityParamsTests.swift in Sources */,
 				9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */,
 				0E9CA1157F426BC4D3FC226C /* JobDispatcherTests.swift in Sources */,
 			);
@@ -276,6 +304,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C58C5532C9EABEEB984BDCF /* Activity.swift in Sources */,
+				0FE0D827AFADCCA16B9BC292 /* AgentSayCapability.swift in Sources */,
 				4B089FA21C258175981C1059 /* AppStatus.swift in Sources */,
 				FC37A0C933D85227950982E1 /* BackgroundTasks.swift in Sources */,
 				43E62EE8B9032E5354830394 /* BoxClient.swift in Sources */,
@@ -283,8 +313,11 @@
 				4310ACFB3206F250B0E981DC /* BridgeRuntime.swift in Sources */,
 				15935896375547D61ED571AD /* Capability.swift in Sources */,
 				05593C0F240B04BA53CFFF1A /* CapabilityRegistry.swift in Sources */,
+				BD4DECD40FC830B04BBA9740 /* ClipboardCapabilities.swift in Sources */,
+				EFF95A40664F1054C5422A85 /* ContactsSearchCapability.swift in Sources */,
 				EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */,
 				700FF6868189AED4CAB26DDA /* DeviceInfoCapability.swift in Sources */,
+				FA83B3EF013547E43C6A3E49 /* EventKitCapabilities.swift in Sources */,
 				547713C27C51D28169F50C37 /* HealthIngestMapper.swift in Sources */,
 				0A7E11EA4C51CE7864C58D9D /* HealthQueryCapability.swift in Sources */,
 				1EDE8E8FD08940351D37252B /* HealthService.swift in Sources */,
@@ -294,6 +327,9 @@
 				966FE33CE58A6325CB8E3C71 /* LocationNowCapability.swift in Sources */,
 				8F25D732899879483F91ABEE /* LocationService.swift in Sources */,
 				D0E7ADF1D24E42164B024539 /* Models.swift in Sources */,
+				7FDC68B43348D5FFDDABD9BD /* MotionTodayCapability.swift in Sources */,
+				43690CB0CCAB369FCB08CB1A /* NotifyShowCapability.swift in Sources */,
+				2AE0D75CC53DD4BC9E3E4D0F /* PhotosRecentCapability.swift in Sources */,
 				2779736D5B845C5127F6FA9F /* SettingsView.swift in Sources */,
 				1D0C1709B6A8096DAA0F595C /* StatusView.swift in Sources */,
 			);
@@ -317,7 +353,7 @@
 				CODE_SIGN_ENTITLEMENTS = Bridge/Bridge.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Bridge/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Bridge;
+				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -422,7 +458,7 @@
 				CODE_SIGN_ENTITLEMENTS = Bridge/Bridge.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Bridge/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Bridge;
+				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

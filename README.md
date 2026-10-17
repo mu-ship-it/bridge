@@ -1,6 +1,8 @@
 # Bridge
 
-**Bridge is an agent-agnostic bridge to your iPhone.** It runs on the phone and exposes native iOS capabilities to a server you control, so anything running there can ask the phone a question and get a structured answer back. That could be Claude, Codex, a Hermes agent, a cron job or a ten-line shell script. Current capabilities are health queries, a one-shot location and device state, and more can be added.
+**Bridge is an agent-agnostic bridge to your iPhone.** It runs on the phone and exposes native iOS capabilities to a server you control, so anything running there can ask the phone a question and get a structured answer back. That could be Claude, Codex, a Hermes agent, a cron job or a ten-line shell script. Current capabilities are health queries, a one-shot location, device state, clipboard, local notifications, calendar, reminders, contacts, recent photos (downscaled), today's steps and `agent.say` (the agent narrates in the app's activity feed), and more can be added ([docs/CAPABILITIES.md](docs/CAPABILITIES.md)).
+
+白手套 ("white glove") is the display name of the author's own build.
 
 It is **not a health exporter**. Health sync is one capability among several. The core is a small job protocol ([docs/API.md](docs/API.md)): the server queues a job, the phone runs it with a native API, and the result goes back as JSON. Any server that speaks that protocol works. There's no SDK, no agent framework and no MCP requirement, though you can wrap your server in MCP if you want.
 

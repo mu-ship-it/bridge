@@ -37,9 +37,10 @@ actor JobLoop {
 
             var results: [JobResult] = []
             for (index, job) in response.jobs.enumerated() {
+                await AppStatus.shared.jobStarted(job)
                 let result = await dispatcher.dispatch(job)
                 results.append(result)
-                await AppStatus.shared.recordJob(result, capability: job.capability)
+                await AppStatus.shared.jobFinished(job, result)
                 await AppStatus.shared.setPending(response.jobs.count - index - 1)
             }
             if !results.isEmpty {

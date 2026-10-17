@@ -12,7 +12,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Bridge</string>
+	<string>白手套</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -32,12 +32,22 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Bridge lists your upcoming calendar events when your server asks, and sends them only to the server URL you configure.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Bridge looks up a contact's name, phone numbers and emails when your server asks, and sends at most 20 matches to the server URL you configure.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Bridge reads your health data (heart rate, HRV, sleep, workouts, steps…) and sends it only to the server URL you configure.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Bridge uses significant location changes to wake up and check your server for jobs, and reports a one-shot location when the server asks. No continuous GPS.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Bridge reports your current location to your server when it asks.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Bridge reports today's steps, distance and floors to your server when it asks.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Bridge sends small, downscaled copies of your most recent photos to your server when it asks. Full-resolution images never leave the phone.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Bridge lists and adds reminders when your server asks, and sends them only to the server URL you configure.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

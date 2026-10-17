@@ -16,6 +16,10 @@ struct StatusView: View {
                     }
                     Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
                 }
+                Section("Activity") {
+                    if status.activity.isEmpty { Text("Nothing yet").foregroundStyle(.secondary) }
+                    ForEach(status.activity) { ActivityRow(entry: $0) }
+                }
                 Section("Health sync") {
                     row("Last sync", status.lastSync)
                     LabeledContent("Result", value: status.lastSyncMessage)
@@ -30,14 +34,15 @@ struct StatusView: View {
                         run { try? await HealthService.shared.requestAuthorization() }
                     }
                     Button("Request Location (Always)") { LocationService.shared.requestAuthorization() }
+                    Button("Request Notifications") { run { _ = try? await NotifyShowCapability.requestAuthorization() } }
+                    Button("Request Calendar") { run { _ = await EventKitAccess.requestCalendar() } }
+                    Button("Request Reminders") { run { _ = await EventKitAccess.requestReminders() } }
+                    Button("Request Contacts") { run { _ = await ContactsSearchCapability.requestAuthorization() } }
+                    Button("Request Photos") { run { _ = await PhotosRecentCapability.requestAuthorization() } }
+                    Button("Request Motion") { run { await MotionTodayCapability.requestAuthorization() } }
                 }
                 Section("Capabilities") {
                     ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
-                }
-                if !status.recentJobs.isEmpty {
-                    Section("Recent jobs") {
-                        ForEach(status.recentJobs, id: \.self) { Text($0).font(.caption.monospaced()) }
-                    }
                 }
             }
             .navigationTitle("Bridge")
@@ -58,6 +63,32 @@ struct StatusView: View {
             await action()
             await status.refreshPermissions()
             busy = false
+        }
+    }
+}
+
+/// One activity-feed row: time · capability · status, then the agent's note and a one-line result.
+private struct ActivityRow: View {
+    let entry: ActivityEntry
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            switch entry.status {
+            case .running: ProgressView()
+            case .done: Image(systemName: "checkmark.circle").foregroundStyle(.green)
+            case .failed: Image(systemName: "xmark.circle").foregroundStyle(.red)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · \(entry.status.rawValue)")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                if entry.capability == "agent.say" {
+                    Text(entry.summary)
+                } else {
+                    if let note = entry.note { Text(note) }
+                    if !entry.summary.isEmpty { Text(entry.summary).font(.caption).lineLimit(1) }
+                }
+            }
         }
     }
 }
