@@ -262,6 +262,27 @@ params: `timeout` (5–60 s, default 30; iOS ends any NFC scan at 60 s). iOS sho
 params: `seconds` (1–10, default 2), `hz` (1–50, default 10). Raw readings over that window. Each sensor is `{available, samples}`, where each sample is an array starting with `t` (seconds from the start):
 `accelerometer` `[t, x, y, z]` g · `gyro` `[t, x, y, z]` rad/s · `magnetometer` `[t, x, y, z]` µT · `barometer` `[t, kPa, relative_altitude_m]` (about 1 Hz; needs Motion & Fitness, otherwise `available: false` with a `reason`).
 
+### HomeKit: `home.list`, `home.get`, `home.set`
+白手套 sees and controls the accessories **already set up in Apple's Home app**. Pairing, rooms, scenes and automations stay there. HomeKit answers only while the app is on screen (`foreground_required` otherwise). Mu grants access once with Status → **Request Home**. The simulator answers `unavailable`.
+
+- `home.list` `{home?}`: every home → room → accessory → service → characteristic, with last-known values, plus `summary`, one plain line per accessory:
+```json
+{
+  "homes": [ { "name": "Home", "id": "…", "primary": true, "rooms": [ { "name": "Living Room", "accessories": [
+    { "name": "Lamp", "id": "6F1C…", "room": "Living Room", "reachable": true, "category": "Lightbulb",
+      "services": [ { "name": "Lamp", "type": "Lightbulb", "characteristics": [
+        { "name": "power", "description": "Power State", "value": true, "writable": true, "format": "bool" },
+        { "name": "brightness", "description": "Brightness", "value": 60, "writable": true, "format": "int", "unit": "percent", "min": 0, "max": 100 } ] } ] } ] } ] } ],
+  "summary": [ "Living Room / Lamp: power on, brightness 60", "Hallway / Front Door: lock_current 1, lock_target 1" ]
+}
+```
+- `home.get` `{accessory, characteristic?, room?, home?}`: reads fresh values from the accessory. It returns `{"accessory", "room", "reachable", "values": {"power": true, "brightness": 60}}`, or `{"accessory", "room", "characteristic", "value"}` for one characteristic.
+- `home.set` `{accessory, characteristic, value, room?, home?}`: writes one value and returns `{"accessory", "characteristic", "value"}`. The value is checked against the characteristic's format, min/max and valid values (`bad_params` names the limit). Booleans take `true`/`false` or `"on"`/`"off"`.
+
+`accessory` is a name (case-insensitive; add `room` when two share a name) or the `id` from `home.list`. `characteristic` is a short name: `power`, `brightness`, `hue`, `saturation`, `color_temperature`, `current_temperature`, `target_temperature`, `target_heating_cooling`, `humidity`, `lock_current`, `lock_target` (0 unlock, 1 lock), `door_current`, `door_target` (0 open, 1 close), `active`, `rotation_speed`, `target_position`, `motion`, `contact`, `battery_level`, `security_target` (3 disarm), `volume`, `mute`, …. It can also be the snake_case of the Home app's own label, or the raw HomeKit type UUID. An unknown one is `not_found`, and the message lists what the accessory has.
+
+**Unlocking a lock, opening a garage door or disarming a security system asks Mu on screen first** ("Your agent asks to unlock “Front Door” (Hallway)"). "Don't Allow" is `cancelled`; no answer within `timeout` (default 90 s) is `timeout`. Locking, closing and arming never ask. An accessory that is off or out of range is `unavailable`.
+
 Error codes used by these capabilities: `bad_params`, `permission_missing` (never asked; tap the matching **Request …** button on the Status screen), `permission_denied`, `unavailable`, `not_found`, `foreground_required`, `cancelled`, `timeout`.
 
 ---

@@ -3,6 +3,7 @@ import SwiftUI
 struct StatusView: View {
     private var status = AppStatus.shared
     @State private var busy = false
+    @State private var homeState = PermissionState.notAsked
 
     var body: some View {
         NavigationStack {
@@ -44,13 +45,22 @@ struct StatusView: View {
                     Button("Request Microphone") { run { await MicRecordCapability.requestMicrophone() } }
                     Button("Request Speech Recognition") { run { await MicRecordCapability.requestSpeech() } }
                 }
+                Section {
+                    LabeledContent("Home access", value: homeState)
+                    Button("Request Home") { HomeStore.shared.requestAuthorization(); homeState = HomeStore.shared.state }
+                } header: {
+                    Text("Home")
+                } footer: {
+                    Text("Accessories are added and paired in Apple's Home app, not here. 白手套 sees and controls only what the Home app already has, and only while it is open. Unlocking, opening a garage door or disarming always asks you first.")
+                }
                 Section("Capabilities") {
                     ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
                 }
             }
             .navigationTitle("Bridge")
             .disabled(busy)
-            .refreshable { await status.refreshPermissions() }
+            .refreshable { await status.refreshPermissions(); homeState = HomeStore.shared.state }
+            .task { homeState = HomeStore.shared.state }
         }
     }
 

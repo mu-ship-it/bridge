@@ -44,6 +44,8 @@
 	<string>Bridge looks up a contact's name, phone numbers and emails when your server asks, and sends at most 20 matches to the server URL you configure.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Bridge reads your health data (heart rate, HRV, sleep, workouts, steps…) and sends it only to the server URL you configure.</string>
+	<key>NSHomeKitUsageDescription</key>
+	<string>Bridge lists and controls the accessories already set up in Apple's Home app when your server asks, while the app is open. Unlocking, opening a garage door or disarming always asks you first.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Bridge uses significant location changes to wake up and check your server for jobs, and reports a one-shot location when the server asks. No continuous GPS.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

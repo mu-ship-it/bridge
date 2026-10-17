@@ -81,6 +81,7 @@ xcodegen generate   # new files must be added to the Xcode project
 | `wifi.info` | `WiFiInfoCapability.swift` | Location + Access Wi-Fi Information entitlement |
 | `nfc.read` | `NFCReadCapability.swift` | NFC entitlement · on screen |
 | `sensors.sample` | `SensorsSampleCapability.swift` | none (barometer: Motion & Fitness) |
+| `home.list`, `home.get`, `home.set` | `HomeCapabilities.swift` + `Home/HomeStore.swift` | Home (HomeKit entitlement) · on screen; unlock/open/disarm asks first |
 
 "On screen" capabilities show system UI or make themselves seen or heard, which iOS allows only while the app is open. Build them on `Presenter` (`Core/Presenter.swift`): it refuses with `foreground_required` when the app isn't active, keeps the sheet's delegate alive, and closes the sheet at the job's `timeout`, before the box's lease runs out. Check for missing hardware before checking permissions, so the simulator gets a clean `unavailable`.
 

@@ -35,5 +35,8 @@ enum CapabilityRegistry {
         NFCReadCapability(),
         BarcodeScanCapability(),
         SensorsSampleCapability(),
+        HomeListCapability(),
+        HomeGetCapability(),
+        HomeSetCapability(),
     ]
 }
