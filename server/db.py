@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS audit (
 );
 CREATE INDEX IF NOT EXISTS audit_scope ON audit(account_id, device_id, ts);
 
+-- Device-originated events (heartbeats, speech segments…): appended by the phone, read by
+-- the agent. Same tenancy as jobs: every row carries account_id, every query is scoped by it.
+CREATE TABLE IF NOT EXISTS events (
+    id           TEXT PRIMARY KEY,   -- ULID with an e_ prefix, so ids sort by arrival
+    account_id   TEXT NOT NULL,
+    device_id    TEXT NOT NULL,
+    type         TEXT NOT NULL,
+    ts           TEXT NOT NULL,      -- when it happened, as the phone reports it
+    received     TEXT NOT NULL,      -- when the box stored it
+    note         TEXT NOT NULL,
+    payload_json TEXT
+);
+CREATE INDEX IF NOT EXISTS events_scope ON events(account_id, device_id, id);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -86,6 +100,17 @@ BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
 def now_iso():
     """UTC, seconds resolution, ISO-8601 with a Z — what the phone's ISO parser expects."""
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def normalize_iso(raw):
+    """ISO-8601 with an offset (or Z) -> the `...Z` form above, so stored times compare as text.
+    Raises ValueError for anything else, including a time with no timezone."""
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("empty")
+    parsed = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("no timezone")
+    return parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 _id_lock = threading.Lock()
@@ -238,11 +263,34 @@ def list_devices(conn, account_id=None):
     return conn.execute("SELECT * FROM devices ORDER BY account_id, device_id").fetchall()
 
 
+DUTY_STALE_SECONDS = 600  # two missed 5-minute heartbeats
+
+
+def device_dict(row, now=None):
+    """Row -> what `bridge devices` prints. `duty` is the last heartbeat's claim; a station whose
+    heartbeats stopped (unplugged, locked, crashed) cannot say so, so after two missed beats the
+    record reads `duty_stale` instead of trusting it."""
+    meta = unjson(row["meta"]) or {}
+    beat = meta.get("heartbeat_at")
+    duty = bool(meta.get("duty"))
+    stale = False
+    if duty and beat:
+        now = now or datetime.now(timezone.utc)
+        age = (now - datetime.fromisoformat(beat.replace("Z", "+00:00"))).total_seconds()
+        stale = age > DUTY_STALE_SECONDS
+    return {
+        "account_id": row["account_id"], "device_id": row["device_id"],
+        "last_seen": row["last_seen"], "duty": duty, "duty_stale": stale,
+        "heartbeat_at": beat, "apns": bool(row["apns_token"]),
+        "app_version": meta.get("app_version"), "capabilities": meta.get("capabilities") or [],
+    }
+
+
 def purge_device(conn, account_id, device_id):
     """Erase every trace of one device. Returns the row counts deleted, per table."""
     counts = {}
     with conn:
-        for table in ("jobs", "audit", "devices"):
+        for table in ("jobs", "events", "audit", "devices"):
             cur = conn.execute(
                 f"DELETE FROM {table} WHERE account_id = ? AND device_id = ?",
                 (account_id, device_id),
@@ -357,6 +405,46 @@ def job_dict(row):
         "status": row["status"], "attempts": row["attempts"],
         "lease_until": row["lease_until"], "result": unjson(row["result_json"]),
         "created": row["created"], "updated": row["updated"],
+    }
+
+
+# ---------------------------------------------------------------- events
+
+def add_event(conn, account_id, device_id, event_type, ts, note, payload=None):
+    event_id = new_id("e_")
+    conn.execute(
+        "INSERT INTO events (id, account_id, device_id, type, ts, received, note, payload_json)"
+        " VALUES (?,?,?,?,?,?,?,?)",
+        (event_id, account_id, device_id, event_type, ts, now_iso(), note, _json(payload)),
+    )
+    return event_id
+
+
+def list_events(conn, account_id, device_id=None, since=None, event_type=None, limit=100):
+    """Oldest first. `since` is an event id (exclusive cursor: pass the last id you saw) or an
+    ISO-8601 time compared with when the box received the event."""
+    sql, args = "SELECT * FROM events WHERE account_id = ?", [account_id]
+    if device_id:
+        sql += " AND device_id = ?"
+        args.append(device_id)
+    if event_type:
+        sql += " AND type = ?"
+        args.append(event_type)
+    if since:
+        if since.startswith("e_"):
+            sql += " AND id > ?"
+        else:
+            sql += " AND received > ?"
+        args.append(since)
+    sql += " ORDER BY id LIMIT ?"
+    args.append(limit)
+    return conn.execute(sql, args).fetchall()
+
+
+def event_dict(row):
+    return {
+        "id": row["id"], "device": row["device_id"], "type": row["type"], "ts": row["ts"],
+        "received": row["received"], "note": row["note"], "payload": unjson(row["payload_json"]),
     }
 
 

@@ -4,12 +4,14 @@
     bridge account create <label> [--token-file PATH]
     bridge account list
     bridge account revoke <label|id>
+    bridge devices [--account <label|id>]          (same as `device list`)
     bridge device list [--account <label|id>]
     bridge device purge <account> <device>
     bridge job enqueue <account> <device> <capability> [params-json] [--no-push]
     bridge job get <id>
     bridge job wait <id> [--timeout 120]
     bridge push <account> <device> [--kind poll|sync]
+    bridge events <account> [--device D] [--type T] [--since ID|ISO] [--limit 100] [--json]
     bridge audit tail [--account X] [--device Y] [--limit 50]
 
 Runs against the same database as the server (BRIDGE_DB), so it works whether or not the
@@ -87,11 +89,19 @@ def cmd_device_list(conn, args):
     if not rows:
         print("no devices")
     for row in rows:
-        meta = db.unjson(row["meta"]) or {}
-        caps = ",".join(meta.get("capabilities") or []) or "-"
-        print(f"{row['account_id']}  {row['device_id']:<16} last_seen {row['last_seen']}  "
-              f"apns {'yes' if row['apns_token'] else 'no'}  "
-              f"app {meta.get('app_version') or '-'}  caps {caps}")
+        d = db.device_dict(row)
+        caps = ",".join(d["capabilities"]) or "-"
+        print(f"{d['account_id']}  {d['device_id']:<16} last_seen {d['last_seen']}  "
+              f"duty {duty_text(d)}  apns {'yes' if d['apns'] else 'no'}  "
+              f"app {d['app_version'] or '-'}  caps {caps}")
+
+
+def duty_text(device):
+    if device["duty_stale"]:
+        return f"stale(last beat {device['heartbeat_at']})"
+    if device["duty"]:
+        return f"on(beat {device['heartbeat_at']})"
+    return "off"
 
 
 def cmd_device_purge(conn, args):
@@ -99,7 +109,7 @@ def cmd_device_purge(conn, args):
     counts = db.purge_device(conn, account["id"], args.device)
     print(f"purged device {args.device} of account {account['label']}: "
           f"jobs {counts['jobs']} (results {counts['results']}), "
-          f"audit {counts['audit']}, device rows {counts['devices']}")
+          f"events {counts['events']}, audit {counts['audit']}, device rows {counts['devices']}")
 
 
 # ---------------------------------------------------------------- jobs
@@ -170,6 +180,28 @@ def cmd_push(conn, args):
     raise SystemExit(0 if outcome.sent else 1)
 
 
+def cmd_events(conn, args):
+    account = resolve_account(conn, args.account)
+    since = args.since
+    if since and not since.startswith("e_"):
+        try:
+            since = db.normalize_iso(since)
+        except ValueError:
+            fail("--since must be an event id or an ISO-8601 time with a timezone")
+    rows = db.list_events(conn, account["id"], args.device, since, args.type, args.limit)
+    events = [db.event_dict(row) for row in rows]
+    if args.json:
+        print(json.dumps(events, indent=2, ensure_ascii=False))
+        return
+    if not events:
+        print("no events")
+    for e in events:
+        payload = json.dumps(e["payload"], ensure_ascii=False) if e["payload"] else ""
+        if len(payload) > 120:
+            payload = payload[:117] + "..."
+        print(f"{e['id']}  {e['ts']}  {e['device']:<16} {e['type']:<10} {e['note']}  {payload}")
+
+
 def cmd_audit_tail(conn, args):
     account_id = resolve_account(conn, args.account)["id"] if args.account else None
     rows = db.audit_tail(conn, account_id, args.device, args.limit)
@@ -193,6 +225,19 @@ def build_parser():
     revoke = account.add_parser("revoke")
     revoke.add_argument("ref", help="label or id")
     revoke.set_defaults(func=cmd_account_revoke)
+
+    devices = sub.add_parser("devices", help="list devices (same as `device list`)")
+    devices.add_argument("--account")
+    devices.set_defaults(func=cmd_device_list)
+
+    events = sub.add_parser("events", help="device-originated events, oldest first")
+    events.add_argument("account")
+    events.add_argument("--device")
+    events.add_argument("--type")
+    events.add_argument("--since", help="event id (exclusive) or ISO-8601 time")
+    events.add_argument("--limit", type=int, default=100)
+    events.add_argument("--json", action="store_true")
+    events.set_defaults(func=cmd_events)
 
     device = sub.add_parser("device").add_subparsers(dest="action", required=True)
     listing = device.add_parser("list")

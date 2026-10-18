@@ -25,16 +25,23 @@ targets:
       base:
         PRODUCT_NAME: Bridge
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID)
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_CFBundleDisplayName: 白手套
     info:
       path: Bridge/Info.plist
       properties:
         CFBundleDisplayName: 白手套
         UILaunchScreen: {}
+        # iPad: any orientation, resizable (Stage Manager / Split View), several windows at once.
         UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: false
+          UIApplicationSupportsMultipleScenes: true
+        UIRequiresFullScreen: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSHealthShareUsageDescription: "Bridge reads your health data (heart rate, HRV, sleep, workouts, steps…) and sends it only to the server URL you configure."
         NSLocationWhenInUseUsageDescription: "Bridge reports your current location to your server when it asks."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Bridge uses significant location changes to wake up and check your server for jobs, and reports a one-shot location when the server asks. No continuous GPS."

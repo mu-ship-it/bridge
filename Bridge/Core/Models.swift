@@ -124,6 +124,20 @@ struct ResultsRequest: Codable, Sendable {
     let results: [JobResult]
 }
 
+/// Something the device reports on its own (`POST /bridge/events`): a duty heartbeat, a speech
+/// segment. Like a job, it says in plain words what it is.
+struct DeviceEvent: Codable, Sendable, Equatable {
+    var type: String
+    var ts: String
+    var payload: JSONValue?
+    var note: String
+}
+
+struct EventsRequest: Codable, Sendable {
+    let device: String
+    let events: [DeviceEvent]
+}
+
 struct DeviceRegistration: Codable, Sendable {
     let device: String
     let apnsToken: String

@@ -10,6 +10,8 @@ final class AppStatus {
     private(set) var lastPoll: Date?
     private(set) var lastPollMessage = "Never polled"
     private(set) var pendingJobs = 0
+    /// When the last job started — kept apart from the feed, which Mu can clear.
+    private(set) var lastJobAt: Date?
     private(set) var unsentResults = 0
     private(set) var lastSync: Date?
     private(set) var lastSyncMessage = "Never synced"
@@ -27,6 +29,7 @@ final class AppStatus {
         lastPoll = defaults.object(forKey: "status.lastPoll") as? Date
         lastPollMessage = defaults.string(forKey: "status.lastPollMessage") ?? lastPollMessage
         lastSync = defaults.object(forKey: "status.lastSync") as? Date
+        lastJobAt = defaults.object(forKey: "status.lastJobAt") as? Date
         lastSyncMessage = defaults.string(forKey: "status.lastSyncMessage") ?? lastSyncMessage
         if let data = defaults.data(forKey: "status.activity"),
            let saved = try? JSONDecoder().decode([ActivityEntry].self, from: data) {
@@ -55,6 +58,8 @@ final class AppStatus {
     func setPending(_ count: Int) { pendingJobs = max(0, count) }
 
     func jobStarted(_ job: Job) {
+        lastJobAt = Date()
+        defaults.set(lastJobAt, forKey: "status.lastJobAt")
         activity.removeAll { $0.id == job.id } // a re-leased job replaces its earlier row
         activity.insert(ActivityEntry(id: job.id, time: Date(), capability: job.capability, note: job.displayNote,
                                       status: .running, summary: ""), at: 0)

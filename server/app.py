@@ -8,6 +8,7 @@ Run under systemd via run.sh; see README.md.
 import asyncio
 import logging
 import re
+import json
 import time
 from contextlib import closing
 from pathlib import Path
@@ -246,6 +247,118 @@ async def results(request: Request):
     # Counts only — a result body may hold heart rate or a home address.
     log.info("results account=%s device=%s %s", account["id"], device_id, tally)
     return {"ok": True, **tally}
+
+
+EVENT_TYPE = re.compile(r"^[a-z][a-z0-9._-]{0,63}$")
+EVENTS_PER_POST = 100
+EVENT_PAYLOAD_MAX_BYTES = 64 * 1024
+EVENT_NOTE_MAX = 500
+EVENTS_LIST_DEFAULT, EVENTS_LIST_MAX = 100, 500
+
+
+def iso_utc(raw, field):
+    try:
+        return db.normalize_iso(raw)
+    except (TypeError, ValueError):
+        raise BadRequest(f"{field} must be an ISO-8601 time with a timezone (e.g. ...Z)")
+
+
+def parse_event(item):
+    """One event from the phone: {type, ts?, payload?, note}. Like a job, it must say in plain
+    words what it is — the note is required."""
+    if not isinstance(item, dict):
+        raise BadRequest("each event must be a JSON object")
+    event_type = item.get("type")
+    if not isinstance(event_type, str) or not EVENT_TYPE.match(event_type):
+        raise BadRequest("type must be lowercase letters, digits, '.', '_' or '-' (max 64)")
+    note = item.get("note")
+    if not isinstance(note, str) or not note.strip():
+        raise BadRequest("note is required: say in plain words what this event is")
+    payload = item.get("payload")
+    if payload is not None and not isinstance(payload, dict):
+        raise BadRequest("payload must be a JSON object")
+    if payload is not None and len(json.dumps(payload)) > EVENT_PAYLOAD_MAX_BYTES:
+        raise BadRequest(f"payload is larger than {EVENT_PAYLOAD_MAX_BYTES // 1024} KB")
+    ts = iso_utc(item["ts"], "ts") if item.get("ts") is not None else db.now_iso()
+    return event_type, ts, note.strip()[:EVENT_NOTE_MAX], payload
+
+
+def record_heartbeat(conn, account_id, device_id, ts, payload):
+    """A `heartbeat` event also updates the device record: duty on/off and when it last beat."""
+    duty = bool((payload or {}).get("duty"))
+    meta = {"duty": duty, "heartbeat_at": ts}
+    if (payload or {}).get("app_version"):
+        meta["app_version"] = payload["app_version"]
+    db.touch_device(conn, account_id, device_id, meta_updates=meta)
+
+
+@app.post("/bridge/events")
+async def post_events(request: Request):
+    """Device-originated events. Body: one event, or {"events": [...]} for a batch (all or none)."""
+    endpoint = "POST /bridge/events"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        require_device(conn, account, device_id, endpoint)
+        items = body["events"] if "events" in body else [body]
+        try:
+            if not isinstance(items, list) or not items:
+                raise BadRequest("events must be a non-empty list")
+            if len(items) > EVENTS_PER_POST:
+                raise BadRequest(f"at most {EVENTS_PER_POST} events per request")
+            parsed = [parse_event(item) for item in items]
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:event")
+            raise
+        ids, types = [], {}
+        with conn:
+            db.touch_device(conn, account["id"], device_id)
+            for event_type, ts, note, payload in parsed:
+                ids.append(db.add_event(conn, account["id"], device_id, event_type, ts, note, payload))
+                types[event_type] = types.get(event_type, 0) + 1
+                if event_type == "heartbeat":
+                    record_heartbeat(conn, account["id"], device_id, ts, payload)
+            # Types and counts only — a speech segment is what Mu said out loud.
+            db.audit(conn, account["id"], device_id, endpoint,
+                     "stored:" + ",".join(f"{t}={n}" for t, n in sorted(types.items())))
+    log.info("events account=%s device=%s %s", account["id"], device_id, types)
+    return {"ok": True, "stored": len(ids), "ids": ids}
+
+
+@app.get("/bridge/events")
+def get_events(request: Request):
+    """For the agent: events of this account, oldest first, optionally by device / type / since."""
+    endpoint = "GET /bridge/events"
+    q = request.query_params
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        try:
+            event_type = q.get("type") or None
+            if event_type is not None and not EVENT_TYPE.match(event_type):
+                raise BadRequest("type must be lowercase letters, digits, '.', '_' or '-'")
+            since = (q.get("since") or "").strip() or None
+            if since and not since.startswith("e_"):
+                since = iso_utc(since, "since")
+            raw_limit = q.get("limit")
+            limit = int(raw_limit) if raw_limit else EVENTS_LIST_DEFAULT
+            if limit < 1:
+                raise ValueError
+        except ValueError:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:limit")
+            raise BadRequest("limit must be a positive integer")
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:query")
+            raise
+        rows = db.list_events(conn, account["id"], device_id, since, event_type,
+                              min(limit, EVENTS_LIST_MAX))
+        with conn:
+            db.audit(conn, account["id"], device_id, endpoint, f"listed:{len(rows)}")
+    events = [db.event_dict(row) for row in rows]
+    # `next`: pass back as ?since= to continue after the last event returned.
+    return {"events": events, "next": events[-1]["id"] if events else since}
 
 
 if __name__ == "__main__":

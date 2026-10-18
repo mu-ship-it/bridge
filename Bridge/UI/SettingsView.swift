@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var hasToken = ConfigStore.hasToken
     @State private var message: String?
     @State private var testing = false
+    @Bindable private var duty = DutyStation.shared
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,13 @@ struct SettingsView: View {
                     Button("Save") { save() }
                     Button(testing ? "Testing…" : "Test connection") { test() }
                         .disabled(testing)
+                }
+                Section {
+                    Toggle("Duty mode", isOn: $duty.enabled)
+                } header: {
+                    Text("值班 / Duty")
+                } footer: {
+                    Text("For an iPad left plugged in with 白手套 in a small Stage Manager window. While the app is on screen: the connection to the box stays open for as long as it runs, the screen does not lock, and the box gets a heartbeat every 5 minutes. When 白手套 leaves the screen it all stops, and resumes when it comes back. Nothing runs in the background.")
                 }
                 if let message {
                     Section("Result") { Text(message).font(.callout) }

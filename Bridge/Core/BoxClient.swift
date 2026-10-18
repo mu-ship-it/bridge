@@ -65,6 +65,15 @@ struct BoxClient: Sendable {
         _ = try await send(request("bridge/results", method: "POST", bearer: true, body: body))
     }
 
+    func postEvents(_ events: [DeviceEvent]) async throws {
+        _ = try await send(eventsRequest(events))
+    }
+
+    func eventsRequest(_ events: [DeviceEvent]) throws -> URLRequest {
+        let body = try JSONEncoder().encode(EventsRequest(device: config.deviceId, events: events))
+        return request("bridge/events", method: "POST", bearer: true, body: body)
+    }
+
     func registerDevice(_ registration: DeviceRegistration) async throws {
         let body = try JSONEncoder().encode(registration)
         _ = try await send(request("bridge/devices", method: "POST", bearer: true, body: body))

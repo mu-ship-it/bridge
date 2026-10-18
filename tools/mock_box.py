@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, urlparse
 
 QUEUE = []          # jobs not yet leased
 LEASED = {}         # job_id -> (job, lease_expiry)
+EVENTS = []         # device events (duty heartbeats, speech segments), newest last
 LEASE_SECONDS = 120
 
 
@@ -64,6 +65,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/bridge/ping":
             if self._authed(True):
                 self._send(200, {"ok": True, "server_time": now_iso()})
+        elif path == "/bridge/events":
+            if self._authed(True):
+                self._send(200, {"events": EVENTS[-100:]})
         elif path == "/bridge/jobs":
             if not self._authed(True):
                 return
@@ -104,6 +108,15 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
             print("DEVICE", body.get("device"), "caps", body.get("capabilities"), "apns token len", len(body.get("apns_token", "")))
             self._send(200, {"ok": True})
+        elif path == "/bridge/events":
+            if not self._authed(True):
+                return
+            body = self._body()
+            events = body.get("events", [body])
+            for e in events:
+                EVENTS.append(e)
+                print("EVENT", e.get("type"), "-", e.get("note"), json.dumps(e.get("payload"))[:200])
+            self._send(200, {"ok": True, "stored": len(events)})
         elif path == "/hk/ingest":
             if not self._authed(False):
                 return

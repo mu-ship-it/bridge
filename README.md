@@ -45,6 +45,19 @@ Built-in capabilities:
 
 白手套 is a foreground app by rule, not just because iOS requires it. The agent may use anything iOS permits, but every job carries a plain-words `note`, and the Status screen's activity feed shows each job as it runs and how it ended. The live connection (a long poll) runs only while the app is open; it stops when the app goes to the background. Capabilities that show UI, make a sound or touch hardware (camera, mic, speech, scanner, share and compose sheets, HomeKit…) refuse with `foreground_required` when the app isn't on screen, rather than finding a way around it. In the background the app does only what iOS itself schedules: silent pushes, background refresh and health sync, each of which still lands in the feed. The reason is trust. An agent that can see your health data and open your front door should never act where you can't see it, and iOS keeps the camera, mic and HomeKit behind the same line anyway. Sending, dialling and unlocking always stay one tap of yours.
 
+### Duty mode on iPad
+
+On an iPhone the app is on screen only while you hold it, so jobs wait for you. On an iPad with Stage Manager every window on screen counts as foreground, so a small 白手套 window parked on a plugged-in iPad that never locks is a permanent live node: the iPad becomes the duty station (值班台), the iPhone stays the sensor you carry. Same app, same rules — duty mode keeps nothing running that you can't see.
+
+Turn on **Settings → Duty mode**. While any 白手套 window is on screen it then keeps the connection to the box open indefinitely (reconnecting with back-off if the network drops), stops the screen from locking, shows a **值班中 / On duty** banner (uptime, last job, connection, last heartbeat) at the top of Status, and sends the box a `heartbeat` event every 5 minutes (`bridge devices` shows `duty on`). When the last window leaves the screen it stops and says so (`duty off`); when a window comes back it resumes at once. If the iPad dies without saying goodbye, the box marks its duty claim stale after 10 minutes.
+
+Setting the iPad up:
+1. **Power.** Keep it plugged in. Duty mode turns the screen-lock timer off only while 白手套 is on screen, and a screen that is always on runs the battery down.
+2. **Never lock.** Either Settings → Display & Brightness → **Auto-Lock → Never**, or, to pin the iPad to 白手套 entirely, **Guided Access**: Settings → Accessibility → Guided Access → On, set a passcode, set *Display Auto-Lock* to Never; then open 白手套 and triple-click the top button → Start. (Guided Access keeps one app full screen, so it replaces Stage Manager; use one or the other.)
+3. **Stage Manager window.** Control Center → Stage Manager on. Open 白手套, drag its corner to make it small, and keep it in the stage next to whatever else you're doing. At about 400 pt wide the Status screen collapses to the activity feed (tap **Details** for the rest).
+4. **Permissions.** Go through the Status screen's Permissions list once on the iPad itself — they are per device.
+5. Give it its own device id in Settings (e.g. `my-ipad`) so the agent can address the iPad and the iPhone separately.
+
 ### Shortcuts and system settings
 
 iOS gives apps no API for Wi-Fi, Bluetooth, Focus, Low Power, appearance or volume, but Shortcuts can change all of them. [`shortcuts/`](shortcuts/README.md) holds a recipe for each, all named "白手套 …". `server/tools/make_shortcut.py` builds them into signed `.shortcut` files that the box hosts, and adding one to the phone is a single tap ("Add Shortcut"). After that the agent calls it with `shortcuts.run`. It runs on screen in the Shortcuts app, which shows it running, so nothing changes silently.
@@ -95,6 +108,7 @@ xcrun simctl push booted <your bundle id> /tmp/push.apns
 
 1. Implement the endpoints in [docs/API.md](docs/API.md) on your server:
    - Job loop: `GET /bridge/ping`, `POST /bridge/devices`, `GET /bridge/jobs`, `POST /bridge/results`
+   - Device events (duty heartbeat, speech): `POST /bridge/events` (and `GET` for the agent)
    - Health sync: `POST /hk/ingest`
 
    You can implement only one half. Use HTTPS; plain HTTP is allowed only for `localhost`.
@@ -131,7 +145,7 @@ Bridge/Capabilities/        One file per capability + CapabilityRegistry.swift
 Bridge/Health/              HealthKit queries, anchored sync, HAE JSON mapping
 Bridge/Location/            One-shot + significant-change location
 Bridge/Home/                HomeKit (HomeStore: the one HMHomeManager)
-Bridge/UI/                  Status and Settings screens
+Bridge/UI/                  Status and Settings screens, duty banner
 BridgeTests/                Unit tests (Swift Testing)
 docs/                       API contract, capability guide
 tools/mock_box.py           Local mock server

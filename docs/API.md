@@ -36,6 +36,42 @@ Sent after APNs hands the phone a device token (at launch, once the box is confi
 ```
 Response: any 2xx.
 
+## `POST /bridge/events` (v0.4)
+Things the device reports on its own, rather than in answer to a job: the duty-mode heartbeat, and (from v0.4 phase 2) each finished speech segment of `mic.listen`. Body is one event, or `{"device": "…", "events": [ … ]}` for a batch of up to 100. A batch is all or nothing: one bad event is a `400` and nothing is stored.
+```json
+{
+  "device": "my-ipad",
+  "events": [
+    { "type": "heartbeat", "ts": "2026-10-17T09:00:00Z",
+      "note": "On duty: 5-minute heartbeat from 白手套 on screen",
+      "payload": { "duty": true, "reason": "interval", "uptime_s": 86400, "battery_level": 1, "battery_state": "full", "…": "…" } }
+  ]
+}
+```
+| Field | |
+|---|---|
+| `type` | required; lowercase letters, digits, `.`, `_`, `-`, at most 64 |
+| `note` | required, non-empty: what this event is, in plain words — the same rule as a job's `note` |
+| `ts` | when it happened, ISO-8601 with a timezone; the box stores it as UTC `…Z`. Absent = time received |
+| `payload` | optional JSON object, at most 64 KB |
+
+Response: `{"ok": true, "stored": n, "ids": ["e_…"]}`.
+
+**`heartbeat`** (duty mode). Sent when duty starts, every 5 minutes while it runs, and once more with `"duty": false` when it stops (the window left the screen, or the switch was turned off). The payload is the `device.info` result plus `duty`, `reason` (`start` / `interval` / `stop: <why>`), `on_duty_since`, `uptime_s`, `connection`, `last_job_at`, `foreground_windows` and `heartbeat_interval_s`. The box copies `duty` and the event's `ts` (as `heartbeat_at`) onto the device record; `last_seen` is refreshed by every authenticated call from the device, this one included. A station that stops beating without saying goodbye (unplugged and flat, crashed, locked by hand) cannot report it, so the reference server shows its duty claim as **stale** after two missed beats (10 minutes).
+
+## `GET /bridge/events?device=&type=&since=&limit=` (v0.4, for the agent)
+Events of the token's account, oldest first. Every filter is optional.
+- `device`: one device (also taken from `X-Bridge-Device`); absent = all devices of the account.
+- `type`: e.g. `heartbeat`, `speech`.
+- `since`: an event id (exclusive — pass the last id you saw) or an ISO-8601 time compared with when the box received the event.
+- `limit`: default 100, max 500.
+```json
+{ "events": [ { "id": "e_01J…", "device": "my-ipad", "type": "speech", "ts": "2026-10-17T09:00:05Z",
+                "received": "2026-10-17T09:00:06Z", "note": "…", "payload": { "text": "…" } } ],
+  "next": "e_01J…" }
+```
+`next` is the cursor for the following call (`?since=<next>`); it is the last id returned, or your own `since` when nothing new arrived. Both calls are audited by type and count only, never by content: a speech event is what someone said out loud.
+
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {
@@ -347,6 +383,12 @@ unique within its account, and every query is scoped by account, so two tenants 
 "duplicate": n, "unknown": n, "invalid": n}` — the contract only requires 2xx, and the app
 ignores the body; the counts are there for curl and for the smoke script. `duplicate` is the
 at-least-once case the contract tells the box to swallow.
+
+**Device record.** `bridge devices` (alias of `bridge device list`) prints per device:
+`last_seen` (any authenticated call from it), `duty on(beat <ts>)` / `duty off` /
+`duty stale(last beat <ts>)`, APNs yes/no, app version and capabilities. `bridge events <account>
+[--device] [--type] [--since] [--limit] [--json]` reads the events table. Purging a device erases
+its events too.
 
 ### `GET /bridge/shortcuts/<slug>.shortcut` (server only)
 Serves a signed shortcut file from `BRIDGE_SHORTCUTS_DIR`, for `shortcuts://import-shortcut?url=…` (see [shortcuts/README.md](../shortcuts/README.md)). This route takes **no token**, because the Shortcuts app fetches the file itself. Only plain `<slug>.shortcut` names are served: no paths, no `*.unsigned.shortcut`. Anything else is a `404`.

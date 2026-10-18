@@ -101,12 +101,14 @@ Then start it however you start things; the unit is a plain `Type=simple` servic
 bridge account create <label> [--token-file PATH]   # the token is shown once, or written 600
 bridge account list
 bridge account revoke <label|id>
+bridge devices [--account <label|id>]              # = device list; shows last_seen and duty on/off/stale
 bridge device list [--account <label|id>]
 bridge device purge <account> <device>              # erase everything about one device
 bridge job enqueue <account> <device> <capability> [params-json] [--no-push]
 bridge job get <id>
 bridge job wait <id> [--timeout 120]                # exit 0 done, 1 failed, 3 timed out
 bridge push <account> <device> [--kind poll|sync]
+bridge events <account> [--device D] [--type T] [--since ID|ISO] [--limit 100] [--json]
 bridge audit tail [--account X] [--device Y] [--limit 50]
 ```
 

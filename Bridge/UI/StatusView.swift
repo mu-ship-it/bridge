@@ -1,7 +1,20 @@
 import SwiftUI
 
+/// Narrow iPad windows (a small Stage Manager window, the slim side of Split View) get the
+/// feed only; an iPhone keeps the full screen, since that is its only view.
+enum StatusLayout {
+    static let compactBelow: CGFloat = 520
+
+    static func isCompact(width: CGFloat, idiom: UIUserInterfaceIdiom) -> Bool {
+        idiom == .pad && width > 0 && width < compactBelow
+    }
+}
+
 struct StatusView: View {
     private var status = AppStatus.shared
+    private var duty = DutyStation.shared
+    @State private var width: CGFloat = 0
+    @State private var showDetails = false
     @State private var busy = false
     @State private var filter = ActivityFilter.all
     @State private var confirmClear = false
@@ -10,30 +23,51 @@ struct StatusView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Job loop") {
-                    row("Last poll", status.lastPoll)
-                    LabeledContent("Result", value: status.lastPollMessage)
-                    LabeledContent("Pending jobs", value: "\(status.pendingJobs)")
-                    if status.unsentResults > 0 {
-                        LabeledContent("Unsent results", value: "\(status.unsentResults)")
-                    }
-                    Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
+                if duty.enabled {
+                    Section { DutyBanner() }
                 }
-                activitySection
-                Section("Health sync") {
-                    row("Last sync", status.lastSync)
-                    LabeledContent("Result", value: status.lastSyncMessage)
-                    Button("Sync now") { run { await BridgeRuntime.shared.healthSync.syncNow(trigger: "button") } }
-                }
-                permissionsSection
-                Section("Capabilities") {
-                    ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
+                if compact && !showDetails {
+                    activitySection
+                } else {
+                    details
                 }
             }
             .navigationTitle("Bridge")
+            .toolbar {
+                if compact {
+                    Button(showDetails ? "Feed only" : "Details") { showDetails.toggle() }
+                }
+            }
             .disabled(busy)
             .refreshable { await refreshPermissions() }
             .task { await refreshPermissions() }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        }
+    }
+
+    private var compact: Bool {
+        StatusLayout.isCompact(width: width, idiom: UIDevice.current.userInterfaceIdiom)
+    }
+
+    @ViewBuilder private var details: some View {
+        Section("Job loop") {
+            row("Last poll", status.lastPoll)
+            LabeledContent("Result", value: status.lastPollMessage)
+            LabeledContent("Pending jobs", value: "\(status.pendingJobs)")
+            if status.unsentResults > 0 {
+                LabeledContent("Unsent results", value: "\(status.unsentResults)")
+            }
+            Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
+        }
+        activitySection
+        Section("Health sync") {
+            row("Last sync", status.lastSync)
+            LabeledContent("Result", value: status.lastSyncMessage)
+            Button("Sync now") { run { await BridgeRuntime.shared.healthSync.syncNow(trigger: "button") } }
+        }
+        permissionsSection
+        Section("Capabilities") {
+            ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
         }
     }
 
