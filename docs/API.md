@@ -72,6 +72,28 @@ Events of the token's account, oldest first. Every filter is optional.
 ```
 `next` is the cursor for the following call (`?since=<next>`); it is the last id returned, or your own `since` when nothing new arrived. Both calls are audited by type and count only, never by content: a speech event is what someone said out loud.
 
+## `GET /bridge/feed?device=<id>[&limit=<n>]` (v0.4, for the widgets)
+The device's most recent jobs, newest first, each with a one-line summary, plus the agent's latest line. The widget extension calls it every 15 minutes (5 s timeout) with the same bearer token; the app itself does not.
+- `limit`: default 5, max 50; not a positive integer → `400`. A missing device id → `400`.
+```json
+{
+  "jobs": [
+    { "id": "j_01JB2", "capability": "agent.say", "note": "Narrating", "status": "done",
+      "finished_at": "2026-10-19T08:00:02Z", "summary": "Morning — you slept 7 h" },
+    { "id": "j_01JB1", "capability": "location.now", "note": null, "status": "running",
+      "finished_at": null, "summary": "" }
+  ],
+  "agent_line": "Morning — you slept 7 h",
+  "server_time": "2026-10-19T08:01:00Z"
+}
+```
+- `note`: the job's `params.note`, or `null`.
+- `status`: `queued`, `running` (leased to the phone), `done` or `failed`.
+- `finished_at`: the result's `finished_at` (the box's own time if the phone sent none); `null` until the job ends.
+- `summary`: plain text, one line, at most 80 characters, derived from the result — never the result itself, because widgets sit on the lock screen. `speak` / `agent.say` → the text; `device.info` → `battery 85% charging`; `health.query` → `heart_rate: 25 points`; `location.now` → `41.8000, 123.4000 ±35 m`; a result with `count` → `3 items`; any other success → `done`; a failure → the error message (or its code); unfinished → `""`.
+- `agent_line`: the `text` of this device's most recent `agent.say` job, or `null`.
+- Audited by count only (`listed:<n>`).
+
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {

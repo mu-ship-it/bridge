@@ -4,11 +4,16 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// This window's identity for ForegroundSession; each Stage Manager window has its own.
     @State private var sceneID = UUID()
+    @State private var tab = "status"
 
     var body: some View {
-        TabView {
-            Tab("Status", systemImage: "antenna.radiowaves.left.and.right") { StatusView() }
-            Tab("Settings", systemImage: "gearshape") { SettingsView() }
+        TabView(selection: $tab) {
+            Tab("Status", systemImage: "antenna.radiowaves.left.and.right", value: "status") { StatusView() }
+            Tab("Settings", systemImage: "gearshape", value: "settings") { SettingsView() }
+        }
+        // A tap on a widget (`bridge-widget://status`) lands on the Status tab.
+        .onOpenURL { url in
+            if url.scheme == "bridge-widget" { tab = "status" }
         }
         // Foreground connection: one long poll for the whole app while any window is on screen.
         // When the last window goes to the background the poll (and duty mode) stop at once, and

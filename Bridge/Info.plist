@@ -7,8 +7,12 @@
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).refresh</string>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).processing</string>
 	</array>
+	<key>BridgeAppGroup</key>
+	<string>group.$(BRIDGE_BUNDLE_ID)</string>
 	<key>BridgeDefaultServerURL</key>
 	<string>$(BRIDGE_DEFAULT_SERVER_URL)</string>
+	<key>BridgeKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

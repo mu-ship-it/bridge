@@ -58,6 +58,10 @@ Setting the iPad up:
 4. **Permissions.** Go through the Status screen's Permissions list once on the iPad itself — they are per device.
 5. Give it its own device id in Settings (e.g. `my-ipad`) so the agent can address the iPad and the iPhone separately.
 
+### Widgets
+
+So you can see what the agent is doing without opening the app, 白手套 has a home-screen widget (small: the agent's last `agent.say` line, or the newest job's note, with a status dot and how long ago; medium: the last three jobs, note · status · time) and lock-screen widgets (rectangular and inline: the newest job's note). Dots are blue for running, green for done, red for failed and grey once nothing has moved for an hour. The app writes a small snapshot (last 5 feed rows, the agent's line, last poll, last health sync) to its App Group after every job and sync and asks WidgetKit to redraw. Every 15 minutes the widget also asks the box itself (`GET /bridge/feed`, 5 s timeout), reading the token through a shared Keychain access group, so it shows jobs the phone has not picked up yet. Widgets show one-line summaries only, never a whole result, but they do sit on the lock screen: leave the lock-screen ones off if notes or summaries are private. Tapping a widget opens the Status tab.
+
 ### Shortcuts and system settings
 
 iOS gives apps no API for Wi-Fi, Bluetooth, Focus, Low Power, appearance or volume, but Shortcuts can change all of them. [`shortcuts/`](shortcuts/README.md) holds a recipe for each, all named "白手套 …". `server/tools/make_shortcut.py` builds them into signed `.shortcut` files that the box hosts, and adding one to the phone is a single tap ("Add Shortcut"). After that the agent calls it with `shortcuts.run`. It runs on screen in the Shortcuts app, which shows it running, so nothing changes silently.
@@ -97,7 +101,7 @@ xcrun simctl push booted <your bundle id> /tmp/push.apns
    - `DEVELOPMENT_TEAM`: your 10-character Team ID
    - `BRIDGE_DEFAULT_SERVER_URL` (optional): the URL Settings is prefilled with. The default is the author's server, `https://boringbox.dev`. Write it as `https:/$()/host`, because `//` starts a comment in xcconfig. You can also just type your URL in the app.
 2. `xcodegen generate`, then open the project in Xcode and select your iPhone.
-3. In the Apple Developer portal, enable **HealthKit**, **Push Notifications**, **HomeKit**, **Access Wi-Fi Information** and **NFC Tag Reading** for your App ID. Automatic signing usually does this for you, but NFC needs a paid developer account. The entitlements are already in `Bridge/Bridge.entitlements`. Background modes come from `Info.plist` and need no portal setup.
+3. In the Apple Developer portal, enable **HealthKit**, **Push Notifications**, **HomeKit**, **Access Wi-Fi Information**, **NFC Tag Reading** and **App Groups** (`group.<your bundle id>`, shared with the widget extension `<your bundle id>.widget`) for your App ID. Automatic signing usually does this for you, but NFC needs a paid developer account. The entitlements are already in `Bridge/Bridge.entitlements`. Background modes come from `Info.plist` and need no portal setup.
 4. For silent pushes, create an **APNs auth key (.p8)** and give it to your server (never commit it). Your server sends `apns-push-type: background` with your bundle id as `apns-topic`.
 5. On the phone:
    - Open Bridge → **Status** → **Permissions**, and tap **Ask** next to each permission you want to give. Each row says what it is for.
@@ -146,6 +150,8 @@ Bridge/Health/              HealthKit queries, anchored sync, HAE JSON mapping
 Bridge/Location/            One-shot + significant-change location
 Bridge/Home/                HomeKit (HomeStore: the one HMHomeManager)
 Bridge/UI/                  Status and Settings screens, duty banner
+BridgeWidget/               WidgetKit extension: home-screen and lock-screen widgets
+Shared/                     Code in both the app and the widget: the widget snapshot, App Group, shared Keychain
 BridgeTests/                Unit tests (Swift Testing)
 docs/                       API contract, capability guide
 tools/mock_box.py           Local mock server

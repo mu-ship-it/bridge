@@ -18,5 +18,13 @@
 	<array>
 		<string>TAG</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.$(BRIDGE_BUNDLE_ID)</string>
+	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)</string>
+	</array>
 </dict>
 </plist>

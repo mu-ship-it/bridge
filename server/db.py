@@ -408,6 +408,21 @@ def job_dict(row):
     }
 
 
+def recent_jobs(conn, account_id, device_id, limit):
+    """Newest first: what the widget's feed shows."""
+    return conn.execute(
+        "SELECT * FROM jobs WHERE account_id = ? AND device_id = ? ORDER BY created DESC, id DESC"
+        " LIMIT ?", (account_id, device_id, limit),
+    ).fetchall()
+
+
+def last_job_of(conn, account_id, device_id, capability):
+    return conn.execute(
+        "SELECT * FROM jobs WHERE account_id = ? AND device_id = ? AND capability = ?"
+        " ORDER BY created DESC, id DESC LIMIT 1", (account_id, device_id, capability),
+    ).fetchone()
+
+
 # ---------------------------------------------------------------- events
 
 def add_event(conn, account_id, device_id, event_type, ts, note, payload=None):

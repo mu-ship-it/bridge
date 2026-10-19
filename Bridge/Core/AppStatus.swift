@@ -53,6 +53,7 @@ final class AppStatus {
         lastPollMessage = success ? message : "Error: \(message)"
         unsentResults = unsent
         defaults.set(lastPollMessage, forKey: "status.lastPollMessage")
+        if success { WidgetPublisher.publish(self, reload: false) }
     }
 
     func setPending(_ count: Int) { pendingJobs = max(0, count) }
@@ -64,6 +65,7 @@ final class AppStatus {
         activity.insert(ActivityEntry(id: job.id, time: Date(), capability: job.capability, note: job.displayNote,
                                       status: .running, summary: ""), at: 0)
         saveActivity()
+        WidgetPublisher.publish(self, reload: false)
     }
 
     func jobFinished(_ job: Job, _ result: JobResult) {
@@ -79,6 +81,7 @@ final class AppStatus {
                                           status: status, summary: summary, detail: detail), at: 0)
         }
         saveActivity()
+        WidgetPublisher.publish(self, reload: true)
     }
 
     /// Clears finished rows; a job still running keeps its row so its result has somewhere to land.
@@ -99,6 +102,7 @@ final class AppStatus {
         }
         lastSyncMessage = success ? message : "Error: \(message)"
         defaults.set(lastSyncMessage, forKey: "status.lastSyncMessage")
+        WidgetPublisher.publish(self, reload: true)
     }
 
     func setPushState(_ state: String) { pushState = state }

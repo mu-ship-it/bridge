@@ -20,7 +20,9 @@ targets:
   Bridge:
     type: application
     platform: iOS
-    sources: [Bridge]
+    sources: [Bridge, Shared]
+    dependencies:
+      - target: BridgeWidget
     settings:
       base:
         PRODUCT_NAME: Bridge
@@ -62,6 +64,9 @@ targets:
           - $(PRODUCT_BUNDLE_IDENTIFIER).refresh
           - $(PRODUCT_BUNDLE_IDENTIFIER).processing
         BridgeDefaultServerURL: $(BRIDGE_DEFAULT_SERVER_URL)
+        # Shared with the widget: the snapshot file (App Group) and the box token (Keychain group).
+        BridgeAppGroup: group.$(BRIDGE_BUNDLE_ID)
+        BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     entitlements:
@@ -74,6 +79,35 @@ targets:
         com.apple.developer.networking.wifi-info: true
         com.apple.developer.homekit: true
         com.apple.developer.nfc.readersession.formats: [TAG]
+        com.apple.security.application-groups: [group.$(BRIDGE_BUNDLE_ID)]
+        # The app's own default group first, so Keychain items saved before v0.4 stay where they are.
+        keychain-access-groups: [$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)]
+  BridgeWidget:
+    type: app-extension
+    platform: iOS
+    sources: [BridgeWidget, Shared]
+    settings:
+      base:
+        PRODUCT_NAME: BridgeWidget
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).widget
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_CFBundleDisplayName: 白手套
+    info:
+      path: BridgeWidget/Info.plist
+      properties:
+        CFBundleDisplayName: 白手套
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        BridgeAppBundleID: $(BRIDGE_BUNDLE_ID)
+        BridgeAppGroup: group.$(BRIDGE_BUNDLE_ID)
+        BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    entitlements:
+      path: BridgeWidget/BridgeWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(BRIDGE_BUNDLE_ID)]
+        keychain-access-groups: [$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)]
   BridgeTests:
     type: bundle.unit-test
     platform: iOS

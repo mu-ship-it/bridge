@@ -361,6 +361,97 @@ def get_events(request: Request):
     return {"events": events, "next": events[-1]["id"] if events else since}
 
 
+FEED_DEFAULT, FEED_MAX = 5, 50
+SUMMARY_MAX = 80
+FEED_STATUS = {"queued": "queued", "leased": "running", "done": "done", "failed": "failed"}
+
+
+def one_line(text, limit=SUMMARY_MAX):
+    """Plain text on one line, at most `limit` characters (an ellipsis marks a cut)."""
+    flat = " ".join(str(text).split())
+    return flat if len(flat) <= limit else flat[:limit - 1].rstrip() + "…"
+
+
+def feed_summary(capability, params, envelope):
+    """One short line for a widget: what the job came to. Never the whole result — a widget sits
+    on the lock screen, so a summary says "heart_rate: 25 points", not the 25 heart rates."""
+    params = params or {}
+    if envelope is None:
+        return ""
+    if not envelope.get("ok"):
+        error = envelope.get("error") or {}
+        return one_line(error.get("message") or error.get("code") or "failed")
+    result = envelope.get("result") or {}
+    if capability in ("speak", "agent.say") and params.get("text"):
+        return one_line(params["text"])
+    if capability == "device.info" and isinstance(result.get("battery_level"), (int, float)):
+        line = f"battery {round(result['battery_level'] * 100)}%"
+        state = result.get("battery_state")
+        if state and state != "unknown":
+            line += " " + ("charging" if state == "charging" else state)
+        return one_line(line)
+    if capability == "health.query" and isinstance(result.get("metric"), dict):
+        metric = result["metric"]
+        count = result.get("count")
+        if not isinstance(count, int):
+            count = len(metric.get("data") or [])
+        return one_line(f"{metric.get('name') or params.get('metric') or 'health'}: "
+                        f"{count} point{'' if count == 1 else 's'}")
+    if capability == "location.now" and "lat" in result and "lon" in result:
+        line = f"{result['lat']:.4f}, {result['lon']:.4f}"
+        if isinstance(result.get("horizontal_accuracy_m"), (int, float)):
+            line += f" ±{round(result['horizontal_accuracy_m'])} m"
+        return one_line(line)
+    if isinstance(result, dict) and isinstance(result.get("count"), int):
+        return one_line(f"{result['count']} item{'' if result['count'] == 1 else 's'}")
+    return "done"
+
+
+def feed_row(row):
+    params = db.unjson(row["params_json"]) or {}
+    envelope = db.unjson(row["result_json"])
+    finished = None
+    if row["status"] in ("done", "failed"):
+        finished = (envelope or {}).get("finished_at") or row["updated"]
+    note = params.get("note")
+    return {
+        "id": row["id"], "capability": row["capability"],
+        "note": one_line(note, EVENT_NOTE_MAX) if isinstance(note, str) and note.strip() else None,
+        "status": FEED_STATUS.get(row["status"], row["status"]), "finished_at": finished,
+        "summary": feed_summary(row["capability"], params, envelope),
+    }
+
+
+@app.get("/bridge/feed")
+def feed(request: Request):
+    """For the phone's widgets: this device's last jobs, newest first, each with a one-line
+    summary, plus the agent's latest agent.say line."""
+    endpoint = "GET /bridge/feed"
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        require_device(conn, account, device_id, endpoint)
+        raw_limit = request.query_params.get("limit")
+        try:
+            limit = int(raw_limit) if raw_limit else FEED_DEFAULT
+            if limit < 1:
+                raise ValueError
+        except ValueError:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:limit")
+            raise BadRequest("limit must be a positive integer")
+        rows = db.recent_jobs(conn, account["id"], device_id, min(limit, FEED_MAX))
+        said = db.last_job_of(conn, account["id"], device_id, "agent.say")
+        with conn:
+            db.touch_device(conn, account["id"], device_id)
+            db.audit(conn, account["id"], device_id, endpoint, f"listed:{len(rows)}")
+    said_text = (db.unjson(said["params_json"]) or {}).get("text") if said else None
+    return {
+        "jobs": [feed_row(row) for row in rows],
+        "agent_line": said_text if isinstance(said_text, str) and said_text.strip() else None,
+        "server_time": db.now_iso(),
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
 
