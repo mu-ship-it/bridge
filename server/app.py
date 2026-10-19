@@ -11,6 +11,8 @@ import re
 import json
 import time
 from contextlib import closing
+from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -19,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse
 import apns
 import config
 import db
+import suggest
 
 VERSION = "0.1.0"
 
@@ -451,6 +454,72 @@ def feed(request: Request):
         "server_time": db.now_iso(),
     }
 
+
+
+def job_record(row):
+    if row is None:
+        return None
+    return {"id": row["id"], "capability": row["capability"], "status": row["status"],
+            "updated": row["updated"], "params": db.unjson(row["params_json"]) or {}}
+
+
+def timezone_of(request, conn, account, device_id, endpoint):
+    """?tz=<IANA name> (the phone's), else the box's own local zone."""
+    raw = request.query_params.get("tz")
+    if not raw:
+        return datetime.now().astimezone().tzinfo
+    try:
+        return ZoneInfo(raw)
+    except (ValueError, ZoneInfoNotFoundError):
+        with conn:
+            db.audit(conn, account["id"], device_id, endpoint, "bad_request:tz")
+        raise BadRequest("tz must be an IANA time zone name")
+
+
+@app.get("/bridge/suggest")
+def get_suggest(request: Request):
+    """For the Suggest widget: up to 6 things to open right now, by rule (see suggest.py)."""
+    endpoint = "GET /bridge/suggest"
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        require_device(conn, account, device_id, endpoint)
+        tz = timezone_of(request, conn, account, device_id, endpoint)
+        now = suggest.utc_now()
+        since = (now - suggest.TAP_LOOKBACK).isoformat(timespec="seconds").replace("+00:00", "Z")
+        calendar = db.last_finished_job_of(conn, account["id"], device_id, "calendar.events")
+        items = suggest.suggest(
+            now, tz, suggest.load_catalog(),
+            taps=[(row["item_id"], row["ts"]) for row in db.taps_since(conn, account["id"], device_id, since)],
+            calendar_result=((db.unjson(calendar["result_json"]) or {}).get("result") if calendar else None),
+            failed_job=job_record(db.last_finished_job(conn, account["id"], device_id)),
+            lanes=suggest.load_lanes(),
+            served=db.served_items(conn, account["id"], device_id),
+        )
+        with conn:
+            db.touch_device(conn, account["id"], device_id)
+            db.remember_served(conn, account["id"], device_id, items)
+            db.audit(conn, account["id"], device_id, endpoint, f"listed:{len(items)}")
+    return {"generated_at": db.now_iso(), "items": items}
+
+
+@app.post("/bridge/suggest/tap")
+async def post_suggest_tap(request: Request):
+    """The phone says a Suggest slot was tapped; the time-of-day rule learns from these."""
+    endpoint = "POST /bridge/suggest/tap"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        require_device(conn, account, device_id, endpoint)
+        item_id = body.get("id")
+        if not isinstance(item_id, str) or not suggest.ID_RE.match(item_id):
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:id")
+            raise BadRequest("id must be a suggestion id")
+        with conn:
+            db.touch_device(conn, account["id"], device_id)
+            db.add_tap(conn, account["id"], device_id, item_id)
+            db.audit(conn, account["id"], device_id, endpoint, "tapped")
+    return {"ok": True}
 
 if __name__ == "__main__":
     import uvicorn

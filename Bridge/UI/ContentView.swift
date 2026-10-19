@@ -15,8 +15,12 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .tint(Theme.text)
         // A tap on a widget (`bridge-widget://status`) lands on the Status tab.
+        // A tap on a Suggest slot (`bridge://suggest/<id>`): log it, then open what it points at.
         .onOpenURL { url in
             if url.scheme == "bridge-widget" { tab = "status" }
+            if let id = SuggestRoute.itemID(from: url) {
+                Task { await SuggestLauncher.launch(id: id) }
+            }
         }
         // Foreground connection: one long poll for the whole app while any window is on screen.
         // When the last window goes to the background the poll (and duty mode) stop at once, and

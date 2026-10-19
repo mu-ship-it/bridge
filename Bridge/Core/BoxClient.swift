@@ -79,6 +79,16 @@ struct BoxClient: Sendable {
         _ = try await send(request("bridge/devices", method: "POST", bearer: true, body: body))
     }
 
+    /// A Suggest widget slot was tapped (the box's time-of-day rule learns from these).
+    func postSuggestTap(id: String) async throws {
+        _ = try await send(suggestTapRequest(id: id))
+    }
+
+    func suggestTapRequest(id: String) throws -> URLRequest {
+        let body = try JSONEncoder().encode(["device": config.deviceId, "id": id])
+        return request("bridge/suggest/tap", method: "POST", bearer: true, body: body)
+    }
+
     /// Existing Health-Auto-Export-compatible endpoint. Note: raw token, no `Bearer` prefix.
     func ingest(_ body: Data) async throws {
         _ = try await send(request("hk/ingest", method: "POST", bearer: false, body: body))

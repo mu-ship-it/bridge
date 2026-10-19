@@ -112,7 +112,8 @@ def test_purge_removes_every_row_for_one_device_and_nothing_else(conn, account, 
         store.enqueue(conn, account["id"], "keep-me", "device.info")
 
     counts = store.purge_device(conn, account["id"], "my-iphone")
-    assert counts == {"jobs": 1, "events": 0, "audit": 1, "devices": 1, "results": 1}
+    assert counts == {"jobs": 1, "events": 0, "audit": 1, "suggest_taps": 0, "suggest_served": 0,
+                      "devices": 1, "results": 1}
     assert store.get_device(conn, account["id"], "my-iphone") is None
     assert store.get_device(conn, account["id"], "keep-me") is not None
     assert store.get_device(conn, other_account["id"], "my-iphone") is not None

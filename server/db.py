@@ -89,6 +89,26 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_scope ON events(account_id, device_id, id);
 
+-- The Suggest widget: taps on its slots (the time-of-day rule reads these), and the last item
+-- served under each id, so a tap on an item no other rule produces any more still resolves.
+CREATE TABLE IF NOT EXISTS suggest_taps (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL,
+    device_id  TEXT NOT NULL,
+    item_id    TEXT NOT NULL,
+    ts         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS suggest_taps_scope ON suggest_taps(account_id, device_id, ts);
+
+CREATE TABLE IF NOT EXISTS suggest_served (
+    account_id TEXT NOT NULL,
+    device_id  TEXT NOT NULL,
+    item_id    TEXT NOT NULL,
+    item_json  TEXT NOT NULL,
+    served     TEXT NOT NULL,
+    PRIMARY KEY (account_id, device_id, item_id)
+);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -290,7 +310,7 @@ def purge_device(conn, account_id, device_id):
     """Erase every trace of one device. Returns the row counts deleted, per table."""
     counts = {}
     with conn:
-        for table in ("jobs", "events", "audit", "devices"):
+        for table in ("jobs", "events", "audit", "suggest_taps", "suggest_served", "devices"):
             cur = conn.execute(
                 f"DELETE FROM {table} WHERE account_id = ? AND device_id = ?",
                 (account_id, device_id),
@@ -421,6 +441,56 @@ def last_job_of(conn, account_id, device_id, capability):
         "SELECT * FROM jobs WHERE account_id = ? AND device_id = ? AND capability = ?"
         " ORDER BY created DESC, id DESC LIMIT 1", (account_id, device_id, capability),
     ).fetchone()
+
+
+def last_finished_job_of(conn, account_id, device_id, capability, status="done"):
+    return conn.execute(
+        "SELECT * FROM jobs WHERE account_id = ? AND device_id = ? AND capability = ? AND status = ?"
+        " ORDER BY updated DESC, id DESC LIMIT 1", (account_id, device_id, capability, status),
+    ).fetchone()
+
+
+def last_finished_job(conn, account_id, device_id):
+    """The device's most recently finished job (done or failed), any capability."""
+    return conn.execute(
+        "SELECT * FROM jobs WHERE account_id = ? AND device_id = ? AND status IN ('done','failed')"
+        " ORDER BY updated DESC, id DESC LIMIT 1", (account_id, device_id),
+    ).fetchone()
+
+
+# ---------------------------------------------------------------- suggest
+
+def add_tap(conn, account_id, device_id, item_id, ts=None):
+    conn.execute(
+        "INSERT INTO suggest_taps (account_id, device_id, item_id, ts) VALUES (?, ?, ?, ?)",
+        (account_id, device_id, item_id, ts or now_iso()),
+    )
+
+
+def taps_since(conn, account_id, device_id, since_iso):
+    return conn.execute(
+        "SELECT item_id, ts FROM suggest_taps WHERE account_id = ? AND device_id = ? AND ts >= ?"
+        " ORDER BY ts", (account_id, device_id, since_iso),
+    ).fetchall()
+
+
+def remember_served(conn, account_id, device_id, items):
+    stamp = now_iso()
+    conn.executemany(
+        "INSERT INTO suggest_served (account_id, device_id, item_id, item_json, served)"
+        " VALUES (?, ?, ?, ?, ?) ON CONFLICT (account_id, device_id, item_id)"
+        " DO UPDATE SET item_json = excluded.item_json, served = excluded.served",
+        [(account_id, device_id, item["id"], _json(item), stamp) for item in items],
+    )
+
+
+def served_items(conn, account_id, device_id):
+    """{item_id: item} for every item this device has been served."""
+    rows = conn.execute(
+        "SELECT item_id, item_json FROM suggest_served WHERE account_id = ? AND device_id = ?",
+        (account_id, device_id),
+    ).fetchall()
+    return {row["item_id"]: unjson(row["item_json"]) for row in rows}
 
 
 # ---------------------------------------------------------------- events

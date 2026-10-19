@@ -5,6 +5,7 @@ import WidgetKit
 struct BridgeWidgetBundle: WidgetBundle {
     var body: some Widget {
         BridgeActivityWidget()
+        BridgeSuggestWidget()
     }
 }
 
@@ -193,6 +194,115 @@ private struct RectangularView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+// MARK: Suggest · 推荐
+
+struct SuggestEntry: TimelineEntry, Sendable {
+    let date: Date
+    let suggestions: Suggestions
+}
+
+/// The box's suggestions, saved to the App Group (the app resolves taps from that file);
+/// on a failed fetch, the last ones saved.
+struct SuggestProvider: TimelineProvider {
+    static let refresh: TimeInterval = 15 * 60
+
+    func placeholder(in context: Context) -> SuggestEntry {
+        SuggestEntry(date: Date(), suggestions: .sample)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (SuggestEntry) -> Void) {
+        let suggestions = context.isPreview ? .sample : (SharedStore.loadSuggestions() ?? .sample)
+        completion(SuggestEntry(date: Date(), suggestions: suggestions))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SuggestEntry>) -> Void) {
+        let done = Completion(call: completion)
+        Task {
+            let suggestions: Suggestions
+            if let fresh = await SharedStore.fetchSuggestions() {
+                try? SharedStore.save(fresh)
+                suggestions = fresh
+            } else {
+                suggestions = SharedStore.loadSuggestions() ?? Suggestions(generatedAt: Date(), items: [])
+            }
+            let now = Date()
+            done.call(Timeline(entries: [SuggestEntry(date: now, suggestions: suggestions)],
+                               policy: .after(now.addingTimeInterval(Self.refresh))))
+        }
+    }
+}
+
+struct BridgeSuggestWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "BridgeSuggest", provider: SuggestProvider()) { entry in
+            SuggestView(entry: entry)
+                .boxWidgetContainer()
+        }
+        .configurationDisplayName("Suggest · 推荐")
+        .description("Four things to open now. Rules, not guesses.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
+private struct SuggestView: View {
+    let entry: SuggestEntry
+
+    var body: some View {
+        let items = Array(entry.suggestions.items.prefix(Suggestions.slots))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Suggest · 推荐").boxLabel()
+                Spacer()
+                Text(entry.suggestions.generatedAt, style: .time)
+                    .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim)
+            }
+            Rectangle().fill(Theme.line).frame(height: 1)
+            if items.isEmpty {
+                Text("Nothing to suggest.").font(.subheadline).foregroundStyle(Theme.dim)
+                Spacer(minLength: 0)
+            } else {
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(items) { item in
+                        if let url = SuggestRoute.url(for: item.id) {
+                            Link(destination: url) { SuggestSlot(item: item) }
+                        } else {
+                            SuggestSlot(item: item)
+                        }
+                    }
+                    ForEach(items.count..<Suggestions.slots, id: \.self) { _ in
+                        Color.clear.frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct SuggestSlot: View {
+    let item: Suggestions.Item
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.glyph)
+                .font(.system(.title3, weight: .heavy))
+                .foregroundStyle(Theme.text)
+                .frame(width: 40, height: 40)
+                .background(Theme.background)
+                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+            Text(item.title).font(.caption.weight(.semibold)).lineLimit(1)
+            Text(item.reason).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+#Preview(as: .systemMedium) {
+    BridgeSuggestWidget()
+} timeline: {
+    SuggestEntry(date: Date(), suggestions: .sample)
 }
 
 #Preview(as: .systemSmall) {

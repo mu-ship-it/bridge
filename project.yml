@@ -58,6 +58,8 @@ targets:
         NSSpeechRecognitionUsageDescription: "Bridge turns a voice clip it just recorded into text, on the phone when possible, and sends the text only to the server URL you configure."
         NFCReaderUsageDescription: "Bridge reads an NFC tag you hold the phone to when your server asks, and sends what the tag contains to the server URL you configure."
         NSHomeKitUsageDescription: "Bridge lists and controls the accessories already set up in Apple's Home app when your server asks, while the app is open. Unlocking, opening a garage door or disarming always asks you first."
+        # The Suggest widget's app catalog (server/suggest.example.json), so canOpenURL can see them.
+        LSApplicationQueriesSchemes: [weixin, alipays, tg, xhsdiscover]
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         UIBackgroundModes: [fetch, processing, remote-notification, location]

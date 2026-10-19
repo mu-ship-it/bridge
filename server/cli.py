@@ -109,7 +109,8 @@ def cmd_device_purge(conn, args):
     counts = db.purge_device(conn, account["id"], args.device)
     print(f"purged device {args.device} of account {account['label']}: "
           f"jobs {counts['jobs']} (results {counts['results']}), "
-          f"events {counts['events']}, audit {counts['audit']}, device rows {counts['devices']}")
+          f"events {counts['events']}, suggest taps {counts['suggest_taps']}, audit {counts['audit']}, "
+          f"device rows {counts['devices']}")
 
 
 # ---------------------------------------------------------------- jobs

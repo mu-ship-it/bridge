@@ -94,6 +94,39 @@ The device's most recent jobs, newest first, each with a one-line summary, plus 
 - `agent_line`: the `text` of this device's most recent `agent.say` job, or `null`.
 - Audited by count only (`listed:<n>`).
 
+## `GET /bridge/suggest?device=<id>[&tz=<IANA zone>]` (v0.5, for the Suggest widget)
+Up to 6 things to open right now, chosen by rules (no model call). The Suggest · 推荐 widget calls it every 15 minutes (5 s timeout), shows the first 4 and saves the reply to the App Group, so a failed fetch shows the last list and the app can resolve a tapped slot.
+- `tz`: the phone's time zone, for the time-of-day rule; default the box's own. Not a known zone → `400`. A missing device id → `400`.
+```json
+{
+  "generated_at": "2026-10-19T08:30:00Z",
+  "items": [
+    { "id": "cal.3f2a9c01de", "kind": "url", "title": "Standup", "glyph": "日", "reason": "in 25m",
+      "target": "calshow:782552400" },
+    { "id": "retry.j_01JB1", "kind": "capability", "title": "Retry location.now", "glyph": "↻",
+      "reason": "failed 12m", "target": "location.now", "params": {} },
+    { "id": "app.wechat", "kind": "app", "title": "WeChat", "glyph": "微", "reason": "usual 08h",
+      "target": "weixin://" }
+  ]
+}
+```
+- `kind`: `app` / `url` → `target` is a URL the phone opens; `capability` → `target` is a capability name, run on the phone with `params`; `shortcut` → `target` is a shortcut's name, run through `shortcuts.run`.
+- `id`: `[A-Za-z0-9._-]{1,64}`, used in the widget URL `bridge://suggest/<id>`. `glyph`: 1–2 characters. `reason`: at most 14 characters.
+- Rules, highest priority first (a duplicate keeps its first slot):
+  1. **Calendar**: events starting in the next 2 h, or under way, from this device's last finished `calendar.events` result. All-day events are skipped. Opens Calendar at the event (`calshow:`).
+  2. **Retry**: the device's most recently finished job, if it failed in the last 24 h. Runs the same capability with the same params (minus `note`).
+  3. **Lanes**: running lanes from the Mini's push file (`~/labbox-lanes.json`, or `BRIDGE_LANES_FILE`; a list or `{"lanes": [...]}` of `{name, status|state, url?}`; `running`/`active` count). Opens the lane's `url`, else the catalog's `boringbox` entry. Missing file → no lanes.
+  4. **Time of day**: items tapped at least twice within ±1 h of this hour of day over the last 30 days, most taps first. Resolves the id from the catalog, else from the last item served under that id (calendar and retry items are not brought back this way).
+  5. **Fallback**: the app catalog, in order.
+- App catalog: `~/.config/bridge/suggest.json` (or `BRIDGE_SUGGEST_FILE`), `{"apps": [{id, title, glyph, scheme}]}`; missing → the committed `server/suggest.example.json`. App items get the id `app.<id>`.
+- Audited by count only (`listed:<n>`). Every item served is remembered per device (for rule 4).
+
+## `POST /bridge/suggest/tap` (v0.5)
+```json
+{ "device": "my-iphone", "id": "app.wechat" }
+```
+→ `{"ok": true}`. Appends to the device's tap log (read by the time-of-day rule). An invalid `id` → `400`. Audited as `tapped`. The app posts this when a Suggest slot is tapped, before opening the target; a failed post does not stop the open. `bridge device purge` erases a device's taps and served items.
+
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {

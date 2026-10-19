@@ -8,11 +8,11 @@ import UIKit
 /// Runs one capability for an intent, in the foreground and in the activity feed.
 @MainActor
 enum IntentRunner {
-    static func run(_ capability: String, _ params: [String: JSONValue]) async throws -> JSONValue {
+    static func run(_ capability: String, _ params: [String: JSONValue], note: String = "From Shortcuts") async throws -> JSONValue {
         // openAppWhenRun brings the app forward; give the scene a moment to become active.
         for _ in 0..<20 where !Presenter.isForeground { try await Task.sleep(for: .milliseconds(100)) }
         let job = Job(id: "shortcut-" + UUID().uuidString.prefix(8).lowercased(), capability: capability,
-                      params: params, note: "From Shortcuts")
+                      params: params, note: note)
         AppStatus.shared.jobStarted(job)
         let result = await BridgeRuntime.shared.dispatcher.dispatch(job)
         AppStatus.shared.jobFinished(job, result)

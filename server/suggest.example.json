@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {"id": "wechat",    "title": "WeChat",     "glyph": "微", "scheme": "weixin://"},
+    {"id": "alipay",    "title": "Alipay",     "glyph": "支", "scheme": "alipays://"},
+    {"id": "telegram",  "title": "Telegram",   "glyph": "T",  "scheme": "tg://"},
+    {"id": "rednote",   "title": "rednote",    "glyph": "书", "scheme": "xhsdiscover://"},
+    {"id": "safari",    "title": "Safari",     "glyph": "S",  "scheme": "https://"},
+    {"id": "boringbox", "title": "Boring Box", "glyph": "B",  "scheme": "https://boringbox.dev/box/"},
+    {"id": "camera",    "title": "Camera",     "glyph": "相", "scheme": "camera://"}
+  ]
+}
