@@ -117,7 +117,7 @@ Up to 6 things to open right now, chosen by rules (no model call). The Suggest �
   2. **Retry**: the device's most recently finished job, if it failed in the last 24 h. Runs the same capability with the same params (minus `note`).
   3. **Lanes**: running lanes from the Mini's push file (`~/labbox-lanes.json`, or `BRIDGE_LANES_FILE`; a list or `{"lanes": [...]}` of `{name, status|state, url?}`; `running`/`active` count). Opens the lane's `url`, else the catalog's `boringbox` entry. Missing file → no lanes.
   4. **Time of day**: items tapped at least twice within ±1 h of this hour of day over the last 30 days, most taps first. Resolves the id from the catalog, else from the last item served under that id (calendar and retry items are not brought back this way).
-  5. **Fallback**: the app catalog, in order.
+  5. **Fallback**: the app catalog, in order, with `reason: ""` (the widget shows nothing under a fallback slot; it also hides the older generic `"app"`).
 - App catalog: `~/.config/bridge/suggest.json` (or `BRIDGE_SUGGEST_FILE`), `{"apps": [{id, title, glyph, scheme}]}`; missing → the committed `server/suggest.example.json`. App items get the id `app.<id>`.
 - Audited by count only (`listed:<n>`). Every item served is remembered per device (for rule 4).
 

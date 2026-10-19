@@ -37,6 +37,16 @@ import Testing
         #expect(SuggestRoute.action(for: item(.shortcut, "")) == nil)
     }
 
+    @Test func genericReasonsShowNothing() {
+        func reason(_ r: String) -> String? {
+            Suggestions.Item(id: "x", kind: .app, title: "T", glyph: "T", reason: r, target: "t://").shownReason
+        }
+        for generic in ["", " ", "app", "APP", "usual"] { #expect(reason(generic) == nil, "\(generic)") }
+        #expect(reason("usual 08h") == "usual 08h")
+        #expect(reason("in 25m") == "in 25m")
+        #expect(reason("failed 12m") == "failed 12m")
+    }
+
     @Test func decodesTheBoxReplyAndResolvesByID() throws {
         let json = """
         {"generated_at": "2026-10-19T08:30:00Z", "items": [

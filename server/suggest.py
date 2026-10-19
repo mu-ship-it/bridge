@@ -2,7 +2,7 @@
 
 Inputs are gathered by app.py; everything here is pure, so each rule is testable on its own.
 Priority, highest first: calendar (next 2 h) → retry the last failed job → running lanes →
-time-of-day taps → fixed fallback. Duplicates keep their first (highest) slot. At most 6.
+time-of-day taps → fixed fallback (reason ""). Duplicates keep their first (highest) slot. At most 6.
 
 An item: {id, kind: app|capability|shortcut|url, title, glyph (1–2 chars), reason (≤14 chars),
 target} — plus `params` on a capability item. `id` is URL-safe: the widget opens
@@ -180,7 +180,8 @@ def time_of_day_rule(taps, now, tz, resolve):
 
 
 def fallback_rule(catalog):
-    return [app_item(entry, "app") for entry in catalog]
+    """The catalog in order. No reason: the widget shows nothing under a fallback slot."""
+    return [app_item(entry, "") for entry in catalog]
 
 
 def merge(*groups, limit=MAX_ITEMS):
@@ -198,7 +199,7 @@ def merge(*groups, limit=MAX_ITEMS):
 
 def suggest(now, tz, catalog, taps=(), calendar_result=None, failed_job=None, lanes=(), served=None):
     """Every rule, merged by priority."""
-    known = {f"app.{e['id']}": app_item(e, "app") for e in catalog}
+    known = {f"app.{e['id']}": app_item(e, "") for e in catalog}
     # A calendar slot or a retry is about one moment; habit only brings back the lasting kinds.
     known.update({k: v for k, v in (served or {}).items()
                   if isinstance(v, dict) and not k.startswith(("cal.", "retry."))})

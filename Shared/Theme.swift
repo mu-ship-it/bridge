@@ -51,13 +51,24 @@ extension View {
 struct StatusSquare: View {
     enum State: String { case done, running, failed, stale }
     let state: State
+    /// 1pt outline instead of a fill: the widget's tinted and lock-screen modes, where a
+    /// filled square flattens into a solid block.
+    var outlined = false
 
     var body: some View {
-        Rectangle().fill(color).frame(width: Theme.squareSize, height: Theme.squareSize)
-            .accessibilityLabel(Text(state.rawValue))
+        Group {
+            if outlined {
+                Rectangle().strokeBorder(color, lineWidth: 1)
+            } else {
+                Rectangle().fill(color)
+            }
+        }
+        .frame(width: Theme.squareSize, height: Theme.squareSize)
+        .accessibilityLabel(Text(state.rawValue))
     }
 
-    var color: Color { Self.color(for: state) }
+    /// A #3a3a3a outline all but vanishes once the system tints by luminance; dim instead.
+    var color: Color { outlined && state == .stale ? Theme.dim : Self.color(for: state) }
 
     static func color(for state: State) -> Color {
         switch state {

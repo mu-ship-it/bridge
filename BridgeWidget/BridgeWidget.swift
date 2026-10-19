@@ -112,9 +112,16 @@ extension WidgetSnapshot.Dot {
     }
 }
 
+/// Full color: the filled square. Tinted (.accented) and lock screen (.vibrant): outlined, and
+/// only running / failed take the tint — the one accentable view in either widget.
 private struct Square: View {
+    @Environment(\.widgetRenderingMode) private var mode
     let dot: WidgetSnapshot.Dot
-    var body: some View { StatusSquare(state: dot.square) }
+
+    var body: some View {
+        StatusSquare(state: dot.square, outlined: mode != .fullColor)
+            .widgetAccentable(dot == .running || dot == .failed)
+    }
 }
 
 private func ago(_ date: Date) -> String {
@@ -281,21 +288,34 @@ private struct SuggestView: View {
 }
 
 private struct SuggestSlot: View {
+    @Environment(\.widgetRenderingMode) private var mode
     let item: Suggestions.Item
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(item.glyph)
-                .font(.system(.title3, weight: .heavy))
-                .foregroundStyle(Theme.text)
-                .frame(width: 40, height: 40)
-                .background(Theme.background)
-                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+            glyph
             Text(item.title).font(.caption.weight(.semibold)).lineLimit(1)
-            Text(item.reason).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+            if let reason = item.shownReason {
+                Text(reason).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    /// Tinted mode flattens a filled square and its glyph into one block of tint, so outside
+    /// full color: no fill, a 1pt outline bright enough to survive the luminance mapping.
+    @ViewBuilder private var glyph: some View {
+        let text = Text(item.glyph)
+            .font(.system(.title3, weight: .heavy))
+            .foregroundStyle(Theme.text)
+            .frame(width: 40, height: 40)
+        if mode == .fullColor {
+            text.background(Theme.background)
+                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+        } else {
+            text.overlay(Rectangle().strokeBorder(Theme.dim, lineWidth: 1))
+        }
     }
 }
 
@@ -303,6 +323,24 @@ private struct SuggestSlot: View {
     BridgeSuggestWidget()
 } timeline: {
     SuggestEntry(date: Date(), suggestions: .sample)
+}
+
+// Tinted Home Screen icons. Widget previews can't set the rendering mode, so these render the
+// views directly with it overridden.
+#Preview("Suggest · tinted") {
+    SuggestView(entry: SuggestEntry(date: Date(), suggestions: .sample))
+        .boxWidgetContainer()
+        .environment(\.widgetRenderingMode, .accented)
+        .padding()
+        .frame(width: 364, height: 170)
+}
+
+#Preview("Activity · tinted") {
+    MediumView(entry: BridgeEntry(date: Date(), snapshot: .sample))
+        .boxWidgetContainer()
+        .environment(\.widgetRenderingMode, .accented)
+        .padding()
+        .frame(width: 364, height: 170)
 }
 
 #Preview(as: .systemSmall) {

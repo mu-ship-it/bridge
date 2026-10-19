@@ -81,7 +81,7 @@ def test_time_of_day_rule_counts_taps_near_this_hour():
     taps += [("app.boringbox", iso(local.replace(hour=9) - timedelta(days=d))) for d in (1, 2)]  # other slot
     taps += [("app.gone", iso(local.replace(hour=16) - timedelta(days=d))) for d in (1, 2)]   # unknown id
     taps += [("app.wechat", iso(NOW - timedelta(days=40)))] * 5                            # too old
-    known = {"app.wechat": suggest.app_item(CATALOG[0], "app")}
+    known = {"app.wechat": suggest.app_item(CATALOG[0], "")}
     items = suggest.time_of_day_rule(taps, NOW, tz, known.get)
     assert [(i["id"], i["reason"]) for i in items] == [("app.wechat", "usual 16h")]
 
@@ -89,7 +89,7 @@ def test_time_of_day_rule_counts_taps_near_this_hour():
 def test_time_of_day_slot_wraps_round_midnight():
     now = datetime(2026, 10, 19, 23, 30, tzinfo=UTC)
     taps = [("app.wechat", iso(now.replace(hour=0) - timedelta(days=d))) for d in (1, 2)]
-    known = {"app.wechat": suggest.app_item(CATALOG[0], "app")}
+    known = {"app.wechat": suggest.app_item(CATALOG[0], "")}
     assert [i["id"] for i in suggest.time_of_day_rule(taps, now, UTC, known.get)] == ["app.wechat"]
 
 
@@ -106,6 +106,7 @@ def test_fallback_and_merge_priority_dedupe_and_cap():
     assert [i["id"].split(".")[0] for i in items[:4]] == ["cal", "retry", "lane", "app"]
     assert items[3]["id"] == "app.boringbox" and items[3]["reason"] == "usual 08h"
     assert [i["id"] for i in items[4:]] == ["app.wechat", "app.a0"]       # boringbox not repeated
+    assert [i["reason"] for i in items[4:]] == ["", ""]                    # fallback: no reason
     for i in items:
         assert 1 <= len(i["glyph"]) <= 2 and len(i["reason"]) <= suggest.REASON_MAX
         assert suggest.ID_RE.match(i["id"])
@@ -151,7 +152,7 @@ def test_suggest_fallback_is_the_catalog(client, account, files):
     assert body["generated_at"].endswith("Z")
     assert [i["id"] for i in body["items"]] == ["app.wechat", "app.boringbox"]
     assert body["items"][0] == {"id": "app.wechat", "kind": "app", "title": "WeChat", "glyph": "微",
-                                "reason": "app", "target": "weixin://"}
+                                "reason": "", "target": "weixin://"}
 
 
 def test_suggest_uses_calendar_failed_job_and_lanes(client, conn, account, files):

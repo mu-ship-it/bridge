@@ -16,6 +16,15 @@ struct Suggestions: Codable, Sendable, Equatable {
         let target: String
         /// Capability items only.
         var params: [String: JSONValue]?
+
+        /// The reason worth showing under the title; nil for the generic fallback
+        /// ("", "app", "usual" — older boxes still send "app").
+        var shownReason: String? {
+            let flat = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Self.genericReasons.contains(flat.lowercased()) ? nil : flat
+        }
+
+        static let genericReasons: Set<String> = ["", "app", "usual"]
     }
 
     var generatedAt: Date
@@ -49,7 +58,7 @@ struct Suggestions: Codable, Sendable, Equatable {
         Item(id: "retry.sample", kind: .capability, title: "Retry location.now", glyph: "↻", reason: "failed 12m",
              target: "location.now", params: [:]),
         Item(id: "app.wechat", kind: .app, title: "WeChat", glyph: "微", reason: "usual 08h", target: "weixin://"),
-        Item(id: "app.boringbox", kind: .app, title: "Boring Box", glyph: "B", reason: "app",
+        Item(id: "app.boringbox", kind: .app, title: "Boring Box", glyph: "B", reason: "",
              target: "https://boringbox.dev/box/"),
     ])
 }
