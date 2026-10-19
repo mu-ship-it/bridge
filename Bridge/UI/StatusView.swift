@@ -24,7 +24,7 @@ struct StatusView: View {
         NavigationStack {
             List {
                 if duty.enabled {
-                    Section { DutyBanner() }
+                    Section { DutyBanner() }.boxRows()
                 }
                 if compact && !showDetails {
                     activitySection
@@ -32,10 +32,12 @@ struct StatusView: View {
                     details
                 }
             }
+            .boxList()
             .navigationTitle("Bridge")
             .toolbar {
                 if compact {
                     Button(showDetails ? "Feed only" : "Details") { showDetails.toggle() }
+                        .buttonStyle(.box())
                 }
             }
             .disabled(busy)
@@ -50,25 +52,38 @@ struct StatusView: View {
     }
 
     @ViewBuilder private var details: some View {
-        Section("Job loop") {
+        Section {
             row("Last poll", status.lastPoll)
             LabeledContent("Result", value: status.lastPollMessage)
-            LabeledContent("Pending jobs", value: "\(status.pendingJobs)")
+            LabeledContent("Pending jobs") { Text("\(status.pendingJobs)").font(Theme.mono(.body)) }
             if status.unsentResults > 0 {
-                LabeledContent("Unsent results", value: "\(status.unsentResults)")
+                LabeledContent("Unsent results") {
+                    Text("\(status.unsentResults)").font(Theme.mono(.body)).foregroundStyle(Theme.red)
+                }
             }
             Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
+                .buttonStyle(.box())
+        } header: {
+            header("Job loop · 轮询")
         }
+        .boxRows()
         activitySection
-        Section("Health sync") {
+        Section {
             row("Last sync", status.lastSync)
             LabeledContent("Result", value: status.lastSyncMessage)
             Button("Sync now") { run { await BridgeRuntime.shared.healthSync.syncNow(trigger: "button") } }
+                .buttonStyle(.box())
+        } header: {
+            header("Health sync · 健康")
         }
+        .boxRows()
         permissionsSection
-        Section("Capabilities") {
-            ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).monospaced() }
+        Section {
+            ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).font(Theme.mono(.body)) }
+        } header: {
+            header("Capabilities · 能力")
         }
+        .boxRows()
     }
 
     // MARK: Activity
@@ -79,25 +94,28 @@ struct StatusView: View {
             HStack(spacing: 8) {
                 ForEach(ActivityFilter.allCases) { chip in
                     let count = chip.apply(status.activity).count
-                    Button("\(chip.title) \(count)") { filter = chip }
-                        .buttonStyle(.bordered)
-                        .tint(filter == chip ? .accentColor : .secondary)
-                        .controlSize(.small)
-                        .accessibilityAddTraits(filter == chip ? .isSelected : [])
+                    Button { filter = chip } label: {
+                        HStack(spacing: 4) {
+                            Text(chip.title)
+                            Text("\(count)").font(Theme.mono(.caption2, weight: .bold))
+                        }
+                    }
+                    .buttonStyle(.box(selected: filter == chip))
+                    .accessibilityAddTraits(filter == chip ? .isSelected : [])
                 }
                 Spacer()
                 Button("Clear", role: .destructive) { confirmClear = true }
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
+                    .buttonStyle(.box(color: Theme.dim))
                     .disabled(status.activity.allSatisfy { $0.status == .running })
             }
             if shown.isEmpty {
-                Text(status.activity.isEmpty ? "Nothing yet" : "Nothing \(filter.rawValue)").foregroundStyle(.secondary)
+                Text(status.activity.isEmpty ? "Nothing yet." : "Nothing \(filter.rawValue).").foregroundStyle(Theme.dim)
             }
             ForEach(shown) { ActivityRow(entry: $0) }
         } header: {
-            Text("Activity")
+            header("Activity · 动态")
         }
+        .boxRows()
         .confirmationDialog("Clear the activity feed?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Clear finished jobs", role: .destructive) { status.clearActivity() }
         } message: {
@@ -114,17 +132,17 @@ struct StatusView: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(kind.title)
-                        Text(kind.usedBy).font(.caption).foregroundStyle(.secondary)
-                        Text(state).font(.caption).foregroundStyle(color(state))
+                        Text(kind.usedBy).font(.caption).foregroundStyle(Theme.dim)
+                        Text(state).boxLabel(.caption2, color: color(state))
                     }
                     Spacer()
                     switch kind.action(for: state) {
                     case .ask:
                         Button("Ask") { run { await kind.request(); await refreshPermissions() } }
-                            .buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(.box())
                     case .openSettings:
-                        Button("Open Settings") { openSettings() }
-                            .buttonStyle(.bordered).controlSize(.small)
+                        Button("Settings") { openSettings() }
+                            .buttonStyle(.box())
                     case .none:
                         EmptyView()
                     }
@@ -133,17 +151,19 @@ struct StatusView: View {
             LabeledContent("Push", value: status.pushState)
             LabeledContent("Background refresh", value: status.backgroundRefreshState)
         } header: {
-            Text("Permissions")
+            header("Permissions · 权限")
         } footer: {
             Text("iOS asks for each permission only once; after “Don't Allow” the switch lives in Settings. Home accessories are added and paired in Apple's Home app, not here: 白手套 sees only what the Home app already has. Unlocking, opening a garage door or disarming always asks you first.")
+                .font(.caption).foregroundStyle(Theme.dim)
         }
+        .boxRows()
     }
 
     private func color(_ state: String) -> Color {
         switch state {
-        case PermissionState.granted, "Always": .green
-        case PermissionState.denied, "Denied": .red
-        default: .secondary
+        case PermissionState.granted, "Always": Theme.text
+        case PermissionState.denied, "Denied": Theme.red
+        default: Theme.dim
         }
     }
 
@@ -158,8 +178,15 @@ struct StatusView: View {
 
     private func row(_ label: String, _ date: Date?) -> some View {
         LabeledContent(label) {
-            if let date { Text(date, style: .relative) + Text(" ago") } else { Text("Never") }
+            Group {
+                if let date { Text(date, style: .relative) + Text(" ago") } else { Text("Never") }
+            }
+            .font(Theme.mono(.body))
         }
+    }
+
+    private func header(_ title: String) -> some View {
+        Text(title).boxLabel()
     }
 
     private func run(_ action: @escaping @MainActor () async -> Void) {
@@ -172,6 +199,16 @@ struct StatusView: View {
     }
 }
 
+extension ActivityEntry.Status {
+    var square: StatusSquare.State {
+        switch self {
+        case .running: .running
+        case .done: .done
+        case .failed: .failed
+        }
+    }
+}
+
 /// One activity-feed row: time · capability · status, then the agent's note and a one-line result.
 private struct ActivityRow: View {
     let entry: ActivityEntry
@@ -179,20 +216,19 @@ private struct ActivityRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            switch entry.status {
-            case .running: ProgressView()
-            case .done: Image(systemName: "checkmark.circle").foregroundStyle(.green)
-            case .failed: Image(systemName: "xmark.circle").foregroundStyle(.red)
-            }
+            StatusSquare(state: entry.status.square)
+                .padding(.top, 4)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · \(entry.status.rawValue)")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
+                Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · \(entry.status.rawValue.uppercased())")
+                    .font(Theme.mono(.caption))
+                    .foregroundStyle(entry.status == .done ? Theme.dim : Theme.red)
                 if entry.capability == "agent.say" {
                     Text(entry.summary)
                 } else {
                     if let note = entry.note { Text(note) }
-                    if !entry.summary.isEmpty { Text(entry.summary).font(.caption).lineLimit(1) }
+                    if !entry.summary.isEmpty {
+                        Text(entry.summary).font(Theme.mono(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
+                    }
                 }
             }
             Spacer(minLength: 0)
@@ -203,6 +239,7 @@ private struct ActivityRow: View {
                     Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
                 } label: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .foregroundStyle(copied ? Theme.text : Theme.dim)
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel(copied ? "Copied" : "Copy result")

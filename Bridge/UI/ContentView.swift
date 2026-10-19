@@ -11,6 +11,9 @@ struct ContentView: View {
             Tab("Status", systemImage: "antenna.radiowaves.left.and.right", value: "status") { StatusView() }
             Tab("Settings", systemImage: "gearshape", value: "settings") { SettingsView() }
         }
+        // Boring Box: always black; the tab bar stays system, white when selected.
+        .preferredColorScheme(.dark)
+        .tint(Theme.text)
         // A tap on a widget (`bridge-widget://status`) lands on the Status tab.
         .onOpenURL { url in
             if url.scheme == "bridge-widget" { tab = "status" }

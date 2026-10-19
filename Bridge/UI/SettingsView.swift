@@ -24,26 +24,42 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } header: {
-                    Text("Server")
+                    Text("Server · 服务器").boxLabel()
                 } footer: {
-                    Text("Any server implementing the Bridge API (docs/API.md). Stored in the Keychain on this device. Health data is only ever sent to this URL.")
+                    Text("Any server implementing the Bridge API (docs/API.md). Stored in the Keychain on this device. Health data goes to this URL only.")
+                        .font(.caption).foregroundStyle(Theme.dim)
                 }
+                .boxRows()
                 Section {
-                    Button("Save") { save() }
-                    Button(testing ? "Testing…" : "Test connection") { test() }
-                        .disabled(testing)
+                    HStack(spacing: 8) {
+                        Button("Save") { save() }
+                            .buttonStyle(.box())
+                        Button(testing ? "Testing…" : "Test connection") { test() }
+                            .buttonStyle(.box())
+                            .disabled(testing)
+                    }
                 }
+                .boxRows()
                 Section {
                     Toggle("Duty mode", isOn: $duty.enabled)
+                        .tint(Theme.red)
                 } header: {
-                    Text("值班 / Duty")
+                    Text("Duty · 值班").boxLabel()
                 } footer: {
                     Text("For an iPad left plugged in with 白手套 in a small Stage Manager window. While the app is on screen: the connection to the box stays open for as long as it runs, the screen does not lock, and the box gets a heartbeat every 5 minutes. When 白手套 leaves the screen it all stops, and resumes when it comes back. Nothing runs in the background.")
+                        .font(.caption).foregroundStyle(Theme.dim)
                 }
+                .boxRows()
                 if let message {
-                    Section("Result") { Text(message).font(.callout) }
+                    Section {
+                        Text(message).font(Theme.mono(.callout))
+                    } header: {
+                        Text("Result · 结果").boxLabel()
+                    }
+                    .boxRows()
                 }
             }
+            .boxList()
             .navigationTitle("Settings")
         }
     }

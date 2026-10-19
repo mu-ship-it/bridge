@@ -66,12 +66,21 @@ struct BridgeActivityWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "BridgeActivity", provider: BridgeProvider()) { entry in
             BridgeWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .boxWidgetContainer()
                 .widgetURL(URL(string: "bridge-widget://status"))
         }
         .configurationDisplayName("白手套")
-        .description("What your agent is doing: its last line and the latest jobs.")
+        .description("Agent's last line. Latest jobs.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline])
+    }
+}
+
+extension View {
+    /// Black in light mode too: an explicit background, and a dark scheme so system text is white.
+    func boxWidgetContainer() -> some View {
+        foregroundStyle(Theme.text)
+            .environment(\.colorScheme, .dark)
+            .containerBackground(Theme.background, for: .widget)
     }
 }
 
@@ -92,22 +101,19 @@ struct BridgeWidgetView: View {
 }
 
 extension WidgetSnapshot.Dot {
-    var color: Color {
+    var square: StatusSquare.State {
         switch self {
-        case .running: .blue
-        case .done: .green
-        case .failed: .red
-        case .stale: .gray
+        case .running: .running
+        case .done: .done
+        case .failed: .failed
+        case .stale: .stale
         }
     }
 }
 
-private struct StatusDot: View {
+private struct Square: View {
     let dot: WidgetSnapshot.Dot
-    var body: some View {
-        Circle().fill(dot.color).frame(width: 8, height: 8)
-            .accessibilityLabel(Text(dot.rawValue))
-    }
+    var body: some View { StatusSquare(state: dot.square) }
 }
 
 private func ago(_ date: Date) -> String {
@@ -120,17 +126,17 @@ private struct SmallView: View {
     var body: some View {
         let snapshot = entry.snapshot
         VStack(alignment: .leading, spacing: 6) {
-            Text("白手套").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text("白手套 · Bridge").boxLabel()
             Text(snapshot.headline)
-                .font(.subheadline)
+                .font(.subheadline.weight(.medium))
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
             if let row = snapshot.rows.first {
                 HStack(spacing: 6) {
-                    StatusDot(dot: snapshot.dot(for: row, now: entry.date))
+                    Square(dot: snapshot.dot(for: row, now: entry.date))
                     Text(ago(snapshot.time(of: row)))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
         }
@@ -144,24 +150,23 @@ private struct MediumView: View {
         let snapshot = entry.snapshot
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("白手套").font(.caption.weight(.semibold))
+                Text("Activity · 动态").boxLabel()
                 Spacer()
                 if let line = snapshot.lastHealth {
-                    Text(line).lineLimit(1)
+                    Text(line).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+            Rectangle().fill(Theme.line).frame(height: 1)
             if snapshot.rows.isEmpty {
                 Text(snapshot.headline).font(.subheadline)
             }
             ForEach(snapshot.rows.prefix(3)) { row in
                 HStack(spacing: 6) {
-                    StatusDot(dot: snapshot.dot(for: row, now: entry.date))
+                    Square(dot: snapshot.dot(for: row, now: entry.date))
                     Text(row.title).font(.subheadline).lineLimit(1)
                     Spacer(minLength: 4)
                     Text(ago(snapshot.time(of: row)))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
             Spacer(minLength: 0)
@@ -177,9 +182,9 @@ private struct RectangularView: View {
         VStack(alignment: .leading, spacing: 2) {
             if let row = snapshot.rows.first {
                 HStack(spacing: 4) {
-                    StatusDot(dot: snapshot.dot(for: row, now: entry.date))
-                    Text("\(row.status.rawValue) · \(ago(snapshot.time(of: row)))")
-                        .font(.caption2)
+                    Square(dot: snapshot.dot(for: row, now: entry.date))
+                    Text(row.status.rawValue.uppercased()).font(Theme.label(.caption2)).tracking(Theme.labelTracking)
+                    Text(ago(snapshot.time(of: row))).font(Theme.mono(.caption2))
                 }
                 Text(row.title).font(.headline).lineLimit(2)
             } else {

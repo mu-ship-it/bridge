@@ -41,6 +41,7 @@
 		6A419BC421BBE86745942327 /* WiFiInfoCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D96C5A773F47BC992406E5A /* WiFiInfoCapability.swift */; };
 		700FF6868189AED4CAB26DDA /* DeviceInfoCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */; };
 		7321248E84BADEC08C5F70B5 /* CapabilityParamsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */; };
+		73D9B9C6D06516252BB55B73 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA7B2DB5558491517438CE7 /* Theme.swift */; };
 		73E7BC58DCDC5849A039D8CA /* HomeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B2FD4194A7691C01952713 /* HomeStore.swift */; };
 		74025976EEB5CF22440F8CBB /* PhoneCapabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E591B70D4409ED514CB981A /* PhoneCapabilityTests.swift */; };
 		7C58C5532C9EABEEB984BDCF /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F39C8726E9396DD2F947B90 /* Activity.swift */; };
@@ -64,6 +65,8 @@
 		D0E7ADF1D24E42164B024539 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1C51D6132CCFBA02B50D8B3 /* Models.swift */; };
 		D3ED00E3615110BBB4F5C59D /* Presenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6898596872411DB8AC0BEF3 /* Presenter.swift */; };
 		DA0F3172A8EC206D1099C65C /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B038AABA09207670B61959C0 /* WidgetSnapshot.swift */; };
+		DBDD9479C1FAC44E1371C276 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA7B2DB5558491517438CE7 /* Theme.swift */; };
+		E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */; };
 		E60FB766BA4C28B46DBD6ABD /* BackgroundTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FB9F40B1D13F013E945CB5 /* BackgroundTime.swift */; };
 		EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E240E010D595FB217F2FE5 /* ContentView.swift */; };
 		EBC2BD4A50CCA5B0E4EE7516 /* BarcodeScanCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB4AB261B06D1C475E959D8 /* BarcodeScanCapability.swift */; };
@@ -73,6 +76,7 @@
 		FB6844C98C285A86CB1CDCE8 /* ForegroundSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E529EA443F207B9F6F55AB4 /* ForegroundSession.swift */; };
 		FC37A0C933D85227950982E1 /* BackgroundTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35F2CCC98BCF98DE6E439A5 /* BackgroundTasks.swift */; };
 		FE1BE4C482F186ECB643F282 /* JobLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7485F55BA6A1D49E41A285CD /* JobLoop.swift */; };
+		FF1158CD9AB6FD21A7CD99DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B27C8FE08E8F325ED2D2ACDF /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -121,6 +125,7 @@
 		2FE4BFC6B8A72D6BC718FF56 /* BridgeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BridgeWidget.entitlements; sourceTree = "<group>"; };
 		3968868B373BD8B4DE7CB2B0 /* Capability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capability.swift; sourceTree = "<group>"; };
 		3BF91A005F35C592F3774778 /* SpeakCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakCapability.swift; sourceTree = "<group>"; };
+		3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E591B70D4409ED514CB981A /* PhoneCapabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCapabilityTests.swift; sourceTree = "<group>"; };
 		3F2900BC96091AEC7AD7BB90 /* HealthIngestMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapper.swift; sourceTree = "<group>"; };
 		43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityParamsTests.swift; sourceTree = "<group>"; };
@@ -155,6 +160,7 @@
 		A3E240E010D595FB217F2FE5 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A9A6E0CD6609C828EDDF20F1 /* WidgetPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPublisher.swift; sourceTree = "<group>"; };
 		B038AABA09207670B61959C0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		B27C8FE08E8F325ED2D2ACDF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoCapability.swift; sourceTree = "<group>"; };
 		B562D310116C75DDACAEC73A /* BoxClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxClient.swift; sourceTree = "<group>"; };
 		B6358983CA865BE5715FE0FA /* CameraCaptureCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureCapability.swift; sourceTree = "<group>"; };
@@ -169,6 +175,7 @@
 		D837F755056487658E6977A8 /* BridgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeApp.swift; sourceTree = "<group>"; };
 		D9C518902706C4C94B00988B /* CapabilityRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityRegistry.swift; sourceTree = "<group>"; };
 		DC6CF829A228D0E7AA2A168C /* OpenCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCapabilities.swift; sourceTree = "<group>"; };
+		DEA7B2DB5558491517438CE7 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		E1C51D6132CCFBA02B50D8B3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCapabilities.swift; sourceTree = "<group>"; };
 		E5B2FD4194A7691C01952713 /* HomeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStore.swift; sourceTree = "<group>"; };
@@ -239,6 +246,7 @@
 		7DC938314EF794B867060CCD /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
+				3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */,
 				2EBA9446753DB8F5EF177141 /* Bridge.entitlements */,
 				015E0581D699A8D25C81E072 /* Info.plist */,
 				FB240235F17765454C7A88DD /* App */,
@@ -265,6 +273,7 @@
 		ACCA212D3594924FFC266D4B /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				DEA7B2DB5558491517438CE7 /* Theme.swift */,
 				B038AABA09207670B61959C0 /* WidgetSnapshot.swift */,
 			);
 			path = Shared;
@@ -357,6 +366,7 @@
 		FB7DC7D37E995D900A29E4B7 /* BridgeWidget */ = {
 			isa = PBXGroup;
 			children = (
+				B27C8FE08E8F325ED2D2ACDF /* Assets.xcassets */,
 				2FE4BFC6B8A72D6BC718FF56 /* BridgeWidget.entitlements */,
 				451BC1991A84D299FD004A7F /* BridgeWidget.swift */,
 				85738C6886F6D61966E0E538 /* Info.plist */,
@@ -372,6 +382,7 @@
 			buildConfigurationList = C42B1A54D22B91E34796471E /* Build configuration list for PBXNativeTarget "Bridge" */;
 			buildPhases = (
 				B7ACD7B96F68BDDDA4EF2E93 /* Sources */,
+				0A4D4B35D24B404F1BF6D859 /* Resources */,
 				A4D1FD4962FD1ABB49621124 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -409,6 +420,7 @@
 			buildConfigurationList = 976F99940D5EBDA47351DEAB /* Build configuration list for PBXNativeTarget "BridgeWidget" */;
 			buildPhases = (
 				B27AF173F919D860B5D66BB8 /* Sources */,
+				928A98951B778FD475103351 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -465,6 +477,25 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		0A4D4B35D24B404F1BF6D859 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		928A98951B778FD475103351 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF1158CD9AB6FD21A7CD99DF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5B720C84D5B4612A4847F03F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -488,6 +519,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1F59D52920FE3BB774EE7D4E /* BridgeWidget.swift in Sources */,
+				73D9B9C6D06516252BB55B73 /* Theme.swift in Sources */,
 				565EFF84F5BD678201F3AC34 /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -546,6 +578,7 @@
 				09A38D9AA20BD60B481FD549 /* ShareCapability.swift in Sources */,
 				5D63D6BA65AE6F62159C330A /* SpeakCapability.swift in Sources */,
 				1D0C1709B6A8096DAA0F595C /* StatusView.swift in Sources */,
+				DBDD9479C1FAC44E1371C276 /* Theme.swift in Sources */,
 				6A419BC421BBE86745942327 /* WiFiInfoCapability.swift in Sources */,
 				C4569D5FD763863B0E162E3C /* WidgetPublisher.swift in Sources */,
 				DA0F3172A8EC206D1099C65C /* WidgetSnapshot.swift in Sources */,
@@ -590,6 +623,7 @@
 		5CB95F48DC84DCCC189D1404 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BridgeWidget/BridgeWidget.entitlements;
 				INFOPLIST_FILE = BridgeWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
@@ -694,6 +728,7 @@
 		842499E428E34263A0302E9D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BridgeWidget/BridgeWidget.entitlements;
 				INFOPLIST_FILE = BridgeWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
