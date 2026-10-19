@@ -27,6 +27,7 @@ enum CapabilityRegistry {
         FilesWriteCapability(),
         FilesReadCapability(),
         FilesListCapability(),
+        FilesExportCapability(),
         ShareCapability(),
         ComposeSMSCapability(),
         ComposeMailCapability(),

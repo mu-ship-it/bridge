@@ -140,7 +140,7 @@ $ curl -s -H "Authorization: Bearer $TOKEN" "$BOX/bridge/ping?device=$DEVICE"
 $ curl -s -X POST "$BOX/bridge/devices" -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" -d '{
       "device":"my-iphone","apns_token":"<64 hex chars>","apns_environment":"production",
-      "app_version":"0.1.0 (1)","capabilities":["device.info","health.query","location.now"]}'
+      "app_version":"0.5 (12)","capabilities":["device.info","health.query","location.now"]}'
 {"ok":true}
 
 $ curl -s -H "Authorization: Bearer $TOKEN" "$BOX/bridge/jobs?device=$DEVICE"

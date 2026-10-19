@@ -37,7 +37,7 @@ Built-in capabilities:
 | `open.url`, `shortcuts.run`, `settings.open` | Opens any URL scheme or app; runs one of your Shortcuts; opens a Settings page |
 | `compose.sms`, `compose.mail`, `call` | Fills in Apple's sheet or call prompt. **You** tap Send or Call |
 | `share` | The share sheet, with text, a link or a file |
-| `files.write`, `files.read`, `files.list` | The app's folder, visible in the Files app as "白手套" |
+| `files.write`, `files.read`, `files.list`, `files.export` | The app's folder, visible in the Files app as "白手套"; `files.export` writes health data there as one JSON file |
 | `wifi.info`, `nfc.read`, `sensors.sample` | Current Wi-Fi network; an NFC tag you hold the phone to; accelerometer/gyro/magnetometer/barometer |
 | `home.list`, `home.get`, `home.set` | HomeKit accessories already set up in Apple's Home app. Unlocking, opening or disarming asks you first |
 
@@ -62,7 +62,7 @@ Setting the iPad up:
 
 So you can see what the agent is doing without opening the app, 白手套 has a home-screen widget (small: the agent's last `agent.say` line, or the newest job's note, with a status square and how long ago; medium: the last three jobs, note · status · time) and lock-screen widgets (rectangular and inline: the newest job's note). The app writes a small snapshot (last 5 feed rows, the agent's line, last poll, last health sync) to its App Group after every job and sync and asks WidgetKit to redraw. Every 15 minutes the widget also asks the box itself (`GET /bridge/feed`, 5 s timeout), reading the token through a shared Keychain access group, so it shows jobs the phone has not picked up yet. Widgets show one-line summaries only, never a whole result, but they do sit on the lock screen: leave the lock-screen ones off if notes or summaries are private. Tapping a widget opens the Status tab.
 
-The widgets follow the "Boring Box" look: black, white, 1px lines, one red. Status squares are white for done, red for running or failed, and dark grey once nothing has moved for an hour. In light mode they stay black.
+The widgets follow the "Boring Box" look: black, white, 1px lines, one red. Status squares are white for done, red for running or failed, and dark grey once nothing has moved for an hour. The widgets stay black in light mode too.
 
 **Suggest · 推荐** (medium) shows four things to open now: a calendar event in the next two hours, a retry of a job that just failed, a running lane, an app you usually open at this hour, or apps from your catalog. The box chooses them by rule (`GET /bridge/suggest`, see [docs/API.md](docs/API.md)); nothing is guessed by a model. Tapping a slot opens 白手套, which logs the tap to the box and then opens the app or URL, runs the capability, or runs the shortcut. The app catalog lives on the box in `~/.config/bridge/suggest.json`. Copy `server/suggest.example.json` there and edit it. The phone can only check for apps whose schemes are listed in `LSApplicationQueriesSchemes` (`project.yml`), so add a new app's scheme there too.
 
@@ -91,6 +91,7 @@ xcodebuild -scheme Bridge -destination 'platform=iOS Simulator,name=iPhone 17' b
 xcodebuild -scheme Bridge -destination 'platform=iOS Simulator,name=iPhone 17' test
 ```
 Pick any simulator from `xcrun simctl list devices available`. Or open `Bridge.xcodeproj` in Xcode and press ⌘R.
+The version is set in `project.yml` (`MARKETING_VERSION`, now 0.5). The build number is the git commit count, stamped into the built app and widget at build time, so a build from a shallow clone shows a low number.
 
 The simulator has a Health app, so you can add sample data there. iOS background tasks never fire on the simulator. Use **Poll now** and **Sync now** on the Status screen instead. To simulate a silent push:
 ```sh

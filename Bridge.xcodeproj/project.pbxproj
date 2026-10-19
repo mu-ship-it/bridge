@@ -61,6 +61,7 @@
 		9AC9545E3E2245AC3B14012A /* SensorsSampleCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0175F22BB9BC0FA9ABE424 /* SensorsSampleCapability.swift */; };
 		AE8485502F0EFDB931C31D95 /* StatusFeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE564049727EC1D5C987B2F0 /* StatusFeedTests.swift */; };
 		B04063D9051ECC8E928FBE15 /* HomeCapabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */; };
+		B19BEF698B3904C8F40B0FB7 /* SmallFixesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */; };
 		B905CF4B585A0D6501FC81AB /* ComposeCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533A439AC0003452AEC920DA /* ComposeCapabilities.swift */; };
 		BBDEA0480E90AB59157F87F6 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654D641B24FE0874A4024A66 /* Keychain.swift */; };
 		BD4DECD40FC830B04BBA9740 /* ClipboardCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */; };
@@ -152,6 +153,7 @@
 		7270EB759CEF8D4BB0698FAC /* PermissionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionState.swift; sourceTree = "<group>"; };
 		7485F55BA6A1D49E41A285CD /* JobLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobLoop.swift; sourceTree = "<group>"; };
 		7A4C74205E6AEDC2C0502808 /* NFCReadCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCReadCapability.swift; sourceTree = "<group>"; };
+		827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallFixesTests.swift; sourceTree = "<group>"; };
 		85738C6886F6D61966E0E538 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		860AE021569E621E5BBD593E /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		866A636D51506F10A9AF17E2 /* ShareCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCapability.swift; sourceTree = "<group>"; };
@@ -247,6 +249,7 @@
 				D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */,
 				902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */,
 				3E591B70D4409ED514CB981A /* PhoneCapabilityTests.swift */,
+				827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */,
 				BE564049727EC1D5C987B2F0 /* StatusFeedTests.swift */,
 				02FD36AB2E46FCCBEEF4332A /* SuggestRouteTests.swift */,
 				C22551BA5B08D73060159529 /* WidgetSnapshotTests.swift */,
@@ -398,6 +401,7 @@
 				B7ACD7B96F68BDDDA4EF2E93 /* Sources */,
 				0A4D4B35D24B404F1BF6D859 /* Resources */,
 				A4D1FD4962FD1ABB49621124 /* Embed Foundation Extensions */,
+				5F79F2A8752A92A655F32120 /* Build number = git commit count */,
 			);
 			buildRules = (
 			);
@@ -435,6 +439,7 @@
 			buildPhases = (
 				B27AF173F919D860B5D66BB8 /* Sources */,
 				928A98951B778FD475103351 /* Resources */,
+				AAF995F70DD4A16E992A2341 /* Build number = git commit count */,
 			);
 			buildRules = (
 			);
@@ -510,6 +515,49 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		5F79F2A8752A92A655F32120 /* Build number = git commit count */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Build number = git commit count";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "count=$(git -C \"$SRCROOT\" rev-list --count HEAD 2>/dev/null || echo \"$CURRENT_PROJECT_VERSION\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $count\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
+		};
+		AAF995F70DD4A16E992A2341 /* Build number = git commit count */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Build number = git commit count";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "count=$(git -C \"$SRCROOT\" rev-list --count HEAD 2>/dev/null || echo \"$CURRENT_PROJECT_VERSION\")\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $count\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5B720C84D5B4612A4847F03F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -523,6 +571,7 @@
 				B04063D9051ECC8E928FBE15 /* HomeCapabilityTests.swift in Sources */,
 				0E9CA1157F426BC4D3FC226C /* JobDispatcherTests.swift in Sources */,
 				74025976EEB5CF22440F8CBB /* PhoneCapabilityTests.swift in Sources */,
+				B19BEF698B3904C8F40B0FB7 /* SmallFixesTests.swift in Sources */,
 				AE8485502F0EFDB931C31D95 /* StatusFeedTests.swift in Sources */,
 				555B710BAF7180B9BA39DA3A /* SuggestRouteTests.swift in Sources */,
 				1CE04C669E419CF4CF821EB4 /* WidgetSnapshotTests.swift in Sources */,
@@ -627,6 +676,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Bridge/Bridge.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Bridge/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -645,6 +695,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BridgeWidget/BridgeWidget.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = BridgeWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -715,7 +766,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -750,6 +801,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BridgeWidget/BridgeWidget.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = BridgeWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -770,6 +822,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Bridge/Bridge.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Bridge/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "白手套";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -850,7 +903,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

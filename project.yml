@@ -10,7 +10,9 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.5"
+    # The real build number is the git commit count, stamped into the built Info.plist by the
+    # "Build number" script on the app and the widget (they must match).
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     # Bundle id, team and default server URL come from Config/Bridge.xcconfig (+ your gitignored Config/Local.xcconfig).
@@ -26,6 +28,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Bridge
+        ENABLE_USER_SCRIPT_SANDBOXING: NO   # the build-number script reads .git
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -33,6 +36,8 @@ targets:
     info:
       path: Bridge/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: 白手套
         UILaunchScreen: {}
         # iPad: any orientation, resizable (Stage Manager / Split View), several windows at once.
@@ -72,6 +77,13 @@ targets:
         BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    postBuildScripts:
+      - name: Build number = git commit count
+        basedOnDependencyAnalysis: false
+        inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]   # run after Info.plist is processed
+        script: |
+          count=$(git -C "$SRCROOT" rev-list --count HEAD 2>/dev/null || echo "$CURRENT_PROJECT_VERSION")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $count" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
     entitlements:
       path: Bridge/Bridge.entitlements
       properties:
@@ -92,6 +104,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: BridgeWidget
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).widget
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -99,6 +112,8 @@ targets:
     info:
       path: BridgeWidget/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: 白手套
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -107,6 +122,13 @@ targets:
         BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID)
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    postBuildScripts:
+      - name: Build number = git commit count
+        basedOnDependencyAnalysis: false
+        inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]   # run after Info.plist is processed
+        script: |
+          count=$(git -C "$SRCROOT" rev-list --count HEAD 2>/dev/null || echo "$CURRENT_PROJECT_VERSION")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $count" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
     entitlements:
       path: BridgeWidget/BridgeWidget.entitlements
       properties:

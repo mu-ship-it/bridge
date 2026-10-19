@@ -30,7 +30,7 @@ Sent after APNs hands the phone a device token (at launch, once the box is confi
   "device": "my-iphone",
   "apns_token": "a1b2…64 hex chars",
   "apns_environment": "development",
-  "app_version": "0.1.0 (1)",
+  "app_version": "0.5 (12)",
   "capabilities": ["device.info", "health.query", "location.now"]
 }
 ```
@@ -222,7 +222,7 @@ No params.
 {
   "battery_level": 0.82, "battery_state": "unplugged", "low_power_mode": false,
   "model": "iPhone", "model_identifier": "iPhone17,1", "system_name": "iOS", "system_version": "27.0",
-  "app_version": "0.1.0 (1)", "last_sync": "2026-10-16T00:00:00Z", "last_poll": "2026-10-16T00:05:00Z",
+  "app_version": "0.5 (12)", "last_sync": "2026-10-16T00:00:00Z", "last_poll": "2026-10-16T00:05:00Z",
   "background_refresh": "Available"
 }
 ```
@@ -307,7 +307,7 @@ params: `seconds` (1–60, default 10), `transcribe` (default true), `audio` (de
 Needs Microphone, plus Speech Recognition for `transcribe` (Status → Permissions → Ask).
 
 ### `speak`
-params: `text` (required, ≤ 4000 chars), `rate` (0–1, default 0.5 = normal speed), `voice` (a language like `zh-CN`, or a voice identifier; default is a voice for the text's own language). Reads aloud, even with the ring switch on silent, and answers once it has finished: `{"spoken": true, "voice": "com.apple.voice.compact.zh-CN.Tingting", "seconds": 3.4}`.
+params: `text` (required, ≤ 4000 chars), `rate` (0–1, default 0.5 = normal speed), `voice` (a language like `zh-CN`, or a voice identifier; default is the text's own language). For a language, the phone picks the best installed voice: premium, then enhanced, then compact, preferring the exact region (`en` matches any region). Novelty voices and Personal Voice are never picked automatically, but an identifier always wins. Reads aloud, even with the ring switch on silent, and answers once it has finished: `{"spoken": true, "voice": "com.apple.voice.premium.zh-CN.Lili", "voice_name": "Lili", "voice_quality": "premium", "voice_language": "zh-CN", "seconds": 3.4}`. Premium and enhanced voices are downloaded in Settings › Accessibility › Spoken Content › Voices.
 
 ### `haptic`, `torch`, `screen.brightness`
 - `haptic` `{style?}`: `light`, `medium` (default), `heavy`, `soft`, `rigid`, `selection`, `success`, `warning`, `error`. Returns `{"style": "medium"}`.
@@ -336,6 +336,7 @@ The app's Documents folder, which the Files app shows as **On My iPhone › 白�
 - `files.write` `{name, text | base64, append?}` → `{"name": "notes.txt", "size": 42}`
 - `files.read` `{name, as?}` → `{"name", "size", "text"}` for a UTF-8 file, or `"base64"` otherwise (or with `as: "base64"`). An unknown name is `not_found`.
 - `files.list` → `{"count": 2, "files": [{"name": "a.txt", "size": 42, "modified": "2026-10-16T08:00:00Z"}]}`
+- `files.export` `{metrics: ["heart_rate", "sleep", …], from?, to?, interval?, name?}` (v0.5) → runs `health.query` for each metric (1–20; same names, dates and `interval` as `health.query`, default the last 24 h, raw) and writes one JSON file, default `health-<from>_<to>.json`, at most 50 MB: `{"path": "On My iPhone/白手套/health-2026-10-12_2026-10-19.json", "name": "…", "bytes": 48213, "metrics": 2, "failed": ["step_count"]}`. The file is `{exported_at, from, to, interval, results: {<metric>: <health.query result> | {"error": {code, message}}}}`. Everything is checked before anything runs, so an unknown metric or bad date is `bad_params`. A metric that fails is recorded in the file and in `failed`. The job fails only if every metric does. The file is written to the phone and is not sent back to the box; use `files.read` or `share` for that.
 
 ### `share`
 params: at least one of `text`, `url`, `file` (a name from `files.list`), plus `timeout`. Presents the share sheet, and Mu picks the destination. Returns `{"completed": true, "activity": "com.apple.UIKit.activity.Message"}`.

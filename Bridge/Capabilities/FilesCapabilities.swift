@@ -130,3 +130,102 @@ struct FilesListCapability: Capability {
         return .object(["count": .number(Double(files.count)), "files": .array(files)])
     }
 }
+
+/// Parsed `files.export` params: `metrics` (1–20 health.query metric names), `from` / `to`
+/// (ISO-8601, default the last 24 h), `interval` (as health.query, default `raw`), `name`
+/// (default `health-<from>_<to>.json`).
+struct FilesExportParams: Sendable, Equatable {
+    static let maxMetrics = 20
+    static let maxBytes = 50_000_000
+
+    let metrics: [String]
+    let from: Date
+    let to: Date
+    let interval: String
+    let name: String
+
+    init(_ params: [String: JSONValue]?, now: Date = Date()) throws {
+        let p = params ?? [:]
+        guard case .array(let raw)? = p["metrics"] else {
+            throw CapabilityError.badParams("'metrics' (array of health.query metric names) is required")
+        }
+        let names = raw.compactMap(\.stringValue).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard !names.isEmpty, names.count == raw.count else {
+            throw CapabilityError.badParams("'metrics' must be a non-empty array of metric names")
+        }
+        guard names.count <= Self.maxMetrics else { throw CapabilityError.badParams("At most \(Self.maxMetrics) metrics") }
+        metrics = names.reduce(into: []) { if !$0.contains($1) { $0.append($1) } }
+        interval = p["interval"]?.stringValue ?? "raw"
+        // health.query's own parsing: unknown metrics, bad dates and intervals fail before anything runs.
+        var range: (Date, Date)?
+        for metric in metrics {
+            var q = p
+            q["metric"] = .string(metric)
+            let parsed = try HealthQueryParams(q, now: now)
+            range = (parsed.from, parsed.to)
+        }
+        (from, to) = range!
+        if p["name"] != nil {
+            name = try FileStore.validName(p)
+        } else {
+            let day = Date.ISO8601FormatStyle().year().month().day()
+            name = "health-\(from.formatted(day))_\(to.formatted(day)).json"
+        }
+    }
+
+    /// The health.query params for one metric.
+    func query(_ metric: String) -> [String: JSONValue] {
+        ["metric": .string(metric), "from": .string(ISO.string(from)), "to": .string(ISO.string(to)),
+         "interval": .string(interval)]
+    }
+}
+
+/// `files.export` {metrics, from?, to?, interval?, name?} → runs health.query for each metric and
+/// writes one JSON file to the Files-visible Documents folder: `{path, name, bytes, metrics, failed}`.
+/// File: `{exported_at, from, to, interval, results: {<metric>: <health.query result> | {error}}}`.
+/// A metric that fails (permission, no data type) is recorded in the file and in `failed`; the
+/// export fails only if every metric does.
+struct FilesExportCapability: Capability {
+    let name = "files.export"
+    var store = FileStore.documents
+    var query: @Sendable (Job) async throws -> JSONValue = { try await HealthQueryCapability().run($0) }
+
+    func run(_ job: Job) async throws -> JSONValue {
+        let q = try FilesExportParams(job.params)
+        var results: [String: JSONValue] = [:]
+        var failed: [JSONValue] = []
+        for metric in q.metrics {
+            do {
+                results[metric] = try await query(Job(id: "\(job.id)-\(metric)", capability: "health.query",
+                                                      params: q.query(metric), note: nil))
+            } catch {
+                let e = error as? CapabilityError
+                results[metric] = .object(["error": .object([
+                    "code": .string(e?.code ?? "failed"), "message": .string(e?.message ?? error.localizedDescription)])])
+                failed.append(.string(metric))
+            }
+        }
+        if failed.count == q.metrics.count, let first = results[q.metrics[0]]?["error"] {
+            throw CapabilityError(code: first["code"]?.stringValue ?? "failed",
+                                  message: "No metric exported: " + (first["message"]?.stringValue ?? ""))
+        }
+        let file: JSONValue = .object([
+            "exported_at": .string(ISO.string(Date())), "from": .string(ISO.string(q.from)),
+            "to": .string(ISO.string(q.to)), "interval": .string(q.interval), "results": .object(results),
+        ])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let data = try encoder.encode(file)
+        guard data.count <= FilesExportParams.maxBytes else {
+            throw CapabilityError.badParams("Export is \(data.count / 1_000_000) MB (max 50); use a shorter range or an interval like 'hour'")
+        }
+        let bytes = try store.write(q.name, data, append: false)
+        return .object([
+            "path": .string("On My iPhone/白手套/\(q.name)"),
+            "name": .string(q.name),
+            "bytes": .number(Double(bytes)),
+            "metrics": .number(Double(q.metrics.count - failed.count)),
+            "failed": .array(failed),
+        ])
+    }
+}

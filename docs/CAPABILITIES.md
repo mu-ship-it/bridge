@@ -77,6 +77,7 @@ xcodegen generate   # new files must be added to the Xcode project
 | `open.url`, `shortcuts.run`, `settings.open` | `OpenCapabilities.swift` | none · on screen |
 | `compose.sms`, `compose.mail`, `call` | `ComposeCapabilities.swift` | none · on screen; Mu taps Send / Call |
 | `files.write`, `files.read`, `files.list` | `FilesCapabilities.swift` | none (the Files app shows the folder) |
+| `files.export` | `FilesCapabilities.swift` | Health (through `health.query`) |
 | `share` | `ShareCapability.swift` | none · on screen |
 | `wifi.info` | `WiFiInfoCapability.swift` | Location + Access Wi-Fi Information entitlement |
 | `nfc.read` | `NFCReadCapability.swift` | NFC entitlement · on screen |
