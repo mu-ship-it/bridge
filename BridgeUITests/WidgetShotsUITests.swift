@@ -44,6 +44,46 @@ final class WidgetShotsUITests: XCTestCase {
         sleep(2)
     }
 
+    /// Home screen icon style (Edit › Customize): APPEARANCE = the option's label, e.g. "Tinted",
+    /// "Dark", "Default". Springboard in English.
+    func testHomeAppearance() throws {
+        let option = try XCTUnwrap(ProcessInfo.processInfo.environment["APPEARANCE"], "set TEST_RUNNER_APPEARANCE")
+        XCUIDevice.shared.press(.home)
+        sleep(1)
+        XCUIDevice.shared.press(.home)
+        sleep(1)
+        enterEditMode()
+        springboard.buttons["Edit"].firstMatch.tap()
+        let customize = springboard.buttons["Customize"]
+        XCTAssertTrue(customize.waitForExistence(timeout: 3))
+        customize.tap()
+        sleep(2)
+        print("PROBE-APPEARANCE", springboard.debugDescription)
+        let button = springboard.buttons[option].firstMatch
+        XCTAssertTrue(button.waitForExistence(timeout: 3), "no \(option) option")
+        button.tap()
+        sleep(1)
+        // Close the sheet: tap above it, then leave edit mode.
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+        sleep(1)
+        if springboard.buttons["Done"].exists { springboard.buttons["Done"].firstMatch.tap() }
+        XCUIDevice.shared.press(.home)
+        sleep(2)
+    }
+
+    /// Jiggle mode from an app icon's menu ("Edit Home Screen"): a long press in the middle of
+    /// the screen may land on a widget instead.
+    private func enterEditMode() {
+        let screen = springboard.frame
+        let icons = springboard.icons.matching(NSPredicate(format: "NOT (value BEGINSWITH 'Widget')")).allElementsBoundByIndex
+        if let icon = icons.first(where: { $0.frame.width > 0 && screen.contains($0.frame) }) {
+            icon.press(forDuration: 1.5)
+            let edit = springboard.buttons["Edit Home Screen"]
+            if edit.waitForExistence(timeout: 3) { edit.tap(); sleep(1); return }
+        }
+        springboard.press(forDuration: 2)
+    }
+
     /// Back to the first home screen page, for a screenshot.
     func testHomeFirstPage() {
         XCUIDevice.shared.press(.home)

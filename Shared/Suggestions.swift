@@ -63,6 +63,20 @@ struct Suggestions: Codable, Sendable, Equatable {
     ])
 }
 
+// MARK: Glyph
+
+/// Which SF Symbol a Suggest slot shows. nil = an app: show the catalog's own glyph.
+enum SuggestGlyph {
+    static func symbol(for item: Suggestions.Item) -> String? {
+        switch item.kind {
+        case .app: nil
+        case .capability: item.id.hasPrefix("retry.") ? "arrow.clockwise" : "bolt"
+        case .shortcut: "square.2.layers.3d"
+        case .url: item.id.hasPrefix("cal.") ? "calendar" : item.id.hasPrefix("lane.") ? "rectangle.stack" : "link"
+        }
+    }
+}
+
 // MARK: Widget URL → action
 
 /// What a tap on a Suggest slot does. Pure, so routing is unit-tested without UIKit.

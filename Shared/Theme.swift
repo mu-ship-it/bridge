@@ -35,7 +35,6 @@ enum Theme {
     /// A rule or outline's line weight (not a space).
     static let hairline: CGFloat = 1
 
-    static let squareSize: CGFloat = Space.s8
     static let labelTracking: CGFloat = 1.2
 
     /// Type roles. A surface picks a role; a role is a text style; no point size is written.
@@ -78,27 +77,33 @@ extension View {
     }
 }
 
-/// The 8pt status square: white = done, red = running or failed, #3a3a3a = stale.
+/// A job's status as an SF Symbol square: the shape says the state (checked, playing, crossed,
+/// dashed), so it survives tinted and lock-screen modes where colour does not; the colour (white
+/// done, red running or failed, grey stale) is the signal on top. Sized by the surrounding text style.
 struct StatusSquare: View {
     enum State: String { case done, running, failed, stale }
     let state: State
-    /// 1pt outline instead of a fill: the widget's tinted and lock-screen modes, where a
+    /// Outline variants instead of filled: the widget's tinted and lock-screen modes, where a
     /// filled square flattens into a solid block.
     var outlined = false
 
     var body: some View {
-        Group {
-            if outlined {
-                Rectangle().strokeBorder(color, lineWidth: Theme.hairline)
-            } else {
-                Rectangle().fill(color)
-            }
-        }
-        .frame(width: Theme.squareSize, height: Theme.squareSize)
-        .accessibilityLabel(Text(state.rawValue))
+        Image(systemName: symbol)
+            .foregroundStyle(color)
+            .accessibilityLabel(Text(state.rawValue))
     }
 
-    /// A #3a3a3a outline all but vanishes once the system tints by luminance; dim instead.
+    var symbol: String {
+        let base = switch state {
+        case .done: "checkmark.square"
+        case .running: "play.square"
+        case .failed: "xmark.square"
+        case .stale: "minus.square"
+        }
+        return outlined || state == .stale ? base : base + ".fill"
+    }
+
+    /// A #3a3a3a symbol all but vanishes once the system tints by luminance; dim instead.
     var color: Color { outlined && state == .stale ? Theme.dim : Self.color(for: state) }
 
     static func color(for state: State) -> Color {

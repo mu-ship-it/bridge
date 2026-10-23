@@ -218,6 +218,7 @@ private struct ActivityRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Space.s8) {
             StatusSquare(state: entry.status.square)
+                .font(Theme.Role.meta)
                 .padding(.top, Theme.Space.s4)
             VStack(alignment: .leading, spacing: Theme.Space.s4) {
                 HStack(spacing: Theme.Space.s0) {

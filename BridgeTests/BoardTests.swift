@@ -111,6 +111,16 @@ import Testing
                                            fresh: snapshot(board, received: 400, now: now), now: now))
     }
 
+    @Test func everyStateHasItsOwnShape() {
+        let shapes = [Board.Row.State.over, .stalled, .idle].compactMap(BoardStyle.symbol(for:))
+        #expect(shapes.count == 3 && Set(shapes).count == 3)
+        #expect(BoardStyle.symbol(for: .ok) == nil && BoardStyle.symbol(for: nil) == nil)
+        let squares = [StatusSquare.State.done, .running, .failed, .stale].map { StatusSquare(state: $0).symbol }
+        #expect(Set(squares).count == 4)
+        let outlined = [StatusSquare.State.done, .running, .failed, .stale].map { StatusSquare(state: $0, outlined: true).symbol }
+        #expect(Set(outlined).count == 4 && outlined.allSatisfy { !$0.hasSuffix(".fill") })
+    }
+
     @Test func boardNames() {
         #expect(BoardName.normalized(nil) == "muster")
         #expect(BoardName.normalized(" Lanes ") == "lanes")

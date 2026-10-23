@@ -11,6 +11,7 @@ struct DutyBanner: View {
             VStack(alignment: .leading, spacing: Theme.Space.s4) {
                 HStack(spacing: Theme.Space.s8) {
                     StatusSquare(state: duty.connection.isHealthy ? .done : .failed)
+                        .font(Theme.Role.subhead)
                     Text(duty.isOnDuty ? "On duty · 值班中" : "Duty on · waiting for a window")
                         .font(Theme.Role.subhead.bold())
                         .textCase(.uppercase)

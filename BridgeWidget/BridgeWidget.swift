@@ -112,6 +112,7 @@ private struct Square: View {
 
     var body: some View {
         StatusSquare(state: dot.square, outlined: mode != .fullColor)
+            .font(Theme.Role.meta)
             .widgetAccentable(dot == .running || dot == .failed)
     }
 }
@@ -156,7 +157,7 @@ private struct MediumView: View {
                     Text(line).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
-            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
+            BoxRule()
             if snapshot.rows.isEmpty {
                 Text(snapshot.headline).font(Theme.Role.widgetBody)
             }
@@ -257,7 +258,7 @@ private struct SuggestView: View {
                 Text(entry.suggestions.generatedAt, style: .time)
                     .font(Theme.Role.meta).monospacedDigit().foregroundStyle(Theme.dim)
             }
-            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
+            BoxRule()
             if items.isEmpty {
                 Text("Nothing to suggest.").font(Theme.Role.widgetBody).foregroundStyle(Theme.dim)
                 Spacer(minLength: Theme.Space.s0)
@@ -295,19 +296,25 @@ private struct SuggestSlot: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Tinted mode flattens a filled square and its glyph into one block of tint, so outside
-    /// full color: no fill, a 1pt outline bright enough to survive the luminance mapping.
+    /// An SF Symbol for what the slot does; an app keeps its catalog glyph (微, 支 …): there is
+    /// no system symbol for a third-party app, and the glyph is the catalog's data, like a lane's
+    /// colour. Sized by the text style, outlined, never filled: a filled block flattens into one
+    /// lump of tint outside full colour.
+    /// Every box is sized by a hidden full-width character, so the boxes match and scale with
+    /// Dynamic Type without a fixed frame.
     @ViewBuilder private var glyph: some View {
-        let text = Text(item.glyph)
+        Text(verbatim: "微").hidden()
+            .overlay {
+                if let symbol = SuggestGlyph.symbol(for: item) {
+                    Image(systemName: symbol)
+                } else {
+                    Text(item.glyph)
+                }
+            }
             .font(Theme.Role.subhead.bold())
             .foregroundStyle(Theme.text)
-            .frame(width: Theme.Space.s48, height: Theme.Space.s48)
-        if mode == .fullColor {
-            text.background(Theme.background)
-                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
-        } else {
-            text.overlay(Rectangle().strokeBorder(Theme.dim, lineWidth: Theme.hairline))
-        }
+            .padding(Theme.Space.s8)
+            .overlay(Rectangle().strokeBorder(mode == .fullColor ? Theme.line : Theme.dim, lineWidth: Theme.hairline))
     }
 }
 

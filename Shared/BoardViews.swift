@@ -45,6 +45,18 @@ extension BoardWidgetView {
     }
 }
 
+/// A rule (hairline) that stays visible in tinted and lock-screen modes, where #2a2a2a vanishes.
+struct BoxRule: View {
+    @Environment(\.widgetRenderingMode) private var mode
+    var vertical = false
+
+    var body: some View {
+        Rectangle()
+            .fill(mode == .fullColor ? Theme.line : Theme.dim)
+            .frame(width: vertical ? Theme.hairline : nil, height: vertical ? nil : Theme.hairline)
+    }
+}
+
 /// Preview canvases only (Xcode previews render views outside a widget container).
 enum WidgetPreview {
     static let medium = CGSize(width: 364, height: 170)
@@ -58,6 +70,16 @@ enum BoardStyle {
         if row.state == .over { return Theme.red }
         if row.isMuted { return Theme.muted }
         return row.rgb.map { Color(hex: $0) } ?? Theme.text
+    }
+
+    /// A row's state as a shape, so it reads without colour (tinted, lock screen). `ok` has none.
+    static func symbol(for state: Board.Row.State?) -> String? {
+        switch state {
+        case .over: "exclamationmark.triangle.fill"
+        case .stalled: "pause.fill"
+        case .idle: "moon.zzz.fill"
+        case .ok, nil: nil
+        }
     }
 
     static func age(_ seconds: TimeInterval) -> String {
@@ -140,6 +162,7 @@ struct BoardRowView: View {
                         .foregroundStyle(row.isMuted ? Theme.dim : Theme.text)
                         .lineLimit(1)
                         .layoutPriority(1)
+                    BoardStateMark(row: row)
                     if let detail = row.detail, !detail.isEmpty {
                         Text(detail).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                     }
@@ -158,6 +181,21 @@ struct BoardRowView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The state's symbol next to the lane's name (nothing for `ok`).
+struct BoardStateMark: View {
+    let row: Board.Row
+
+    var body: some View {
+        if let symbol = BoardStyle.symbol(for: row.state), let state = row.state {
+            Image(systemName: symbol)
+                .font(Theme.Role.meta)
+                .foregroundStyle(BoardStyle.color(of: row))
+                .widgetAccentable(state == .over)
+                .accessibilityLabel(Text(state.rawValue))
+        }
     }
 }
 
@@ -185,7 +223,7 @@ private struct BoardPanel: View {
                 Spacer()
                 BoardStamp(snapshot: snapshot, date: date, hidden: hidden)
             }
-            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
+            BoxRule()
             if parts.allSatisfy({ $0.lines.isEmpty }) {
                 Text("Empty board.").font(Theme.Role.widgetBody).foregroundStyle(Theme.dim)
             }
@@ -206,7 +244,7 @@ private struct BoardPanel: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     if column < parts.count - 1 {
-                        Rectangle().fill(Theme.line).frame(width: Theme.hairline)
+                        BoxRule(vertical: true)
                     }
                 }
             }
@@ -231,8 +269,11 @@ private struct BoardRectangular: View {
             ForEach(rows.indices, id: \.self) { index in
                 let row = rows[index]
                 HStack(spacing: Theme.Space.s4) {
-                    Text(row.label).font(Theme.Role.label).lineLimit(1)
-                        .frame(width: Theme.Space.s48, alignment: .leading)
+                    HStack(spacing: Theme.Space.s0) {
+                        Text(row.label).font(Theme.Role.label).lineLimit(1)
+                        BoardStateMark(row: row)
+                    }
+                    .frame(width: Theme.Space.s48, alignment: .leading)
                     BoardBar(row: row, height: Theme.Space.s4)
                     Text(row.value ?? "").font(Theme.Role.meta).lineLimit(1)
                         .frame(maxWidth: Theme.Space.s64, alignment: .trailing)
@@ -253,7 +294,7 @@ private struct BoardEmpty: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
             Text(name).boxLabel(color: Theme.text)
-            if !compact { Rectangle().fill(Theme.line).frame(height: Theme.hairline) }
+            if !compact { BoxRule() }
             Text("No board yet.").font(compact ? Theme.Role.meta : Theme.Role.widgetBody)
             if !compact {
                 Text("The box has nothing under “\(name)”, or 白手套 is not set up.")

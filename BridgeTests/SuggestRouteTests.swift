@@ -70,4 +70,11 @@ import Testing
         let body = try JSONDecoder().decode([String: String].self, from: try #require(request.httpBody))
         #expect(body == ["device": "my-iphone", "id": "app.wechat"])
     }
+
+    @Test func slotsShowASymbolExceptApps() {
+        #expect(SuggestGlyph.symbol(for: item(.app, "weixin://")) == nil)
+        #expect(SuggestGlyph.symbol(for: .init(id: "cal.1", kind: .url, title: "T", glyph: "日", reason: "", target: "calshow:0")) == "calendar")
+        #expect(SuggestGlyph.symbol(for: .init(id: "retry.j_1", kind: .capability, title: "T", glyph: "↻", reason: "", target: "x")) == "arrow.clockwise")
+        #expect(SuggestGlyph.symbol(for: item(.shortcut, "Morning")) == "square.2.layers.3d")
+    }
 }
