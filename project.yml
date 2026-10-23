@@ -19,8 +19,9 @@ settings:
     # Bundle id, team and default server URL come from Config/Bridge.xcconfig (+ your gitignored Config/Local.xcconfig).
     # Simulator builds are ad-hoc signed ("sign to run locally"); no team needed.
     "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
-    # The Mac host + widget: "Sign to Run Locally" unless a team is set in Local.xcconfig.
-    "CODE_SIGN_IDENTITY[sdk=macosx*]": "-"
+    # The Mac host + widget share a Keychain group, which ad-hoc signing cannot carry: they need
+    # DEVELOPMENT_TEAM in Local.xcconfig (a free Personal Team works) and an Apple Development cert.
+    "CODE_SIGN_IDENTITY[sdk=macosx*]": "Apple Development"
 targets:
   Bridge:
     type: application

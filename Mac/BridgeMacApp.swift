@@ -62,6 +62,13 @@ final class HostState {
         if reloaded { lastReload = lastCheck }
     }
 
+    var openAtLogin = LoginItem.isOn
+
+    func setOpenAtLogin(_ on: Bool) {
+        try? LoginItem.set(on)
+        openAtLogin = LoginItem.isOn
+    }
+
     func reloadNow() {
         WidgetCenter.shared.reloadTimelines(ofKind: BoardWidgetKind.kind)
         lastReload = Date()
@@ -81,6 +88,7 @@ private struct HostMenu: View {
         }
         Divider()
         Button("Reload widgets") { host.reloadNow() }
+        Toggle("Open at login", isOn: Binding(get: { host.openAtLogin }, set: { host.setOpenAtLogin($0) }))
         SettingsLink { Text("Settings…") }
         Divider()
         Button("Quit 白手套 Mac") { NSApplication.shared.terminate(nil) }
