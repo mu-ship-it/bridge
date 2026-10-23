@@ -7,6 +7,7 @@ Run under systemd via run.sh; see README.md.
 """
 import asyncio
 import logging
+import math
 import re
 import json
 import time
@@ -520,6 +521,140 @@ async def post_suggest_tap(request: Request):
             db.add_tap(conn, account["id"], device_id, item_id)
             db.audit(conn, account["id"], device_id, endpoint, "tapped")
     return {"ok": True}
+
+
+# ------------------------------------------------------------------ boards (v0.6)
+
+BOARD_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
+BOARD_MAX_BYTES = 64 * 1024
+BOARD_SECTIONS_MAX = 16
+BOARD_ROWS_MAX = 64
+BOARD_TEXT_MAX = 200
+BOARD_URL_MAX = 2048
+BOARD_STATES = ("ok", "over", "stalled", "idle")
+BOARD_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+
+def _board_text(value, where, limit=BOARD_TEXT_MAX, required=False):
+    if value is None and not required:
+        return None
+    if not isinstance(value, str) or (required and not value.strip()):
+        raise BadRequest(f"{where} must be a{' non-empty' if required else ''} string")
+    if len(value) > limit:
+        raise BadRequest(f"{where} is longer than {limit} characters")
+    return value
+
+
+def _board_fraction(value, where):
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+        raise BadRequest(f"{where} must be a number >= 0 or null")
+    return value
+
+
+def parse_board(body):
+    """The generic board a widget renders (see docs/API.md). Returns it with only known fields."""
+    sections = body.get("sections")
+    if not isinstance(sections, list):
+        raise BadRequest("sections must be a list")
+    if len(sections) > BOARD_SECTIONS_MAX:
+        raise BadRequest(f"at most {BOARD_SECTIONS_MAX} sections")
+    board = {"title": _board_text(body.get("title"), "title"), "updated_at": None, "sections": []}
+    if body.get("updated_at") is not None:
+        try:
+            board["updated_at"] = db.normalize_iso(body["updated_at"])
+        except ValueError:
+            raise BadRequest("updated_at must be ISO-8601 with a timezone")
+    for i, section in enumerate(sections):
+        if not isinstance(section, dict) or not isinstance(section.get("rows"), list):
+            raise BadRequest(f"sections[{i}] must be an object with a rows list")
+        if len(section["rows"]) > BOARD_ROWS_MAX:
+            raise BadRequest(f"sections[{i}] has more than {BOARD_ROWS_MAX} rows")
+        rows = []
+        for j, row in enumerate(section["rows"]):
+            where = f"sections[{i}].rows[{j}]"
+            if not isinstance(row, dict):
+                raise BadRequest(f"{where} must be an object")
+            color = row.get("color")
+            if color is not None and (not isinstance(color, str) or not BOARD_COLOR.match(color)):
+                raise BadRequest(f"{where}.color must be #rgb or #rrggbb")
+            state = row.get("state")
+            if state is not None and state not in BOARD_STATES:
+                raise BadRequest(f"{where}.state must be one of {', '.join(BOARD_STATES)}")
+            rows.append({
+                "label": _board_text(row.get("label"), f"{where}.label", required=True),
+                "detail": _board_text(row.get("detail"), f"{where}.detail"),
+                "color": color,
+                "bar": _board_fraction(row.get("bar"), f"{where}.bar"),
+                "bar_faded": _board_fraction(row.get("bar_faded"), f"{where}.bar_faded"),
+                "value": _board_text(row.get("value"), f"{where}.value"),
+                "state": state,
+                "url": _board_text(row.get("url"), f"{where}.url", limit=BOARD_URL_MAX),
+            })
+        board["sections"].append({"title": _board_text(section.get("title"), f"sections[{i}].title"),
+                                  "rows": rows})
+    return board
+
+
+def board_name(conn, account, device_id, endpoint, name):
+    if not BOARD_NAME.match(name):
+        with conn:
+            db.audit(conn, account["id"], device_id, endpoint, "bad_request:name")
+        raise BadRequest("board name must match [a-z0-9][a-z0-9_-]{0,31}")
+    return name
+
+
+@app.post("/bridge/board/{name}")
+async def post_board(name: str, request: Request):
+    """Whoever owns the board (an agent, a cron job) posts its latest state; widgets read it.
+    No device id needed: the poster is usually not a phone."""
+    endpoint = "POST /bridge/board"
+    raw = await request.body()
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        board_name(conn, account, device_id, endpoint, name)
+        if len(raw) > BOARD_MAX_BYTES:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "too_large")
+            return JSONResponse({"error": f"board is larger than {BOARD_MAX_BYTES} bytes"}, status_code=413)
+        try:
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                raise BadRequest("body must be JSON")
+            if not isinstance(body, dict):
+                raise BadRequest("body must be a JSON object")
+            board = parse_board(body)
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:board")
+            raise
+        rows = sum(len(section["rows"]) for section in board["sections"])
+        with conn:
+            db.put_board(conn, account["id"], name, board)
+            db.audit(conn, account["id"], device_id, endpoint, f"stored:{name}:{rows}")
+    return {"ok": True, "name": name, "rows": rows}
+
+
+@app.get("/bridge/board/{name}")
+def get_board(name: str, request: Request):
+    """For the board widgets: the latest board under `name`, and how old it is in seconds."""
+    endpoint = "GET /bridge/board"
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        board_name(conn, account, device_id, endpoint, name)
+        found = db.get_board(conn, account["id"], name)
+        with conn:
+            if device_id:
+                db.touch_device(conn, account["id"], device_id)
+            db.audit(conn, account["id"], device_id, endpoint, f"read:{name}" if found else f"missing:{name}")
+    if found is None:
+        return JSONResponse({"error": "no such board"}, status_code=404)
+    board, received = found
+    age = time.time() - datetime.fromisoformat(received.replace("Z", "+00:00")).timestamp()
+    return {"board": board, "age_s": max(0, int(age))}
+
 
 if __name__ == "__main__":
     import uvicorn

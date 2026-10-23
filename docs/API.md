@@ -127,6 +127,33 @@ Up to 6 things to open right now, chosen by rules (no model call). The Suggest �
 ```
 → `{"ok": true}`. Appends to the device's tap log (read by the time-of-day rule). An invalid `id` → `400`. Audited as `tapped`. The app posts this when a Suggest slot is tapped, before opening the target; a failed post does not stop the open. `bridge device purge` erases a device's taps and served items.
 
+## `POST /bridge/board/<name>` (v0.6)
+Stores the latest **board** under `<name>` for this account, replacing the previous one. A board is a generic list of labelled bars that the board widgets render; whoever owns the data (an agent, a cron job) maps its own state into it. No device id is needed (the poster is usually not a phone).
+- `<name>`: `[a-z0-9][a-z0-9_-]{0,31}`, else `400`. The widgets read `muster` by default; any name works.
+- Body at most 64 KB, else `413`. A bad shape → `400` and nothing is stored.
+```json
+{
+  "title": "Lanes", "updated_at": "2026-10-23T02:40:00Z",
+  "sections": [
+    { "title": "Lanes", "rows": [
+      { "label": "cyan", "detail": "Mini · building widgets", "color": "#00d7ff",
+        "bar": 0.25, "bar_faded": null, "value": "24m / 98m · ~48m left", "state": "ok",
+        "url": "https://example.com/lane/cyan" } ] },
+    { "title": "Usage", "rows": [
+      { "label": "MAX", "detail": "resets Tue 08:00", "color": "#888888",
+        "bar": 0.31, "bar_faded": 0.12, "value": "31%", "state": "ok" } ] }
+  ]
+}
+```
+- `sections` (required, at most 16) of `{title?, rows}` (at most 64 rows each). Every row field except `label` is optional; unknown fields are dropped.
+- `label`, `detail`, `value`, `title`: strings of at most 200 characters (`label` non-empty). `url`: at most 2048 characters, opened when the row is tapped.
+- `color`: `#rgb` or `#rrggbb`, the row's stripe. `bar` / `bar_faded`: numbers ≥ 0 or `null`; 0..1 is the bar's solid fill and faded layer, above 1 the widget draws a full bar. `state`: `ok` / `over` (red) / `stalled` / `idle` (grey).
+- `updated_at`: ISO-8601 with a timezone, normalised to UTC; informational (staleness is measured from when the server received the board).
+- → `{"ok": true, "name": "muster", "rows": 3}`. Audited as `stored:<name>:<rows>`, never with the body.
+
+## `GET /bridge/board/<name>` (v0.6, for the board widgets)
+→ `{"board": {…as stored, every row field present, null when absent…}, "age_s": 42}`, where `age_s` is seconds since the server received it (the widgets show a stale badge past 180 s). No board under that name → `404`. Audited as `read:<name>` / `missing:<name>`.
+
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {

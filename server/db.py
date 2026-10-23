@@ -109,6 +109,15 @@ CREATE TABLE IF NOT EXISTS suggest_served (
     PRIMARY KEY (account_id, device_id, item_id)
 );
 
+-- Board widgets: the latest board posted under each name, per account (a later post replaces it).
+CREATE TABLE IF NOT EXISTS boards (
+    account_id TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    board_json TEXT NOT NULL,
+    received   TEXT NOT NULL,
+    PRIMARY KEY (account_id, name)
+);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -491,6 +500,26 @@ def served_items(conn, account_id, device_id):
         (account_id, device_id),
     ).fetchall()
     return {row["item_id"]: unjson(row["item_json"]) for row in rows}
+
+
+# ---------------------------------------------------------------- boards
+
+def put_board(conn, account_id, name, board, received=None):
+    conn.execute(
+        "INSERT INTO boards (account_id, name, board_json, received) VALUES (?, ?, ?, ?)"
+        " ON CONFLICT (account_id, name)"
+        " DO UPDATE SET board_json = excluded.board_json, received = excluded.received",
+        (account_id, name, _json(board), received or now_iso()),
+    )
+
+
+def get_board(conn, account_id, name):
+    """(board, received_iso) or None."""
+    row = conn.execute(
+        "SELECT board_json, received FROM boards WHERE account_id = ? AND name = ?",
+        (account_id, name),
+    ).fetchone()
+    return (unjson(row["board_json"]), row["received"]) if row else None
 
 
 # ---------------------------------------------------------------- events
