@@ -82,5 +82,5 @@ struct BridgeBoardWidget: Widget {
         .boxWidgetContainer()
         .environment(\.widgetRenderingMode, .accented)
         .padding()
-        .frame(width: 364, height: 170)
+        .frame(width: WidgetPreview.medium.width, height: WidgetPreview.medium.height)
 }

@@ -8,21 +8,24 @@ struct DutyBanner: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: Theme.Space.s4) {
+                HStack(spacing: Theme.Space.s8) {
                     StatusSquare(state: duty.connection.isHealthy ? .done : .failed)
                     Text(duty.isOnDuty ? "On duty · 值班中" : "Duty on · waiting for a window")
-                        .boxLabel(.subheadline, color: Theme.text)
+                        .font(Theme.Role.subhead.bold())
+                        .textCase(.uppercase)
+                        .foregroundStyle(Theme.text)
                     Spacer(minLength: 0)
                     if let since = duty.onDutySince {
                         Text(DutyStation.uptimeText(context.date.timeIntervalSince(since)))
-                            .font(Theme.mono(.headline, weight: .bold))
+                            .font(Theme.Role.subhead.bold())
+                            .monospacedDigit()
                             .accessibilityLabel("Uptime \(DutyStation.uptimeText(context.date.timeIntervalSince(since)))")
                     }
                 }
-                Text(connectionLine(at: context.date)).font(Theme.mono(.caption))
-                Text("Last job: " + ago(status.lastJobAt, at: context.date)).font(Theme.mono(.caption)).foregroundStyle(Theme.dim)
-                Text(heartbeatLine(at: context.date)).font(Theme.mono(.caption))
+                Text(connectionLine(at: context.date)).font(Theme.Role.meta)
+                Text("Last job: " + ago(status.lastJobAt, at: context.date)).font(Theme.Role.meta).foregroundStyle(Theme.dim)
+                Text(heartbeatLine(at: context.date)).font(Theme.Role.meta)
                     .foregroundStyle(duty.lastHeartbeatError == nil ? Theme.dim : Theme.red)
             }
         }

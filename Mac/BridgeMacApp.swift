@@ -112,8 +112,8 @@ private struct HostSettings: View {
                 if let message { Text(message).foregroundStyle(.secondary) }
             }
         }
-        .padding()
-        .frame(width: 420)
+        .padding(Theme.Space.s16)
+        .frame(minWidth: Theme.Space.s96 * 4)
     }
 
     private func save() {

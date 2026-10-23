@@ -125,18 +125,18 @@ private struct SmallView: View {
 
     var body: some View {
         let snapshot = entry.snapshot
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Theme.Space.s8) {
             Text("白手套 · Bridge").boxLabel()
             Text(snapshot.headline)
-                .font(.subheadline.weight(.medium))
+                .font(Theme.Role.widgetBody)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
             if let row = snapshot.rows.first {
-                HStack(spacing: 6) {
+                HStack(spacing: Theme.Space.s8) {
                     Square(dot: snapshot.dot(for: row, now: entry.date))
                     Text(ago(snapshot.time(of: row)))
-                        .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+                        .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
         }
@@ -148,25 +148,25 @@ private struct MediumView: View {
 
     var body: some View {
         let snapshot = entry.snapshot
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack {
                 Text("Activity · 动态").boxLabel()
                 Spacer()
                 if let line = snapshot.lastHealth {
-                    Text(line).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+                    Text(line).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
-            Rectangle().fill(Theme.line).frame(height: 1)
+            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
             if snapshot.rows.isEmpty {
-                Text(snapshot.headline).font(.subheadline)
+                Text(snapshot.headline).font(Theme.Role.widgetBody)
             }
             ForEach(snapshot.rows.prefix(3)) { row in
-                HStack(spacing: 6) {
+                HStack(spacing: Theme.Space.s8) {
                     Square(dot: snapshot.dot(for: row, now: entry.date))
-                    Text(row.title).font(.subheadline).lineLimit(1)
-                    Spacer(minLength: 4)
+                    Text(row.title).font(Theme.Role.widgetBody).lineLimit(1)
+                    Spacer(minLength: Theme.Space.s4)
                     Text(ago(snapshot.time(of: row)))
-                        .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+                        .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                 }
             }
             Spacer(minLength: 0)
@@ -179,16 +179,16 @@ private struct RectangularView: View {
 
     var body: some View {
         let snapshot = entry.snapshot
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Theme.Space.s0) {
             if let row = snapshot.rows.first {
-                HStack(spacing: 4) {
+                HStack(spacing: Theme.Space.s4) {
                     Square(dot: snapshot.dot(for: row, now: entry.date))
-                    Text(row.status.rawValue.uppercased()).font(Theme.label(.caption2)).tracking(Theme.labelTracking)
-                    Text(ago(snapshot.time(of: row))).font(Theme.mono(.caption2))
+                    Text(row.status.rawValue).font(Theme.Role.label).textCase(.uppercase).tracking(Theme.labelTracking)
+                    Text(ago(snapshot.time(of: row))).font(Theme.Role.meta)
                 }
-                Text(row.title).font(.headline).lineLimit(2)
+                Text(row.title).font(Theme.Role.widgetBody.bold()).lineLimit(2)
             } else {
-                Text(snapshot.headline).font(.headline).lineLimit(2)
+                Text(snapshot.headline).font(Theme.Role.widgetBody.bold()).lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,19 +250,19 @@ private struct SuggestView: View {
 
     var body: some View {
         let items = Array(entry.suggestions.items.prefix(Suggestions.slots))
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack {
                 Text("Suggest · 推荐").boxLabel()
                 Spacer()
                 Text(entry.suggestions.generatedAt, style: .time)
-                    .font(Theme.mono(.caption2)).foregroundStyle(Theme.dim)
+                    .font(Theme.Role.meta).monospacedDigit().foregroundStyle(Theme.dim)
             }
-            Rectangle().fill(Theme.line).frame(height: 1)
+            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
             if items.isEmpty {
-                Text("Nothing to suggest.").font(.subheadline).foregroundStyle(Theme.dim)
-                Spacer(minLength: 0)
+                Text("Nothing to suggest.").font(Theme.Role.widgetBody).foregroundStyle(Theme.dim)
+                Spacer(minLength: Theme.Space.s0)
             } else {
-                HStack(alignment: .top, spacing: 8) {
+                HStack(alignment: .top, spacing: Theme.Space.s8) {
                     ForEach(items) { item in
                         if let url = SuggestRoute.url(for: item.id) {
                             Link(destination: url) { SuggestSlot(item: item) }
@@ -284,11 +284,11 @@ private struct SuggestSlot: View {
     let item: Suggestions.Item
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Theme.Space.s4) {
             glyph
-            Text(item.title).font(.caption.weight(.semibold)).lineLimit(1)
+            Text(item.title).font(Theme.Role.widgetBody.bold()).lineLimit(1)
             if let reason = item.shownReason {
-                Text(reason).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim).lineLimit(1)
+                Text(reason).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -299,14 +299,14 @@ private struct SuggestSlot: View {
     /// full color: no fill, a 1pt outline bright enough to survive the luminance mapping.
     @ViewBuilder private var glyph: some View {
         let text = Text(item.glyph)
-            .font(.system(.title3, weight: .heavy))
+            .font(Theme.Role.subhead.bold())
             .foregroundStyle(Theme.text)
-            .frame(width: 40, height: 40)
+            .frame(width: Theme.Space.s48, height: Theme.Space.s48)
         if mode == .fullColor {
             text.background(Theme.background)
-                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
         } else {
-            text.overlay(Rectangle().strokeBorder(Theme.dim, lineWidth: 1))
+            text.overlay(Rectangle().strokeBorder(Theme.dim, lineWidth: Theme.hairline))
         }
     }
 }
@@ -324,7 +324,7 @@ private struct SuggestSlot: View {
         .boxWidgetContainer()
         .environment(\.widgetRenderingMode, .accented)
         .padding()
-        .frame(width: 364, height: 170)
+        .frame(width: WidgetPreview.medium.width, height: WidgetPreview.medium.height)
 }
 
 #Preview("Activity · tinted") {
@@ -332,7 +332,7 @@ private struct SuggestSlot: View {
         .boxWidgetContainer()
         .environment(\.widgetRenderingMode, .accented)
         .padding()
-        .frame(width: 364, height: 170)
+        .frame(width: WidgetPreview.medium.width, height: WidgetPreview.medium.height)
 }
 
 #Preview(as: .systemSmall) {

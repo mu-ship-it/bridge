@@ -45,14 +45,18 @@ extension BoardWidgetView {
     }
 }
 
+/// Preview canvases only (Xcode previews render views outside a widget container).
+enum WidgetPreview {
+    static let medium = CGSize(width: 364, height: 170)
+}
+
 enum BoardStyle {
-    static let stripe: CGFloat = 4
-    static let barHeight: CGFloat = 6
-    static let muted = Color(hex: 0x5a5a5a)
+    static let stripe = Theme.Space.s4
+    static let barHeight = Theme.Space.s8
 
     static func color(of row: Board.Row) -> Color {
         if row.state == .over { return Theme.red }
-        if row.isMuted { return muted }
+        if row.isMuted { return Theme.muted }
         return row.rgb.map { Color(hex: $0) } ?? Theme.text
     }
 
@@ -73,21 +77,21 @@ private struct BoardStamp: View {
     var hidden = 0
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Theme.Space.s8) {
             if hidden > 0 {
-                Text("+\(hidden)").font(Theme.mono(.caption2, weight: .bold)).foregroundStyle(Theme.dim)
+                Text("+\(hidden)").font(Theme.Role.meta.bold()).foregroundStyle(Theme.dim)
             }
             let age = BoardStyle.age(snapshot.age(at: date))
             if snapshot.isStale(at: date) {
                 Text("STALE \(age)")
-                    .font(Theme.label(.caption2)).tracking(Theme.labelTracking)
+                    .font(Theme.Role.label).monospacedDigit().tracking(Theme.labelTracking)
                     .foregroundStyle(mode == .fullColor ? Theme.background : Theme.text)
-                    .padding(.horizontal, 4).padding(.vertical, 1)
+                    .padding(.horizontal, Theme.Space.s4)
                     .background(mode == .fullColor ? Theme.red : .clear)
-                    .overlay(Rectangle().strokeBorder(mode == .fullColor ? .clear : Theme.text, lineWidth: 1))
+                    .overlay(Rectangle().strokeBorder(mode == .fullColor ? .clear : Theme.text, lineWidth: Theme.hairline))
                     .widgetAccentable()
             } else {
-                Text(age).font(Theme.mono(.caption2)).foregroundStyle(Theme.dim)
+                Text(age).font(Theme.Role.meta).foregroundStyle(Theme.dim)
             }
         }
         .lineLimit(1)
@@ -107,7 +111,7 @@ struct BoardBar: View {
                 if mode == .fullColor {
                     Rectangle().fill(Theme.line)
                 } else {
-                    Rectangle().strokeBorder(Theme.dim, lineWidth: 1)
+                    Rectangle().strokeBorder(Theme.dim, lineWidth: Theme.hairline)
                 }
                 Rectangle().fill(color.opacity(0.35))
                     .frame(width: geo.size.width * row.fadedFill)
@@ -123,27 +127,26 @@ struct BoardBar: View {
 
 struct BoardRowView: View {
     let row: Board.Row
-    var compact = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Theme.Space.s8) {
             Rectangle().fill(BoardStyle.color(of: row))
                 .frame(width: BoardStyle.stripe)
                 .widgetAccentable(!row.isMuted)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+            VStack(alignment: .leading, spacing: Theme.Space.s4) {
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
                     Text(row.label)
-                        .font(.system(compact ? .caption : .subheadline, weight: .heavy))
+                        .font(Theme.Role.widgetBody.bold())
                         .foregroundStyle(row.isMuted ? Theme.dim : Theme.text)
                         .lineLimit(1)
                         .layoutPriority(1)
                     if let detail = row.detail, !detail.isEmpty {
-                        Text(detail).font(.caption).foregroundStyle(Theme.dim).lineLimit(1)
+                        Text(detail).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                     }
-                    Spacer(minLength: 4)
+                    Spacer(minLength: Theme.Space.s4)
                     if let value = row.value, !value.isEmpty {
                         Text(value)
-                            .font(Theme.mono(.caption, weight: row.state == .over ? .heavy : .medium))
+                            .font(row.state == .over ? Theme.Role.data.bold() : Theme.Role.data)
                             .foregroundStyle(row.state == .over ? Theme.red : Theme.text)
                             .lineLimit(1)
                             .layoutPriority(2)
@@ -161,7 +164,7 @@ struct BoardRowView: View {
 private struct BoardHeading: View {
     let title: String
     var body: some View {
-        Text(title).boxLabel().padding(.top, 2)
+        Text(title).boxLabel().padding(.top, Theme.Space.s4)
     }
 }
 
@@ -176,19 +179,19 @@ private struct BoardPanel: View {
     var body: some View {
         let parts = snapshot.board.columns(columns).map { $0.lines(limit: limit, headings: headings) }
         let hidden = parts.reduce(0) { $0 + $1.hidden }
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(snapshot.board.title ?? snapshot.name).boxLabel(.caption, color: Theme.text)
+                Text(snapshot.board.title ?? snapshot.name).boxLabel(color: Theme.text)
                 Spacer()
                 BoardStamp(snapshot: snapshot, date: date, hidden: hidden)
             }
-            Rectangle().fill(Theme.line).frame(height: 1)
+            Rectangle().fill(Theme.line).frame(height: Theme.hairline)
             if parts.allSatisfy({ $0.lines.isEmpty }) {
-                Text("Empty board.").font(.subheadline).foregroundStyle(Theme.dim)
+                Text("Empty board.").font(Theme.Role.widgetBody).foregroundStyle(Theme.dim)
             }
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: Theme.Space.s16) {
                 ForEach(parts.indices, id: \.self) { column in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Theme.Space.s8) {
                         ForEach(parts[column].lines.indices, id: \.self) { index in
                             switch parts[column].lines[index] {
                             case .heading(let title): BoardHeading(title: title)
@@ -203,11 +206,11 @@ private struct BoardPanel: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     if column < parts.count - 1 {
-                        Rectangle().fill(Theme.line).frame(width: 1)
+                        Rectangle().fill(Theme.line).frame(width: Theme.hairline)
                     }
                 }
             }
-            Spacer(minLength: 0)
+            Spacer(minLength: Theme.Space.s0)
         }
     }
 }
@@ -220,23 +223,23 @@ private struct BoardRectangular: View {
     var body: some View {
         let stale = snapshot.isStale(at: date)
         let rows = snapshot.board.sections.flatMap(\.rows).prefix(stale ? 2 : 3)
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Theme.Space.s0) {
             if stale {
                 Text("STALE \(BoardStyle.age(snapshot.age(at: date)))")
-                    .font(Theme.label(.caption2)).tracking(Theme.labelTracking).lineLimit(1)
+                    .font(Theme.Role.label).monospacedDigit().tracking(Theme.labelTracking).lineLimit(1)
             }
             ForEach(rows.indices, id: \.self) { index in
                 let row = rows[index]
-                HStack(spacing: 4) {
-                    Text(row.label).font(.system(.caption2, weight: .heavy)).lineLimit(1)
-                        .frame(width: 44, alignment: .leading)
-                    BoardBar(row: row, height: 4)
-                    Text(row.value ?? "").font(Theme.mono(.caption2)).lineLimit(1)
-                        .frame(maxWidth: 60, alignment: .trailing)
+                HStack(spacing: Theme.Space.s4) {
+                    Text(row.label).font(Theme.Role.label).lineLimit(1)
+                        .frame(width: Theme.Space.s48, alignment: .leading)
+                    BoardBar(row: row, height: Theme.Space.s4)
+                    Text(row.value ?? "").font(Theme.Role.meta).lineLimit(1)
+                        .frame(maxWidth: Theme.Space.s64, alignment: .trailing)
                 }
             }
             if rows.isEmpty {
-                Text(snapshot.board.title ?? snapshot.name).font(.headline).lineLimit(1)
+                Text(snapshot.board.title ?? snapshot.name).font(Theme.Role.widgetBody.bold()).lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -248,14 +251,14 @@ private struct BoardEmpty: View {
     var compact = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(name).boxLabel(.caption, color: Theme.text)
-            if !compact { Rectangle().fill(Theme.line).frame(height: 1) }
-            Text("No board yet.").font(compact ? .caption : .subheadline)
+        VStack(alignment: .leading, spacing: Theme.Space.s8) {
+            Text(name).boxLabel(color: Theme.text)
+            if !compact { Rectangle().fill(Theme.line).frame(height: Theme.hairline) }
+            Text("No board yet.").font(compact ? Theme.Role.meta : Theme.Role.widgetBody)
             if !compact {
                 Text("The box has nothing under “\(name)”, or 白手套 is not set up.")
-                    .font(.caption).foregroundStyle(Theme.dim)
-                Spacer(minLength: 0)
+                    .font(Theme.Role.meta).foregroundStyle(Theme.dim)
+                Spacer(minLength: Theme.Space.s0)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Boring Box": pure black, white text, 1px #2a2a2a lines, flat. One red, only for
-/// running / error / badge. Heavy uppercase labels, monospaced numbers and ids. Shared by the
+/// running / error / badge. Bold uppercase labels, monospaced numbers and ids. Shared by the
 /// app and the widget extension.
 enum Theme {
     static let background = Color.black
@@ -11,20 +11,51 @@ enum Theme {
     static let line = Color(hex: 0x2a2a2a)
     /// Stale status square, disabled glyphs.
     static let stale = Color(hex: 0x3a3a3a)
+    /// Stalled / idle board rows: grey, a step brighter than `stale` so a bar still reads.
+    static let muted = Color(hex: 0x5a5a5a)
     /// The only accent. Running, error, badge — nothing else.
     static let red = Color(hex: 0xff2d20)
+    /// A pressed button: one background step up, not transparency.
+    static let pressed = Color(hex: 0x1a1a1a)
 
-    static let squareSize: CGFloat = 8
-    static let labelTracking: CGFloat = 1.2
-
-    /// Numbers, ids, times.
-    static func mono(_ style: Font.TextStyle = .caption, weight: Font.Weight = .regular) -> Font {
-        .system(style, design: .monospaced, weight: weight)
+    /// Every gap, inset and fixed size is one of these. Nothing else is written.
+    enum Space {
+        static let s0: CGFloat = 0
+        static let s4: CGFloat = 4
+        static let s8: CGFloat = 8
+        static let s12: CGFloat = 12
+        static let s16: CGFloat = 16
+        static let s24: CGFloat = 24
+        static let s32: CGFloat = 32
+        static let s48: CGFloat = 48
+        static let s64: CGFloat = 64
+        static let s96: CGFloat = 96
     }
 
-    /// Heavy uppercase label font (pair with `.boxLabel()` for case + tracking).
-    static func label(_ style: Font.TextStyle = .caption2) -> Font {
-        .system(style, weight: .heavy)
+    /// A rule or outline's line weight (not a space).
+    static let hairline: CGFloat = 1
+
+    static let squareSize: CGFloat = Space.s8
+    static let labelTracking: CGFloat = 1.2
+
+    /// Type roles. A surface picks a role; a role is a text style; no point size is written.
+    /// Weights are the style's own, or `.bold` — never another.
+    enum Role {
+        static let display = Font.largeTitle
+        static let title = Font.title
+        static let section = Font.title2
+        static let subhead = Font.title3
+        /// Body copy on a screen.
+        static let body = Font.body
+        /// Body copy in a widget.
+        static let widgetBody = Font.subheadline
+        static let prose = Font.body
+        /// Numbers, ids, values: monospaced, so figures line up.
+        static let data = Font.system(.subheadline, design: .monospaced)
+        /// Uppercased, tracked (`.boxLabel()`).
+        static let label = Font.system(.caption2, weight: .bold)
+        /// Times, ages, counts, one-line summaries.
+        static let meta = Font.system(.caption2, design: .monospaced)
     }
 }
 
@@ -38,9 +69,9 @@ extension Color {
 }
 
 extension View {
-    /// Heavy, uppercase, letter-spaced. "ACTIVITY · 动态".
-    func boxLabel(_ style: Font.TextStyle = .caption2, color: Color = Theme.dim) -> some View {
-        font(Theme.label(style))
+    /// The label role: bold, uppercase, letter-spaced. "ACTIVITY".
+    func boxLabel(color: Color = Theme.dim) -> some View {
+        font(Theme.Role.label)
             .textCase(.uppercase)
             .tracking(Theme.labelTracking)
             .foregroundStyle(color)
@@ -58,7 +89,7 @@ struct StatusSquare: View {
     var body: some View {
         Group {
             if outlined {
-                Rectangle().strokeBorder(color, lineWidth: 1)
+                Rectangle().strokeBorder(color, lineWidth: Theme.hairline)
             } else {
                 Rectangle().fill(color)
             }
@@ -86,15 +117,14 @@ struct BoxButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Theme.label(.caption2))
+            .font(Theme.Role.label)
             .textCase(.uppercase)
             .tracking(Theme.labelTracking)
             .foregroundStyle(selected ? Theme.background : color)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(selected ? Theme.text : Theme.background)
-            .overlay(Rectangle().strokeBorder(selected ? Theme.text : Theme.line, lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.6 : 1)
+            .padding(.horizontal, Theme.Space.s8)
+            .padding(.vertical, Theme.Space.s4)
+            .background(selected ? Theme.text : configuration.isPressed ? Theme.pressed : Theme.background)
+            .overlay(Rectangle().strokeBorder(selected ? Theme.text : Theme.line, lineWidth: Theme.hairline))
     }
 }
 

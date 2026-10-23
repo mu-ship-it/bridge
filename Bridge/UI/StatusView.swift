@@ -55,10 +55,10 @@ struct StatusView: View {
         Section {
             row("Last poll", status.lastPoll)
             LabeledContent("Result", value: status.lastPollMessage)
-            LabeledContent("Pending jobs") { Text("\(status.pendingJobs)").font(Theme.mono(.body)) }
+            LabeledContent("Pending jobs") { Text("\(status.pendingJobs)").font(Theme.Role.data) }
             if status.unsentResults > 0 {
                 LabeledContent("Unsent results") {
-                    Text("\(status.unsentResults)").font(Theme.mono(.body)).foregroundStyle(Theme.red)
+                    Text("\(status.unsentResults)").font(Theme.Role.data).foregroundStyle(Theme.red)
                 }
             }
             Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
@@ -79,7 +79,7 @@ struct StatusView: View {
         .boxRows()
         permissionsSection
         Section {
-            ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).font(Theme.mono(.body)) }
+            ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).font(Theme.Role.data) }
         } header: {
             header("Capabilities · 能力")
         }
@@ -91,13 +91,13 @@ struct StatusView: View {
     private var activitySection: some View {
         let shown = filter.apply(status.activity)
         return Section {
-            HStack(spacing: 8) {
+            HStack(spacing: Theme.Space.s8) {
                 ForEach(ActivityFilter.allCases) { chip in
                     let count = chip.apply(status.activity).count
                     Button { filter = chip } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: Theme.Space.s4) {
                             Text(chip.title)
-                            Text("\(count)").font(Theme.mono(.caption2, weight: .bold))
+                            Text("\(count)").font(Theme.Role.meta.bold())
                         }
                     }
                     .buttonStyle(.box(selected: filter == chip))
@@ -130,10 +130,10 @@ struct StatusView: View {
             ForEach(PermissionKind.allCases) { kind in
                 let state = permissions[kind] ?? "…"
                 HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: Theme.Space.s4) {
                         Text(kind.title)
-                        Text(kind.usedBy).font(.caption).foregroundStyle(Theme.dim)
-                        Text(state).boxLabel(.caption2, color: color(state))
+                        Text(kind.usedBy).font(Theme.Role.prose).foregroundStyle(Theme.dim)
+                        Text(state).boxLabel(color: color(state))
                     }
                     Spacer()
                     switch kind.action(for: state) {
@@ -154,7 +154,7 @@ struct StatusView: View {
             header("Permissions · 权限")
         } footer: {
             Text("iOS asks for each permission only once; after “Don't Allow” the switch lives in Settings. Home accessories are added and paired in Apple's Home app, not here: 白手套 sees only what the Home app already has. Unlocking, opening a garage door or disarming always asks you first.")
-                .font(.caption).foregroundStyle(Theme.dim)
+                .font(Theme.Role.prose).foregroundStyle(Theme.dim)
         }
         .boxRows()
     }
@@ -181,7 +181,8 @@ struct StatusView: View {
             Group {
                 if let date { Text(date, style: .relative) + Text(" ago") } else { Text("Never") }
             }
-            .font(Theme.mono(.body))
+            .font(Theme.Role.data)
+            .monospacedDigit()
         }
     }
 
@@ -215,19 +216,23 @@ private struct ActivityRow: View {
     @State private var copied = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: Theme.Space.s8) {
             StatusSquare(state: entry.status.square)
-                .padding(.top, 4)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · \(entry.status.rawValue.uppercased())")
-                    .font(Theme.mono(.caption))
-                    .foregroundStyle(entry.status == .done ? Theme.dim : Theme.red)
+                .padding(.top, Theme.Space.s4)
+            VStack(alignment: .leading, spacing: Theme.Space.s4) {
+                HStack(spacing: Theme.Space.s0) {
+                    Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · ")
+                    Text(entry.status.rawValue).textCase(.uppercase)
+                }
+                .font(Theme.Role.meta)
+                .lineLimit(1)
+                .foregroundStyle(entry.status == .done ? Theme.dim : Theme.red)
                 if entry.capability == "agent.say" {
                     Text(entry.summary)
                 } else {
                     if let note = entry.note { Text(note) }
                     if !entry.summary.isEmpty {
-                        Text(entry.summary).font(Theme.mono(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
+                        Text(entry.summary).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
                     }
                 }
             }

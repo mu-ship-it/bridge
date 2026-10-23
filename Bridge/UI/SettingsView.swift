@@ -27,11 +27,11 @@ struct SettingsView: View {
                     Text("Server · 服务器").boxLabel()
                 } footer: {
                     Text("Any server implementing the Bridge API (docs/API.md). Stored in the Keychain on this device. Health data goes to this URL only.")
-                        .font(.caption).foregroundStyle(Theme.dim)
+                        .font(Theme.Role.prose).foregroundStyle(Theme.dim)
                 }
                 .boxRows()
                 Section {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Theme.Space.s8) {
                         Button("Save") { save() }
                             .buttonStyle(.box())
                         Button(testing ? "Testing…" : "Test connection") { test() }
@@ -47,12 +47,12 @@ struct SettingsView: View {
                     Text("Duty · 值班").boxLabel()
                 } footer: {
                     Text("For an iPad left plugged in with 白手套 in a small Stage Manager window. While the app is on screen: the connection to the box stays open for as long as it runs, the screen does not lock, and the box gets a heartbeat every 5 minutes. When 白手套 leaves the screen it all stops, and resumes when it comes back. Nothing runs in the background.")
-                        .font(.caption).foregroundStyle(Theme.dim)
+                        .font(Theme.Role.prose).foregroundStyle(Theme.dim)
                 }
                 .boxRows()
                 if let message {
                     Section {
-                        Text(message).font(Theme.mono(.callout))
+                        Text(message).font(Theme.Role.data)
                     } header: {
                         Text("Result · 结果").boxLabel()
                     }
