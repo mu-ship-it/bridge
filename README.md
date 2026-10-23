@@ -66,6 +66,37 @@ The widgets follow the "Boring Box" look: black, white, 1px lines, one red. Stat
 
 **Suggest · 推荐** (medium) shows four things to open now: a calendar event in the next two hours, a retry of a job that just failed, a running lane, an app you usually open at this hour, or apps from your catalog. The box chooses them by rule (`GET /bridge/suggest`, see [docs/API.md](docs/API.md)); nothing is guessed by a model. Tapping a slot opens 白手套, which logs the tap to the box and then opens the app or URL, runs the capability, or runs the shortcut. The app catalog lives on the box in `~/.config/bridge/suggest.json`. Copy `server/suggest.example.json` there and edit it. The phone can only check for apps whose schemes are listed in `LSApplicationQueriesSchemes` (`project.yml`), so add a new app's scheme there too.
 
+### Board widget
+
+**Board · 看板** (medium, large, extra large on iPad, and lock-screen rectangular) shows a *board*: a list of labelled bars that something else keeps up to date. Anything that can make an HTTPS request can drive it — an agent, a cron job, a CI step. It posts a small JSON document to the box, and the widget draws it:
+
+```bash
+curl -X POST -H "Authorization: Bearer $BRIDGE_TOKEN" -H "Content-Type: application/json" \
+  https://your-box.example/bridge/board/lanes -d '{
+  "title": "Lanes", "updated_at": "2026-10-23T02:40:00Z",
+  "sections": [{"title": "Running", "rows": [
+    {"label": "build", "detail": "nightly", "color": "#00d7ff", "bar": 0.4, "bar_faded": 0.7,
+     "value": "12m / 30m", "state": "ok", "url": "https://ci.example/runs/42"}]}]}'
+```
+
+- Each row: a colour stripe, one bar (solid fill = `bar`, a faded layer behind it = `bar_faded`, both 0..1), and `value` on the right. `state` is `ok`, `over` (red, full bar), `stalled` or `idle` (grey). Every field except `label` is optional. The shape and limits (64 KB, 16 sections, 64 rows each) are in [docs/API.md](docs/API.md).
+- The widget asks the box (`GET /bridge/board/<name>`) every 5 minutes with the shared Keychain token. While 白手套 is on screen it checks every 30 s and redraws the widget only when the board changed. Past 180 s without a new post from your side the widget shows a red **STALE** badge — your poster stopped, or the box is unreachable.
+- Long-press the widget › Edit Widget to pick the board by name (default `muster`). Tapping a row (medium and larger) opens its `url` through 白手套.
+- Rows are cut to fit (medium 3, large 9 lines, extra large two columns); `+N` in the header counts the rest.
+
+**On a Mac desktop.** The `BridgeMac` scheme builds 白手套 Mac, a menu-bar app (no Dock icon) with the same board widget for the macOS desktop. It needs a signing team: put `DEVELOPMENT_TEAM` in your `Config/Local.xcconfig` (a free Personal Team works), because the app and its widget share the token through a Keychain access group, which ad-hoc signing cannot carry. Set it up without typing into a window:
+
+```bash
+xcodebuild -scheme BridgeMac -configuration Release -allowProvisioningUpdates build
+APP="$HOME/Applications/白手套 Mac.app"   # copy the built BridgeMac.app here
+"$APP/Contents/MacOS/BridgeMac" --set-url https://your-box.example --set-device mac
+your-secret-tool read bridge-token | "$APP/Contents/MacOS/BridgeMac" --set-token   # reads stdin, never echoes
+"$APP/Contents/MacOS/BridgeMac" --login-item on
+"$APP/Contents/MacOS/BridgeMac" --status
+```
+
+Then right-click the desktop › Edit Widgets… › 白手套.
+
 ### Shortcuts and system settings
 
 iOS gives apps no API for Wi-Fi, Bluetooth, Focus, Low Power, appearance or volume, but Shortcuts can change all of them. [`shortcuts/`](shortcuts/README.md) holds a recipe for each, all named "白手套 …". `server/tools/make_shortcut.py` builds them into signed `.shortcut` files that the box hosts, and adding one to the phone is a single tap ("Add Shortcut"). After that the agent calls it with `shortcuts.run`. It runs on screen in the Shortcuts app, which shows it running, so nothing changes silently.
@@ -156,8 +187,10 @@ Bridge/Location/            One-shot + significant-change location
 Bridge/Home/                HomeKit (HomeStore: the one HMHomeManager)
 Bridge/UI/                  Status and Settings screens, duty banner
 BridgeWidget/               WidgetKit extension: home-screen and lock-screen widgets
-Shared/                     Code in both the app and the widget: the widget snapshot, App Group, shared Keychain
+Mac/, MacWidget/            白手套 Mac: menu-bar host + the board widget for the macOS desktop
+Shared/                     Code in both the app and the widgets: snapshots, the board, App Group, shared Keychain
 BridgeTests/                Unit tests (Swift Testing)
+BridgeUITests/              WidgetShots scheme: puts widgets on a simulator home screen for screenshots
 docs/                       API contract, capability guide
 tools/mock_box.py           Local mock server
 server/                     Reference server (Python 3 + FastAPI + SQLite) — see server/README.md

@@ -1,9 +1,11 @@
 import XCTest
 
-/// Not part of the Bridge scheme's tests: run through the WidgetShots scheme to put the board
-/// widgets on a simulator's home screen for screenshots. Needs BOARD_URL and BOARD_TOKEN in the
-/// environment (xcodebuild: TEST_RUNNER_BOARD_URL=… TEST_RUNNER_BOARD_TOKEN=…) and a box
-/// serving a board under `muster`. Leaves the home screen in edit-free state for `simctl io`.
+/// Not part of the Bridge scheme's tests: run through the WidgetShots scheme to put widgets on a
+/// simulator's home screen for screenshots (springboard in English). Needs BOARD_URL and
+/// BOARD_TOKEN in the environment (xcodebuild: TEST_RUNNER_BOARD_URL=… TEST_RUNNER_BOARD_TOKEN=…)
+/// and a box serving a board under `muster`. WIDGETS picks the widgets, top first, as
+/// `<gallery name suffix>|<size>;…` (default: the board, medium and large).
+/// Leaves the home screen out of edit mode for `simctl io`.
 @MainActor
 final class WidgetShotsUITests: XCTestCase {
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -13,17 +15,33 @@ final class WidgetShotsUITests: XCTestCase {
         let url = try XCTUnwrap(env["BOARD_URL"], "set TEST_RUNNER_BOARD_URL")
         let token = try XCTUnwrap(env["BOARD_TOKEN"], "set TEST_RUNNER_BOARD_TOKEN")
         let sizes = (env["BOARD_SIZES"] ?? "Medium,Large").split(separator: ",").map(String.init)
+        let specs = env["WIDGETS"].map { raw in
+            raw.split(separator: ";").map { spec in
+                let parts = spec.split(separator: "|", maxSplits: 1).map(String.init)
+                return (name: parts[0], size: parts.count > 1 ? parts[1] : "Medium")
+            }
+        } ?? sizes.map { (name: "看板", size: $0) }
 
         configureApp(url: url, token: token)
         clearFirstPage()
         // Added in reverse: each new widget lands at the top of the page. One long press on an
         // empty spot; the home screen stays in edit mode between adds.
         springboard.press(forDuration: 2)
-        for size in sizes.reversed() { try addBoardWidget(size: size) }
+        for spec in specs.reversed() { try addWidget(named: spec.name, size: spec.size) }
         springboard.buttons["Done"].firstMatch.tap()
         sleep(1)
         XCUIDevice.shared.press(.home)
         sleep(3)
+    }
+
+    /// The app on the tab named in TAB (as its tab button reads), for a screenshot.
+    func testShowAppTab() {
+        let app = XCUIApplication()
+        app.activate()
+        if let tab = ProcessInfo.processInfo.environment["TAB"] {
+            app.buttons[tab].firstMatch.tap()
+        }
+        sleep(2)
     }
 
     /// Back to the first home screen page, for a screenshot.
@@ -41,7 +59,7 @@ final class WidgetShotsUITests: XCTestCase {
         let urlField = app.textFields.element(boundBy: 0)
         XCTAssertTrue(urlField.waitForExistence(timeout: 5))
         replace(urlField, with: url)
-        replace(app.textFields.element(boundBy: 1), with: "sim-shots")
+        replace(app.textFields.element(boundBy: 1), with: ProcessInfo.processInfo.environment["DEVICE_ID"] ?? "sim-shots")
         let tokenField = app.secureTextFields.firstMatch
         tokenField.tap()
         tokenField.typeText(token + "\n")
@@ -79,7 +97,8 @@ final class WidgetShotsUITests: XCTestCase {
         sleep(1)
     }
 
-    private func addBoardWidget(size: String) throws {
+    /// `name`: the end of the gallery label ("白手套, <display name>").
+    private func addWidget(named name: String, size: String) throws {
         springboard.buttons["Edit"].firstMatch.tap()
         let add = springboard.buttons["Add Widget"]
         XCTAssertTrue(add.waitForExistence(timeout: 3))
@@ -95,8 +114,8 @@ final class WidgetShotsUITests: XCTestCase {
 
         // The gallery labels small…large previews "Widget, <size>"; extra large is plain "Widget".
         let board = size == "Extra Large"
-            ? NSPredicate(format: "label CONTAINS '看板' AND value == 'Widget'")
-            : NSPredicate(format: "label CONTAINS '看板' AND value CONTAINS[c] %@", ", \(size)")
+            ? NSPredicate(format: "label ENDSWITH %@ AND value == 'Widget'", name)
+            : NSPredicate(format: "label ENDSWITH %@ AND value CONTAINS[c] %@", name, ", \(size)")
         var found = false
         for _ in 0..<10 {
             let candidate = springboard.buttons.matching(board).firstMatch
@@ -110,7 +129,7 @@ final class WidgetShotsUITests: XCTestCase {
             dots.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
             sleep(1)
         }
-        XCTAssertTrue(found, "no Board widget of size \(size) in the gallery")
+        XCTAssertTrue(found, "no \(name) widget of size \(size) in the gallery")
         springboard.buttons[" Add Widget"].firstMatch.tap()
         sleep(2)
     }
