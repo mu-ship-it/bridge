@@ -146,7 +146,26 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bridge"
         BUNDLE_LOADER: "$(TEST_HOST)"
+  # Simulator helper, not a test suite: puts the board widgets on the home screen for screenshots.
+  BridgeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [BridgeUITests]
+    dependencies:
+      - target: Bridge
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).uitests
+        TEST_TARGET_NAME: Bridge
 schemes:
+  WidgetShots:
+    build:
+      targets:
+        Bridge: all
+        BridgeUITests: [test]
+    test:
+      targets: [BridgeUITests]
   Bridge:
     build:
       targets:

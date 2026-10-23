@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
     /// This window's identity for ForegroundSession; each Stage Manager window has its own.
     @State private var sceneID = UUID()
     @State private var tab = "status"
@@ -20,6 +21,10 @@ struct ContentView: View {
             if url.scheme == "bridge-widget" { tab = "status" }
             if let id = SuggestRoute.itemID(from: url) {
                 Task { await SuggestLauncher.launch(id: id) }
+            }
+            // A tap on a board row (`bridge://board/open?u=<url>`): open the row's URL.
+            if let target = BoardRoute.target(from: url) {
+                openURL(target)
             }
         }
         // Foreground connection: one long poll for the whole app while any window is on screen.

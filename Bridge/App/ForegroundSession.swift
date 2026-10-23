@@ -12,6 +12,7 @@ final class ForegroundSession {
     private var scenes: Set<UUID> = []
     private var poller: Task<Void, Never>?
     private var heartbeats: Task<Void, Never>?
+    private var boards: Task<Void, Never>?
     private let duty = DutyStation.shared
 
     private init() {
@@ -46,6 +47,13 @@ final class ForegroundSession {
             task.cancel()
             poller = nil
             duty.connection = .idle
+        }
+
+        if foreground, boards == nil {
+            boards = Task { await BoardWatcher().run() }
+        } else if !foreground, let task = boards {
+            task.cancel()
+            boards = nil
         }
 
         let onDuty = foreground && duty.enabled

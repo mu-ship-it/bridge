@@ -6,6 +6,7 @@ struct BridgeWidgetBundle: WidgetBundle {
     var body: some Widget {
         BridgeActivityWidget()
         BridgeSuggestWidget()
+        BridgeBoardWidget()
     }
 }
 
