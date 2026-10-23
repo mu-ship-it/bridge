@@ -15,6 +15,7 @@ extension View {
 /// black, a hard colour stripe per row, one thick flat bar, no rounding, no material.
 struct BoardWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.dynamicTypeSize) private var typeSize
     let name: String
     let snapshot: BoardSnapshot?
     let date: Date
@@ -25,9 +26,9 @@ struct BoardWidgetView: View {
             #if !os(macOS)
             case .accessoryRectangular: BoardRectangular(snapshot: snapshot, date: date)
             #endif
-            case .systemExtraLarge: BoardPanel(snapshot: snapshot, date: date, limit: 9, columns: 2)
-            case .systemLarge: BoardPanel(snapshot: snapshot, date: date, limit: 9, columns: 1)
-            default: BoardPanel(snapshot: snapshot, date: date, limit: 3, columns: 1, headings: false)
+            case .systemExtraLarge: BoardPanel(snapshot: snapshot, date: date, limit: budget.large, columns: 2, headings: !big)
+            case .systemLarge: BoardPanel(snapshot: snapshot, date: date, limit: budget.large, columns: 1, headings: !big)
+            default: BoardPanel(snapshot: snapshot, date: date, limit: budget.medium, columns: 1, headings: false)
             }
         } else {
             BoardEmpty(name: name, compact: isAccessory)
@@ -36,6 +37,13 @@ struct BoardWidgetView: View {
 }
 
 extension BoardWidgetView {
+    /// Accessibility text sizes: rows stack (name, value, bar) and the family drops rows rather
+    /// than squeeze them — a lane's name never gives way to its value.
+    private var big: Bool { typeSize.isAccessibilitySize }
+
+    /// Lines per column (a section heading counts as one).
+    private var budget: (medium: Int, large: Int) { big ? (1, 3) : (3, 9) }
+
     private var isAccessory: Bool {
         #if os(macOS)
         false
@@ -148,6 +156,7 @@ struct BoardBar: View {
 }
 
 struct BoardRowView: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let row: Board.Row
 
     var body: some View {
@@ -156,24 +165,26 @@ struct BoardRowView: View {
                 .frame(width: BoardStyle.stripe)
                 .widgetAccentable(!row.isMuted)
             VStack(alignment: .leading, spacing: Theme.Space.s4) {
-                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
-                    Text(row.label)
-                        .font(Theme.Role.widgetBody.bold())
-                        .foregroundStyle(row.isMuted ? Theme.dim : Theme.text)
-                        .lineLimit(1)
-                        .layoutPriority(1)
-                    BoardStateMark(row: row)
-                    if let detail = row.detail, !detail.isEmpty {
-                        Text(detail).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
+                if typeSize.isAccessibilitySize {
+                    // Stacked: the name keeps its own line; no detail; the value wraps below.
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
+                        label
+                        BoardStateMark(row: row)
                     }
-                    Spacer(minLength: Theme.Space.s4)
                     if let value = row.value, !value.isEmpty {
-                        Text(value)
-                            .font(row.state == .over ? Theme.Role.data.bold() : Theme.Role.data)
-                            .foregroundStyle(row.state == .over ? Theme.red : Theme.text)
-                            .lineLimit(1)
-                            .layoutPriority(2)
-                            .widgetAccentable(row.state == .over)
+                        valueText(value).lineLimit(2)
+                    }
+                } else {
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
+                        label.layoutPriority(1)
+                        BoardStateMark(row: row)
+                        if let detail = row.detail, !detail.isEmpty {
+                            Text(detail).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
+                        }
+                        Spacer(minLength: Theme.Space.s4)
+                        if let value = row.value, !value.isEmpty {
+                            valueText(value).lineLimit(1).layoutPriority(2)
+                        }
                     }
                 }
                 BoardBar(row: row)
@@ -196,6 +207,22 @@ struct BoardStateMark: View {
                 .widgetAccentable(state == .over)
                 .accessibilityLabel(Text(state.rawValue.localizedForDisplay))
         }
+    }
+}
+
+extension BoardRowView {
+    private var label: some View {
+        Text(row.label)
+            .font(Theme.Role.widgetBody.bold())
+            .foregroundStyle(row.isMuted ? Theme.dim : Theme.text)
+            .lineLimit(1)
+    }
+
+    private func valueText(_ value: String) -> some View {
+        Text(value)
+            .font(row.state == .over ? Theme.Role.data.bold() : Theme.Role.data)
+            .foregroundStyle(row.state == .over ? Theme.red : Theme.text)
+            .widgetAccentable(row.state == .over)
     }
 }
 
@@ -258,6 +285,17 @@ private struct BoardRectangular: View {
     let snapshot: BoardSnapshot
     let date: Date
 
+    private func rectangularRow(_ row: Board.Row, value: String?) -> some View {
+        HStack(spacing: Theme.Space.s4) {
+            Text(row.label).font(Theme.Role.label).lineLimit(1).fixedSize()
+            BoardStateMark(row: row)
+            BoardBar(row: row, height: Theme.Space.s4).frame(minWidth: Theme.Space.s32)
+            if let value, !value.isEmpty {
+                Text(value).font(Theme.Role.meta).lineLimit(1).fixedSize()
+            }
+        }
+    }
+
     var body: some View {
         let stale = snapshot.isStale(at: date)
         let rows = snapshot.board.sections.flatMap(\.rows).prefix(stale ? 2 : 3)
@@ -268,15 +306,10 @@ private struct BoardRectangular: View {
             }
             ForEach(rows.indices, id: \.self) { index in
                 let row = rows[index]
-                HStack(spacing: Theme.Space.s4) {
-                    HStack(spacing: Theme.Space.s0) {
-                        Text(row.label).font(Theme.Role.label).lineLimit(1)
-                        BoardStateMark(row: row)
-                    }
-                    .frame(width: Theme.Space.s48, alignment: .leading)
-                    BoardBar(row: row, height: Theme.Space.s4)
-                    Text(row.value ?? "").font(Theme.Role.meta).lineLimit(1)
-                        .frame(maxWidth: Theme.Space.s64, alignment: .trailing)
+                // The value only when all of it fits; the name and the bar always.
+                ViewThatFits(in: .horizontal) {
+                    rectangularRow(row, value: row.value)
+                    rectangularRow(row, value: nil)
                 }
             }
             if rows.isEmpty {

@@ -184,8 +184,16 @@ private struct RectangularView: View {
             if let row = snapshot.rows.first {
                 HStack(spacing: Theme.Space.s4) {
                     Square(dot: snapshot.dot(for: row, now: entry.date))
-                    Text(row.status.rawValue.localizedForDisplay).font(Theme.Role.label).textCase(.uppercase).tracking(Theme.labelTracking)
-                    Text(ago(snapshot.time(of: row))).font(Theme.Role.meta)
+                    // One line: the status word gives way before the time wraps (the square
+                    // already says the state).
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: Theme.Space.s4) {
+                            Text(row.status.rawValue.localizedForDisplay).font(Theme.Role.label).textCase(.uppercase)
+                                .tracking(Theme.labelTracking).fixedSize()
+                            Text(ago(snapshot.time(of: row))).font(Theme.Role.meta).fixedSize()
+                        }
+                        Text(ago(snapshot.time(of: row))).font(Theme.Role.meta).lineLimit(1)
+                    }
                 }
                 Text(row.title).font(Theme.Role.widgetBody.bold()).lineLimit(2)
             } else {
@@ -247,10 +255,14 @@ struct BridgeSuggestWidget: Widget {
 }
 
 private struct SuggestView: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let entry: SuggestEntry
 
+    /// Four slots; two at accessibility text sizes, so a title is never cut to "WeC…".
+    private var slots: Int { typeSize.isAccessibilitySize ? 2 : Suggestions.slots }
+
     var body: some View {
-        let items = Array(entry.suggestions.items.prefix(Suggestions.slots))
+        let items = Array(entry.suggestions.items.prefix(slots))
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack {
                 Text("Suggest").boxLabel()
@@ -271,7 +283,7 @@ private struct SuggestView: View {
                             SuggestSlot(item: item)
                         }
                     }
-                    ForEach(items.count..<Suggestions.slots, id: \.self) { _ in
+                    ForEach(items.count..<slots, id: \.self) { _ in
                         Color.clear.frame(maxWidth: .infinity)
                     }
                 }

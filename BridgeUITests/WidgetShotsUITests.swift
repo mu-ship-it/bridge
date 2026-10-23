@@ -73,6 +73,12 @@ final class WidgetShotsUITests: XCTestCase {
     /// Jiggle mode from an app icon's menu ("Edit Home Screen"): a long press in the middle of
     /// the screen may land on a widget instead.
     private func enterEditMode() {
+        // PRESS_AT="x,y" (0…1): an empty spot to long-press instead, where the layout is known.
+        if let at = ProcessInfo.processInfo.environment["PRESS_AT"]?.split(separator: ",").compactMap({ Double($0) }), at.count == 2 {
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: at[0], dy: at[1])).press(forDuration: 2)
+            sleep(1)
+            return
+        }
         let screen = springboard.frame
         let icons = springboard.icons.matching(NSPredicate(format: "NOT (value BEGINSWITH 'Widget')")).allElementsBoundByIndex
         if let icon = icons.first(where: { $0.frame.width > 0 && screen.contains($0.frame) }) {
@@ -81,6 +87,89 @@ final class WidgetShotsUITests: XCTestCase {
             if edit.waitForExistence(timeout: 3) { edit.tap(); sleep(1); return }
         }
         springboard.press(forDuration: 2)
+    }
+
+    /// Lock screen (vibrant mode): the Activity and Board rectangular widgets under the clock and
+    /// Activity inline above it, then back on the lock screen for `simctl io`. Springboard in English.
+    func testLockScreenWidgets() {
+        lockAndWake()
+        springboard.press(forDuration: 2)
+        springboard.buttons["posterboard-customize-button"].tap()
+        sleep(2)
+        // Tapping the poster shows the widget slots; where depends on the poster's clock size.
+        let slots = springboard.buttons.matching(identifier: "grouped-widgets-reticle-view").firstMatch
+        for y in [0.61, 0.64, 0.4] {
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: y)).tap()
+            if slots.waitForExistence(timeout: 3) { break }
+        }
+        slots.tap()
+        openGalleryApp()
+        for name in ["Activity", "Board"] {
+            let widget = springboard.buttons["白手套, \(name)"].firstMatch
+            for _ in 0..<4 where !widget.isHittable {
+                springboard.scrollViews["complicationGalleryScrollView"].swipeLeft()
+                sleep(1)
+            }
+            widget.tap()
+            sleep(1)
+        }
+        dismissGallery()
+
+        // The inline slot's gallery lists every app's inline widgets in sections: scroll to ours.
+        springboard.buttons.matching(identifier: "inline-widget-reticle-view").firstMatch.tap()
+        sleep(2)
+        let inline = springboard.cells.matching(NSPredicate(format: "label BEGINSWITH '白手套, Activity'")).firstMatch
+        for _ in 0..<8 where !inline.isHittable {
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+                .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)))
+            sleep(1)
+        }
+        inline.tap()
+        sleep(1)
+        dismissGallery()
+        springboard.buttons.matching(identifier: "editing-done").firstMatch.tap()
+        sleep(2)
+        lockAndWake()
+        sleep(3)
+    }
+
+    /// The lock screen as it is now (no unlock), for `simctl io`.
+    func testShowLockScreen() {
+        lockAndWake()
+        sleep(3)
+    }
+
+    private func lockAndWake() {
+        XCUIDevice.shared.perform(NSSelectorFromString("pressLockButton"))
+        sleep(2)
+        XCUIDevice.shared.perform(NSSelectorFromString("pressLockButton"))
+        sleep(2)
+    }
+
+    /// Drag the widget sheet down by its grabber.
+    private func dismissGallery() {
+        let close = springboard.buttons["close"].firstMatch
+        let grabber = springboard.buttons["Sheet Grabber"].firstMatch
+        if close.exists {
+            close.tap()
+            sleep(1)
+        }
+        if grabber.exists {
+            grabber.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.98)))
+        }
+        sleep(2)
+    }
+
+    private func openGalleryApp() {
+        sleep(2)
+        let app = springboard.cells["白手套"].firstMatch
+        for _ in 0..<6 where !app.isHittable {
+            springboard.navigationBars["PRComplicationGalleryView"].swipeUp()
+            sleep(1)
+        }
+        app.tap()
+        sleep(2)
     }
 
     /// Back to the first home screen page, for a screenshot.
