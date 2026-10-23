@@ -71,7 +71,7 @@ struct BridgeActivityWidget: Widget {
                 .boxWidgetContainer()
                 .widgetURL(URL(string: "bridge-widget://status"))
         }
-        .configurationDisplayName("白手套")
+        .configurationDisplayName("Activity")
         .description("Agent's last line. Latest jobs.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline])
     }
@@ -87,7 +87,7 @@ struct BridgeWidgetView: View {
         switch family {
         case .systemMedium: MediumView(entry: entry)
         case .accessoryRectangular: RectangularView(entry: entry)
-        case .accessoryInline: Text(entry.snapshot.rows.first?.title ?? entry.snapshot.headline).lineLimit(1)
+        case .accessoryInline: Text(entry.snapshot.rows.first?.title ?? entry.snapshot.headline.localizedForDisplay).lineLimit(1)
         default: SmallView(entry: entry)
         }
     }
@@ -127,8 +127,8 @@ private struct SmallView: View {
     var body: some View {
         let snapshot = entry.snapshot
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
-            Text("白手套 · Bridge").boxLabel()
-            Text(snapshot.headline)
+            Text("白手套").boxLabel()
+            Text(snapshot.headline.localizedForDisplay)
                 .font(Theme.Role.widgetBody)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -151,7 +151,7 @@ private struct MediumView: View {
         let snapshot = entry.snapshot
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack {
-                Text("Activity · 动态").boxLabel()
+                Text("Activity").boxLabel()
                 Spacer()
                 if let line = snapshot.lastHealth {
                     Text(line).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
@@ -159,7 +159,7 @@ private struct MediumView: View {
             }
             BoxRule()
             if snapshot.rows.isEmpty {
-                Text(snapshot.headline).font(Theme.Role.widgetBody)
+                Text(snapshot.headline.localizedForDisplay).font(Theme.Role.widgetBody)
             }
             ForEach(snapshot.rows.prefix(3)) { row in
                 HStack(spacing: Theme.Space.s8) {
@@ -184,12 +184,12 @@ private struct RectangularView: View {
             if let row = snapshot.rows.first {
                 HStack(spacing: Theme.Space.s4) {
                     Square(dot: snapshot.dot(for: row, now: entry.date))
-                    Text(row.status.rawValue).font(Theme.Role.label).textCase(.uppercase).tracking(Theme.labelTracking)
+                    Text(row.status.rawValue.localizedForDisplay).font(Theme.Role.label).textCase(.uppercase).tracking(Theme.labelTracking)
                     Text(ago(snapshot.time(of: row))).font(Theme.Role.meta)
                 }
                 Text(row.title).font(Theme.Role.widgetBody.bold()).lineLimit(2)
             } else {
-                Text(snapshot.headline).font(Theme.Role.widgetBody.bold()).lineLimit(2)
+                Text(snapshot.headline.localizedForDisplay).font(Theme.Role.widgetBody.bold()).lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -240,7 +240,7 @@ struct BridgeSuggestWidget: Widget {
             SuggestView(entry: entry)
                 .boxWidgetContainer()
         }
-        .configurationDisplayName("Suggest · 推荐")
+        .configurationDisplayName("Suggest")
         .description("Four things to open now. Rules, not guesses.")
         .supportedFamilies([.systemMedium])
     }
@@ -253,7 +253,7 @@ private struct SuggestView: View {
         let items = Array(entry.suggestions.items.prefix(Suggestions.slots))
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack {
-                Text("Suggest · 推荐").boxLabel()
+                Text("Suggest").boxLabel()
                 Spacer()
                 Text(entry.suggestions.generatedAt, style: .time)
                     .font(Theme.Role.meta).monospacedDigit().foregroundStyle(Theme.dim)

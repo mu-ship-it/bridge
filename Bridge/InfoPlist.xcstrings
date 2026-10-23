@@ -1,0 +1,156 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白手套"
+          }
+        }
+      }
+    },
+    "CFBundleName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白手套"
+          }
+        }
+      }
+    },
+    "NFCReaderUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套读取你靠近手机的 NFC 标签，把内容发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套列出你即将到来的日历事件，只发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器要拍照或扫码时，白手套在屏幕上打开相机。你一直看得到相机画面，照片由你自己拍。"
+          }
+        }
+      }
+    },
+    "NSContactsUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套查找联系人的姓名、电话和邮箱，最多发送 20 个结果到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSHealthShareUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白手套读取你的健康数据（心率、HRV、睡眠、体能训练、步数…），只发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSHomeKitUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套在 App 打开期间列出和控制已在苹果“家庭”App 里设置好的配件。开锁、开车库门或解除警戒总会先问你。"
+          }
+        }
+      }
+    },
+    "NSLocationAlwaysAndWhenInUseUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白手套利用显著位置变化醒来，向服务器检查任务；服务器请求时报告一次位置。不持续使用 GPS。"
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套把你当前的位置报告给它。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套在 App 打开期间录一段短语音（iOS 会显示橙色圆点）。录音只发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSMotionUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套报告今天的步数、距离、楼层和气压读数。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套把你最近照片的缩小副本发给服务器。原图从不离开手机。"
+          }
+        }
+      }
+    },
+    "NSRemindersFullAccessUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器请求时，白手套列出和添加提醒事项，只发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "白手套把刚录的语音转成文字（尽量在手机上完成），文字只发送到你配置的服务器 URL。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

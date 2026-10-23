@@ -20,7 +20,7 @@ final class WidgetShotsUITests: XCTestCase {
                 let parts = spec.split(separator: "|", maxSplits: 1).map(String.init)
                 return (name: parts[0], size: parts.count > 1 ? parts[1] : "Medium")
             }
-        } ?? sizes.map { (name: "看板", size: $0) }
+        } ?? sizes.map { (name: "Board", size: $0) }
 
         configureApp(url: url, token: token)
         clearFirstPage()
@@ -58,7 +58,6 @@ final class WidgetShotsUITests: XCTestCase {
         XCTAssertTrue(customize.waitForExistence(timeout: 3))
         customize.tap()
         sleep(2)
-        print("PROBE-APPEARANCE", springboard.debugDescription)
         let button = springboard.buttons[option].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 3), "no \(option) option")
         button.tap()

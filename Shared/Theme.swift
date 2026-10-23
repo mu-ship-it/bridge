@@ -90,7 +90,7 @@ struct StatusSquare: View {
     var body: some View {
         Image(systemName: symbol)
             .foregroundStyle(color)
-            .accessibilityLabel(Text(state.rawValue))
+            .accessibilityLabel(Text(state.rawValue.localizedForDisplay))
     }
 
     var symbol: String {

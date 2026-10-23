@@ -24,7 +24,7 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } header: {
-                    Text("Server · 服务器").boxLabel()
+                    Text("Server").boxLabel()
                 } footer: {
                     Text("Any server implementing the Bridge API (docs/API.md). Stored in the Keychain on this device. Health data goes to this URL only.")
                         .font(Theme.Role.prose).foregroundStyle(Theme.dim)
@@ -44,7 +44,7 @@ struct SettingsView: View {
                     Toggle("Duty mode", isOn: $duty.enabled)
                         .tint(Theme.red)
                 } header: {
-                    Text("Duty · 值班").boxLabel()
+                    Text("Duty").boxLabel()
                 } footer: {
                     Text("For an iPad left plugged in with 白手套 in a small Stage Manager window. While the app is on screen: the connection to the box stays open for as long as it runs, the screen does not lock, and the box gets a heartbeat every 5 minutes. When 白手套 leaves the screen it all stops, and resumes when it comes back. Nothing runs in the background.")
                         .font(Theme.Role.prose).foregroundStyle(Theme.dim)
@@ -54,7 +54,7 @@ struct SettingsView: View {
                     Section {
                         Text(message).font(Theme.Role.data)
                     } header: {
-                        Text("Result · 结果").boxLabel()
+                        Text("Result").boxLabel()
                     }
                     .boxRows()
                 }

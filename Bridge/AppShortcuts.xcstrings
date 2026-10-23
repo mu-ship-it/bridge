@@ -1,0 +1,56 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Add to ${applicationName} activity": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加到${applicationName}动态"
+          }
+        }
+      }
+    },
+    "Notify with ${applicationName}": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用${applicationName}发通知"
+          }
+        }
+      }
+    },
+    "Open a link with ${applicationName}": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用${applicationName}打开链接"
+          }
+        }
+      }
+    },
+    "Run a capability in ${applicationName}": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在${applicationName}里运行能力"
+          }
+        }
+      }
+    },
+    "Speak with ${applicationName}": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用${applicationName}朗读"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

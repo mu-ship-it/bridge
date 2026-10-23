@@ -35,7 +35,10 @@
 		2D5AEBC80641E8E7C2774DFD /* Suggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE34C6110E80A93BC818C325 /* Suggestions.swift */; };
 		35DFDD1BC431EBD0FAA99F5C /* OpenCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC6CF829A228D0E7AA2A168C /* OpenCapabilities.swift */; };
 		373ED0BED8EECD1B7749A771 /* BridgeIntentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CDE9331803FB49785C11FB1 /* BridgeIntentsTests.swift */; };
+		3B7A8A37E0FC4C36A325C053 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
 		3BDA988DEFAFE2815655C71F /* BridgeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BA13F5BFAD15D3827FA8245A /* BridgeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3C9D264AB7D7E544D918E420 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80007E7BD78CA3752376854 /* Localization.swift */; };
+		4011CF9D14C552400507A88B /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F0AD0F500BAE9F131FAE550A /* InfoPlist.xcstrings */; };
 		4014E3FEB1688A7EFA8DA620 /* NFCReadCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4C74205E6AEDC2C0502808 /* NFCReadCapability.swift */; };
 		42DDEDA1D49D99A4E17B85DA /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF04B0EDF5D4C52C448E720F /* Permissions.swift */; };
 		4310ACFB3206F250B0E981DC /* BridgeRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5860DB83D9AFCAB3C0A8EF73 /* BridgeRuntime.swift */; };
@@ -58,6 +61,7 @@
 		5D63D6BA65AE6F62159C330A /* SpeakCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF91A005F35C592F3774778 /* SpeakCapability.swift */; };
 		6415F15E91F17A2B1D21D460 /* BoardWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED2681AAD26919F249FE4 /* BoardWatcher.swift */; };
 		677C765AAAC997742EA8EEED /* BoardWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED2681AAD26919F249FE4 /* BoardWatcher.swift */; };
+		67DD3DE94759CC8AD59A4801 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80007E7BD78CA3752376854 /* Localization.swift */; };
 		6A419BC421BBE86745942327 /* WiFiInfoCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D96C5A773F47BC992406E5A /* WiFiInfoCapability.swift */; };
 		6FFD8E08065C436E62999008 /* BoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD569E2609284052A144FD01 /* BoardIntent.swift */; };
 		700FF6868189AED4CAB26DDA /* DeviceInfoCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */; };
@@ -73,13 +77,17 @@
 		85707894DF82DC682F896516 /* BoardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B91226ABD6E3A93D60A0C974 /* BoardTests.swift */; };
 		87145E3A7DE3FD42CBBD6D60 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B038AABA09207670B61959C0 /* WidgetSnapshot.swift */; };
 		87B089ADBA1D36CEE343A8DA /* CameraCaptureCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6358983CA865BE5715FE0FA /* CameraCaptureCapability.swift */; };
+		8B3CF358265717DA9F871730 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
 		8F25D732899879483F91ABEE /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AAD43B48BC1F7A4509002A3 /* LocationService.swift */; };
 		923FDAA7C8C67EAFCBC881D8 /* ForegroundPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FC8D535C8CBFA3CB0B4136 /* ForegroundPoller.swift */; };
 		94955EAD6B594BB7FE86E5AB /* MicRecordCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5437041D395797569CAD4A10 /* MicRecordCapability.swift */; };
 		966FE33CE58A6325CB8E3C71 /* LocationNowCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A59CF3CB3288DFCE70BA679 /* LocationNowCapability.swift */; };
+		96B1ABE94CF2A4F661501D78 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
+		97C522AA8C9CCAECD6F0C3B4 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80007E7BD78CA3752376854 /* Localization.swift */; };
 		9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */; };
 		9A7E8F432EDBFD8C0C9F10D2 /* DutyStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1AF5861890AC1F4D1A6F03 /* DutyStation.swift */; };
 		9AC9545E3E2245AC3B14012A /* SensorsSampleCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0175F22BB9BC0FA9ABE424 /* SensorsSampleCapability.swift */; };
+		9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
 		A97E24934FCC62291F707943 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		AD02F222665998A7FEC7F39C /* BridgeMacWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8D2EB7002E6C084273E511E4 /* BridgeMacWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AD4BC4797BD3D5478767F3B6 /* MacKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3DC519585B0DB4742B2EBA1 /* MacKeychain.swift */; };
@@ -87,6 +95,7 @@
 		B04063D9051ECC8E928FBE15 /* HomeCapabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */; };
 		B0A3454F4DDBE7C8245CFDD6 /* BoardWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AED2681AAD26919F249FE4 /* BoardWatcher.swift */; };
 		B19BEF698B3904C8F40B0FB7 /* SmallFixesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */; };
+		B1D8670B48C259AC8D26361B /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B936C48ED7CF71D88F2CB459 /* AppShortcuts.xcstrings */; };
 		B3AE26D6EB49FEB7B0CD7394 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB632E949450C76C78043988 /* JSONValue.swift */; };
 		B905CF4B585A0D6501FC81AB /* ComposeCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533A439AC0003452AEC920DA /* ComposeCapabilities.swift */; };
 		BBDEA0480E90AB59157F87F6 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654D641B24FE0874A4024A66 /* Keychain.swift */; };
@@ -104,6 +113,7 @@
 		E367534174DBFF869614DEB3 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
 		E57056E3E4E693AD7056A996 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		E60FB766BA4C28B46DBD6ABD /* BackgroundTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FB9F40B1D13F013E945CB5 /* BackgroundTime.swift */; };
+		E74AEF6DEC31864E63926713 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80007E7BD78CA3752376854 /* Localization.swift */; };
 		EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E240E010D595FB217F2FE5 /* ContentView.swift */; };
 		EBC2BD4A50CCA5B0E4EE7516 /* BarcodeScanCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCB4AB261B06D1C475E959D8 /* BarcodeScanCapability.swift */; };
 		ECE2622CF8D2C30951094364 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA7B2DB5558491517438CE7 /* Theme.swift */; };
@@ -245,6 +255,7 @@
 		B5BF3D41E9E868B9734907B1 /* SuggestLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestLauncher.swift; sourceTree = "<group>"; };
 		B6358983CA865BE5715FE0FA /* CameraCaptureCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureCapability.swift; sourceTree = "<group>"; };
 		B91226ABD6E3A93D60A0C974 /* BoardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardTests.swift; sourceTree = "<group>"; };
+		B936C48ED7CF71D88F2CB459 /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
 		BA13F5BFAD15D3827FA8245A /* BridgeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = BridgeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB632E949450C76C78043988 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		BE34C6110E80A93BC818C325 /* Suggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Suggestions.swift; sourceTree = "<group>"; };
@@ -266,8 +277,11 @@
 		E1C51D6132CCFBA02B50D8B3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCapabilities.swift; sourceTree = "<group>"; };
 		E5B2FD4194A7691C01952713 /* HomeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStore.swift; sourceTree = "<group>"; };
+		E80007E7BD78CA3752376854 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
+		E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		EDE03B14B0F50428EA16F213 /* Bridge.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Bridge.xcconfig; sourceTree = "<group>"; };
+		F0AD0F500BAE9F131FAE550A /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		F0F0F1F807AFDCED584EFD30 /* DutyBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyBanner.swift; sourceTree = "<group>"; };
 		F1AD9FB291B68DC84D825868 /* Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Board.swift; sourceTree = "<group>"; };
 		F446851E4D4315C73584E542 /* NotifyShowCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyShowCapability.swift; sourceTree = "<group>"; };
@@ -359,9 +373,11 @@
 		7DC938314EF794B867060CCD /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
+				B936C48ED7CF71D88F2CB459 /* AppShortcuts.xcstrings */,
 				3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */,
 				2EBA9446753DB8F5EF177141 /* Bridge.entitlements */,
 				015E0581D699A8D25C81E072 /* Info.plist */,
+				F0AD0F500BAE9F131FAE550A /* InfoPlist.xcstrings */,
 				FB240235F17765454C7A88DD /* App */,
 				DFD10356C59015C52975756D /* Capabilities */,
 				3F622DD1487BC499B3268102 /* Core */,
@@ -399,6 +415,8 @@
 				C9E93F5ED33DAC11EB613628 /* BoardViews.swift */,
 				A8AED2681AAD26919F249FE4 /* BoardWatcher.swift */,
 				BB632E949450C76C78043988 /* JSONValue.swift */,
+				E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */,
+				E80007E7BD78CA3752376854 /* Localization.swift */,
 				BE34C6110E80A93BC818C325 /* Suggestions.swift */,
 				DEA7B2DB5558491517438CE7 /* Theme.swift */,
 				B038AABA09207670B61959C0 /* WidgetSnapshot.swift */,
@@ -538,6 +556,7 @@
 			buildConfigurationList = 60477A60471F5AC97E560E1C /* Build configuration list for PBXNativeTarget "BridgeMacWidget" */;
 			buildPhases = (
 				8F7A2A1A437BE63AB0C80482 /* Sources */,
+				4CB11450DF52BCDC4522683F /* Resources */,
 				4B1816D71FC81911D5C7EDDF /* Build number = git commit count */,
 			);
 			buildRules = (
@@ -592,6 +611,7 @@
 			buildConfigurationList = 15544CD5814A63948A6E8C4B /* Build configuration list for PBXNativeTarget "BridgeMac" */;
 			buildPhases = (
 				D521DE57C526582C098B3D82 /* Sources */,
+				260CE298EDD5B799378BDDD5 /* Resources */,
 				BF4ADD9E18E19A93D07E8377 /* Embed Foundation Extensions */,
 				6D866E46E1A8C6A3D1660D63 /* Build number = git commit count */,
 			);
@@ -668,6 +688,7 @@
 			knownRegions = (
 				Base,
 				en,
+				"zh-Hans",
 			);
 			mainGroup = C69B5C8EE7DF00C23A7FE005;
 			minimizedProjectReferenceProxies = 1;
@@ -691,7 +712,26 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1D8670B48C259AC8D26361B /* AppShortcuts.xcstrings in Resources */,
 				E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */,
+				4011CF9D14C552400507A88B /* InfoPlist.xcstrings in Resources */,
+				8B3CF358265717DA9F871730 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		260CE298EDD5B799378BDDD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				96B1ABE94CF2A4F661501D78 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CB11450DF52BCDC4522683F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3B7A8A37E0FC4C36A325C053 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -700,6 +740,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FF1158CD9AB6FD21A7CD99DF /* Assets.xcassets in Resources */,
+				9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -819,6 +860,7 @@
 				B0A3454F4DDBE7C8245CFDD6 /* BoardWatcher.swift in Sources */,
 				7AAEF15D2F5E9CA2F00A1B0F /* BoardWidget.swift in Sources */,
 				16240785DBF6A024DDA27510 /* JSONValue.swift in Sources */,
+				97C522AA8C9CCAECD6F0C3B4 /* Localization.swift in Sources */,
 				286F898CCF34C8B018CEBB86 /* MacWidgetBundle.swift in Sources */,
 				2D5AEBC80641E8E7C2774DFD /* Suggestions.swift in Sources */,
 				25DC52B991047D5A97CADACD /* Theme.swift in Sources */,
@@ -837,6 +879,7 @@
 				EFC7C13A175B0E165DB13DED /* BoardWidget.swift in Sources */,
 				1F59D52920FE3BB774EE7D4E /* BridgeWidget.swift in Sources */,
 				C916A75D4C593F1B2ED4BF7C /* JSONValue.swift in Sources */,
+				3C9D264AB7D7E544D918E420 /* Localization.swift in Sources */,
 				4A0BE7EF00A58EB6B270A426 /* Suggestions.swift in Sources */,
 				73D9B9C6D06516252BB55B73 /* Theme.swift in Sources */,
 				565EFF84F5BD678201F3AC34 /* WidgetSnapshot.swift in Sources */,
@@ -885,6 +928,7 @@
 				005CA2B4757704900ED244D4 /* JSONValue.swift in Sources */,
 				FE1BE4C482F186ECB643F282 /* JobLoop.swift in Sources */,
 				BBDEA0480E90AB59157F87F6 /* Keychain.swift in Sources */,
+				67DD3DE94759CC8AD59A4801 /* Localization.swift in Sources */,
 				966FE33CE58A6325CB8E3C71 /* LocationNowCapability.swift in Sources */,
 				8F25D732899879483F91ABEE /* LocationService.swift in Sources */,
 				94955EAD6B594BB7FE86E5AB /* MicRecordCapability.swift in Sources */,
@@ -930,6 +974,7 @@
 				F7C299D3268B2BC9E00BECA9 /* BridgeMacApp.swift in Sources */,
 				2765087CEFE87C0F227DC6CC /* HostCommandLine.swift in Sources */,
 				B3AE26D6EB49FEB7B0CD7394 /* JSONValue.swift in Sources */,
+				E74AEF6DEC31864E63926713 /* Localization.swift in Sources */,
 				AD4BC4797BD3D5478767F3B6 /* MacKeychain.swift in Sources */,
 				7038442BB9835AC8000DC2ED /* Suggestions.swift in Sources */,
 				ECE2622CF8D2C30951094364 /* Theme.swift in Sources */,

@@ -54,7 +54,7 @@ struct StatusView: View {
     @ViewBuilder private var details: some View {
         Section {
             row("Last poll", status.lastPoll)
-            LabeledContent("Result", value: status.lastPollMessage)
+            LabeledContent("Result", value: status.lastPollMessage.localizedForDisplay)
             LabeledContent("Pending jobs") { Text("\(status.pendingJobs)").font(Theme.Role.data) }
             if status.unsentResults > 0 {
                 LabeledContent("Unsent results") {
@@ -64,24 +64,24 @@ struct StatusView: View {
             Button("Poll now") { run { await BridgeRuntime.shared.jobLoop.pollOnce(trigger: "button") } }
                 .buttonStyle(.box())
         } header: {
-            header("Job loop · 轮询")
+            header("Job loop")
         }
         .boxRows()
         activitySection
         Section {
             row("Last sync", status.lastSync)
-            LabeledContent("Result", value: status.lastSyncMessage)
+            LabeledContent("Result", value: status.lastSyncMessage.localizedForDisplay)
             Button("Sync now") { run { await BridgeRuntime.shared.healthSync.syncNow(trigger: "button") } }
                 .buttonStyle(.box())
         } header: {
-            header("Health sync · 健康")
+            header("Health sync")
         }
         .boxRows()
         permissionsSection
         Section {
             ForEach(BridgeRuntime.shared.dispatcher.names, id: \.self) { Text($0).font(Theme.Role.data) }
         } header: {
-            header("Capabilities · 能力")
+            header("Capabilities")
         }
         .boxRows()
     }
@@ -96,7 +96,7 @@ struct StatusView: View {
                     let count = chip.apply(status.activity).count
                     Button { filter = chip } label: {
                         HStack(spacing: Theme.Space.s4) {
-                            Text(chip.title)
+                            Text(chip.title.localizedForDisplay)
                             Text("\(count)").font(Theme.Role.meta.bold())
                         }
                     }
@@ -109,11 +109,11 @@ struct StatusView: View {
                     .disabled(status.activity.allSatisfy { $0.status == .running })
             }
             if shown.isEmpty {
-                Text(status.activity.isEmpty ? "Nothing yet." : "Nothing \(filter.rawValue).").foregroundStyle(Theme.dim)
+                Text(status.activity.isEmpty ? "Nothing yet." : "Nothing \(filter.title.localizedForDisplay).").foregroundStyle(Theme.dim)
             }
             ForEach(shown) { ActivityRow(entry: $0) }
         } header: {
-            header("Activity · 动态")
+            header("Activity")
         }
         .boxRows()
         .confirmationDialog("Clear the activity feed?", isPresented: $confirmClear, titleVisibility: .visible) {
@@ -131,9 +131,9 @@ struct StatusView: View {
                 let state = permissions[kind] ?? "…"
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: Theme.Space.s4) {
-                        Text(kind.title)
-                        Text(kind.usedBy).font(Theme.Role.prose).foregroundStyle(Theme.dim)
-                        Text(state).boxLabel(color: color(state))
+                        Text(kind.title.localizedForDisplay)
+                        Text(kind.usedBy.localizedForDisplay).font(Theme.Role.prose).foregroundStyle(Theme.dim)
+                        Text(state.localizedForDisplay).boxLabel(color: color(state))
                     }
                     Spacer()
                     switch kind.action(for: state) {
@@ -148,10 +148,10 @@ struct StatusView: View {
                     }
                 }
             }
-            LabeledContent("Push", value: status.pushState)
-            LabeledContent("Background refresh", value: status.backgroundRefreshState)
+            LabeledContent("Push", value: status.pushState.localizedForDisplay)
+            LabeledContent("Background refresh", value: status.backgroundRefreshState.localizedForDisplay)
         } header: {
-            header("Permissions · 权限")
+            header("Permissions")
         } footer: {
             Text("iOS asks for each permission only once; after “Don't Allow” the switch lives in Settings. Home accessories are added and paired in Apple's Home app, not here: 白手套 sees only what the Home app already has. Unlocking, opening a garage door or disarming always asks you first.")
                 .font(Theme.Role.prose).foregroundStyle(Theme.dim)
@@ -176,7 +176,7 @@ struct StatusView: View {
         for kind in PermissionKind.allCases { permissions[kind] = await kind.state() }
     }
 
-    private func row(_ label: String, _ date: Date?) -> some View {
+    private func row(_ label: LocalizedStringKey, _ date: Date?) -> some View {
         LabeledContent(label) {
             Group {
                 if let date { Text(date, style: .relative) + Text(" ago") } else { Text("Never") }
@@ -186,7 +186,7 @@ struct StatusView: View {
         }
     }
 
-    private func header(_ title: String) -> some View {
+    private func header(_ title: LocalizedStringKey) -> some View {
         Text(title).boxLabel()
     }
 
@@ -223,7 +223,7 @@ private struct ActivityRow: View {
             VStack(alignment: .leading, spacing: Theme.Space.s4) {
                 HStack(spacing: Theme.Space.s0) {
                     Text("\(entry.time.formatted(date: .omitted, time: .shortened)) · \(entry.capability) · ")
-                    Text(entry.status.rawValue).textCase(.uppercase)
+                    Text(entry.status.rawValue.localizedForDisplay).textCase(.uppercase)
                 }
                 .font(Theme.Role.meta)
                 .lineLimit(1)

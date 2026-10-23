@@ -12,7 +12,7 @@ struct DutyBanner: View {
                 HStack(spacing: Theme.Space.s8) {
                     StatusSquare(state: duty.connection.isHealthy ? .done : .failed)
                         .font(Theme.Role.subhead)
-                    Text(duty.isOnDuty ? "On duty · 值班中" : "Duty on · waiting for a window")
+                    Text(duty.isOnDuty ? "On duty" : "Duty on · waiting for a window")
                         .font(Theme.Role.subhead.bold())
                         .textCase(.uppercase)
                         .foregroundStyle(Theme.text)
@@ -25,7 +25,7 @@ struct DutyBanner: View {
                     }
                 }
                 Text(connectionLine(at: context.date)).font(Theme.Role.meta)
-                Text("Last job: " + ago(status.lastJobAt, at: context.date)).font(Theme.Role.meta).foregroundStyle(Theme.dim)
+                Text("Last job: \(ago(status.lastJobAt, at: context.date))").font(Theme.Role.meta).foregroundStyle(Theme.dim)
                 Text(heartbeatLine(at: context.date)).font(Theme.Role.meta)
                     .foregroundStyle(duty.lastHeartbeatError == nil ? Theme.dim : Theme.red)
             }
@@ -34,20 +34,26 @@ struct DutyBanner: View {
     }
 
     private func connectionLine(at now: Date) -> String {
-        if case .retrying(let at, _) = duty.connection, at > now {
-            return duty.connection.label + " in \(Int(at.timeIntervalSince(now).rounded(.up)))s"
+        // The state's English label goes to the box in heartbeats; this is its display form.
+        let label = if case .retrying(_, let failures) = duty.connection {
+            String(localized: "Box unreachable — retrying (\(failures) failed in a row)")
+        } else {
+            duty.connection.label.localizedForDisplay
         }
-        return duty.connection.label
+        if case .retrying(let at, _) = duty.connection, at > now {
+            return String(localized: "\(label) in \(Int(at.timeIntervalSince(now).rounded(.up)))s")
+        }
+        return label
     }
 
     private func heartbeatLine(at now: Date) -> String {
-        if let error = duty.lastHeartbeatError { return "Heartbeat failed: \(error)" }
-        return "Heartbeat to box: " + ago(duty.lastHeartbeat, at: now) + " (every 5 min)"
+        if let error = duty.lastHeartbeatError { return String(localized: "Heartbeat failed: \(error)") }
+        return String(localized: "Heartbeat to box: \(ago(duty.lastHeartbeat, at: now)) (every 5 min)")
     }
 
     private func ago(_ date: Date?, at now: Date) -> String {
-        guard let date else { return "none yet" }
+        guard let date else { return String(localized: "none yet") }
         let seconds = now.timeIntervalSince(date)
-        return seconds < 5 ? "just now" : DutyStation.uptimeText(seconds) + " ago"
+        return seconds < 5 ? String(localized: "just now") : String(localized: "\(DutyStation.uptimeText(seconds)) ago")
     }
 }

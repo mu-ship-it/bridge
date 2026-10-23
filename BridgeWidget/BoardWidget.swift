@@ -53,7 +53,7 @@ struct BridgeBoardWidget: Widget {
             BoardWidgetView(name: entry.name, snapshot: entry.snapshot, date: entry.date)
                 .boxWidgetContainer()
         }
-        .configurationDisplayName("Board · 看板")
+        .configurationDisplayName("Board")
         .description("A board from your box: labelled bars, live.")
         .supportedFamilies(Self.families)
     }

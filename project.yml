@@ -3,6 +3,7 @@ configFiles:
   Debug: Config/Bridge.xcconfig
   Release: Config/Bridge.xcconfig
 options:
+  developmentLanguage: en
   deploymentTarget:
     iOS: "18.0"
     macOS: "15.0"

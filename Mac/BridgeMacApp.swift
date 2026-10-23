@@ -19,10 +19,9 @@ struct BridgeMacApp: App {
     @State private var host = HostState.shared
 
     var body: some Scene {
-        MenuBarExtra {
+        // 白手套 = white glove: the raised hand, an SF Symbol, in the menu bar.
+        MenuBarExtra("白手套 Mac", systemImage: "hand.raised") {
             HostMenu(host: host)
-        } label: {
-            Text("手")
         }
         Settings {
             HostSettings()
@@ -124,7 +123,7 @@ private struct HostSettings: View {
             if !t.isEmpty { try MacKeychain.set(t, for: .token) }
             token = ""
             hasToken = MacKeychain.string(.token) != nil
-            message = "Saved"
+            message = String(localized: "Saved")
             HostState.shared.reloadNow()
         } catch {
             message = error.localizedDescription

@@ -84,10 +84,10 @@ enum BoardStyle {
 
     static func age(_ seconds: TimeInterval) -> String {
         let s = Int(seconds)
-        if s < 60 { return "\(s)s" }
-        if s < 3600 { return "\(s / 60)m" }
-        if s < 86400 { return "\(s / 3600)h" }
-        return "\(s / 86400)d"
+        if s < 60 { return String(localized: "\(s)s", comment: "Age in seconds, compact") }
+        if s < 3600 { return String(localized: "\(s / 60)m", comment: "Age in minutes, compact") }
+        if s < 86400 { return String(localized: "\(s / 3600)h", comment: "Age in hours, compact") }
+        return String(localized: "\(s / 86400)d", comment: "Age in days, compact")
     }
 }
 
@@ -194,7 +194,7 @@ struct BoardStateMark: View {
                 .font(Theme.Role.meta)
                 .foregroundStyle(BoardStyle.color(of: row))
                 .widgetAccentable(state == .over)
-                .accessibilityLabel(Text(state.rawValue))
+                .accessibilityLabel(Text(state.rawValue.localizedForDisplay))
         }
     }
 }

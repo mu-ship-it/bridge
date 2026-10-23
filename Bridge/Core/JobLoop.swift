@@ -57,7 +57,7 @@ actor JobLoop {
                 unsent.append(result)
                 try await deliver(client)
             }
-            await AppStatus.shared.recordPoll(success: true, message: "OK via \(trigger) — \(response.jobs.count) job(s)", unsent: 0)
+            await AppStatus.shared.recordPoll(success: true, message: String(localized: "OK via \(trigger) — \(response.jobs.count) job(s)"), unsent: 0)
             return .ran(jobs: response.jobs.count)
         } catch is CancellationError {
             // Backgrounded mid-poll: not an error. Anything leased but unrun is re-offered by the box.
