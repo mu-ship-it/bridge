@@ -77,15 +77,6 @@ struct BridgeActivityWidget: Widget {
     }
 }
 
-extension View {
-    /// Black in light mode too: an explicit background, and a dark scheme so system text is white.
-    func boxWidgetContainer() -> some View {
-        foregroundStyle(Theme.text)
-            .environment(\.colorScheme, .dark)
-            .containerBackground(Theme.background, for: .widget)
-    }
-}
-
 // MARK: Views
 
 struct BridgeWidgetView: View {

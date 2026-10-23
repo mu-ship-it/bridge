@@ -178,6 +178,10 @@ enum SharedStore {
                 kSecMatchLimit as String: kSecMatchLimitOne,
             ]
             if let group = keychainGroup { query[kSecAttrAccessGroup as String] = group }
+            #if os(macOS)
+            // Access groups only apply to the data protection keychain, which macOS does not use by default.
+            query[kSecUseDataProtectionKeychain as String] = true
+            #endif
             var item: CFTypeRef?
             guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
                   let data = item as? Data else { return nil }

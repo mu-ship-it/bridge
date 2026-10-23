@@ -55,8 +55,14 @@ struct BridgeBoardWidget: Widget {
         }
         .configurationDisplayName("Board · 看板")
         .description("A board from your box: labelled bars, live.")
-        .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular])
+        .supportedFamilies(Self.families)
     }
+
+    #if os(macOS)
+    static let families: [WidgetFamily] = [.systemMedium, .systemLarge, .systemExtraLarge]
+    #else
+    static let families: [WidgetFamily] = [.systemMedium, .systemLarge, .systemExtraLarge, .accessoryRectangular]
+    #endif
 }
 
 #Preview(as: .systemMedium) {

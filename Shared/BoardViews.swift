@@ -1,6 +1,16 @@
 import SwiftUI
 import WidgetKit
 
+extension View {
+    /// Black in light mode too: an explicit background, and a dark scheme so system text is white.
+    /// Every widget's container, on iOS and macOS.
+    func boxWidgetContainer() -> some View {
+        foregroundStyle(Theme.text)
+            .environment(\.colorScheme, .dark)
+            .containerBackground(Theme.background, for: .widget)
+    }
+}
+
 /// The board widgets' views, shared by the iOS and macOS widget extensions. Boring Box, louder:
 /// black, a hard colour stripe per row, one thick flat bar, no rounding, no material.
 struct BoardWidgetView: View {
@@ -12,14 +22,26 @@ struct BoardWidgetView: View {
     var body: some View {
         if let snapshot {
             switch family {
+            #if !os(macOS)
             case .accessoryRectangular: BoardRectangular(snapshot: snapshot, date: date)
+            #endif
             case .systemExtraLarge: BoardPanel(snapshot: snapshot, date: date, limit: 9, columns: 2)
             case .systemLarge: BoardPanel(snapshot: snapshot, date: date, limit: 9, columns: 1)
             default: BoardPanel(snapshot: snapshot, date: date, limit: 3, columns: 1, headings: false)
             }
         } else {
-            BoardEmpty(name: name, compact: family == .accessoryRectangular)
+            BoardEmpty(name: name, compact: isAccessory)
         }
+    }
+}
+
+extension BoardWidgetView {
+    private var isAccessory: Bool {
+        #if os(macOS)
+        false
+        #else
+        family == .accessoryRectangular
+        #endif
     }
 }
 

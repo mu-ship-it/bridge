@@ -5,6 +5,7 @@ configFiles:
 options:
   deploymentTarget:
     iOS: "18.0"
+    macOS: "15.0"
   createIntermediateGroups: true
 settings:
   base:
@@ -18,6 +19,8 @@ settings:
     # Bundle id, team and default server URL come from Config/Bridge.xcconfig (+ your gitignored Config/Local.xcconfig).
     # Simulator builds are ad-hoc signed ("sign to run locally"); no team needed.
     "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+    # The Mac host + widget: "Sign to Run Locally" unless a team is set in Local.xcconfig.
+    "CODE_SIGN_IDENTITY[sdk=macosx*]": "-"
 targets:
   Bridge:
     type: application
@@ -146,6 +149,91 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).tests
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Bridge"
         BUNDLE_LOADER: "$(TEST_HOST)"
+  # macOS: a menu-bar host (no Dock icon) for the Board · 看板 desktop widget. Same Keychain item
+  # names as the iOS app, in a Mac-only access group shared with its widget extension.
+  BridgeMac:
+    type: application
+    platform: macOS
+    sources:
+      - Mac
+      - path: Shared
+    dependencies:
+      - target: BridgeMacWidget
+    settings:
+      base:
+        PRODUCT_NAME: BridgeMac
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).mac
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: Mac/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleName: 白手套 Mac
+        CFBundleDisplayName: 白手套 Mac
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.utilities
+        BridgeDefaultServerURL: $(BRIDGE_DEFAULT_SERVER_URL)
+        BridgeAppBundleID: $(BRIDGE_BUNDLE_ID).mac
+        BridgeAppGroup: $(TeamIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac
+        BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    postBuildScripts:
+      - name: Build number = git commit count
+        basedOnDependencyAnalysis: false
+        inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]
+        script: |
+          count=$(git -C "$SRCROOT" rev-list --count HEAD 2>/dev/null || echo "$CURRENT_PROJECT_VERSION")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $count" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+    entitlements:
+      path: Mac/BridgeMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups: [$(TeamIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac]
+        keychain-access-groups: [$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac]
+  BridgeMacWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - MacWidget
+      - path: BridgeWidget/BoardWidget.swift
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_NAME: BridgeMacWidget
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).mac.widget
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: MacWidget/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: 白手套
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        BridgeAppBundleID: $(BRIDGE_BUNDLE_ID).mac
+        BridgeAppGroup: $(TeamIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac
+        BridgeKeychainGroup: $(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    postBuildScripts:
+      - name: Build number = git commit count
+        basedOnDependencyAnalysis: false
+        inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]
+        script: |
+          count=$(git -C "$SRCROOT" rev-list --count HEAD 2>/dev/null || echo "$CURRENT_PROJECT_VERSION")
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $count" "$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+    entitlements:
+      path: MacWidget/BridgeMacWidget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups: [$(TeamIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac]
+        keychain-access-groups: [$(AppIdentifierPrefix)$(BRIDGE_BUNDLE_ID).mac]
   # Simulator helper, not a test suite: puts the board widgets on the home screen for screenshots.
   BridgeUITests:
     type: bundle.ui-testing
@@ -159,6 +247,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $(BRIDGE_BUNDLE_ID).uitests
         TEST_TARGET_NAME: Bridge
 schemes:
+  BridgeMac:
+    build:
+      targets:
+        BridgeMac: all
   WidgetShots:
     build:
       targets:
