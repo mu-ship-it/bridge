@@ -49,7 +49,8 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UIRequiresFullScreen: false
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Landscape is listed for the desk display only: AppDelegate keeps every other screen portrait.
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown

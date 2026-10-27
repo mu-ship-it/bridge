@@ -58,6 +58,23 @@ Setting the iPad up:
 4. **Permissions.** Go through the Status screen's Permissions list once on the iPad itself — they are per device.
 5. Give it its own device id in Settings (e.g. `my-ipad`) so the agent can address the iPad and the iPhone separately.
 
+### Desk display
+
+**值班台 / Desk** turns a spare iPhone parked on a desk (plugged in, 白手套 on screen all day) into a full-screen board: a big clock and the date, the room's temperature and humidity, the weather, and an **Attention** list of what wants you. It works in portrait and landscape. Open it from **Settings → Desk → Open desk**; turn on **Start in Desk** so a relaunch lands straight on it. The small grid button in the corner goes back to the tabs.
+
+- **Room** is read on the phone through HomeKit, every 60 s, from any accessory with a temperature or humidity sensor (a HomePod mini has both). Put the accessory's or the room's name in **Settings → Desk → Room sensor**; leave it empty to use the first one found. A reading that is not available shows `—`.
+- **Weather** comes from the box (`GET /bridge/board/desk`), which asks Open-Meteo (no key) for `BRIDGE_WEATHER_LAT` / `BRIDGE_WEATHER_LON` (default Shenyang 41.80, 123.43) and caches it for 15 minutes.
+- **Attention** lists `agent.say`, `alert` and `notify` events from the last 24 h, plus any board row that is `over` or `stalled`. When a new item arrives the phone gives a haptic tap and highlights the item. It never plays sound unless the item has `"speak": true` in its payload. Tap the check box to clear an item: the phone posts an `attention.ack` event and the item leaves the list everywhere.
+- **Brightness follows you.** Something on your computer posts `POST /bridge/presence {"source": "pc", "active": true, "idle_s": 4}` every 30 s. While you are at the desk the screen is at 85 % (50 % between 23:00 and 07:00). When you are away, or no report has arrived for 90 s, it drops to 10 % (never off). A new attention item lights it for 30 s. Leaving the desk puts your own brightness back.
+- While the desk shows, it counts as duty: the screen does not lock, the box gets heartbeats, and jobs (`home.set`, `agent.say`, …) keep running through the same foreground connection. Nothing runs in the background.
+
+Setting the iPhone up (once):
+1. **Power.** Keep it plugged in.
+2. **Never lock.** Settings → Display & Brightness → **Auto-Lock → Never**. To pin the phone to 白手套, use **Guided Access** instead: Settings → Accessibility → Guided Access → On, set a passcode and set *Display Auto-Lock* to Never; then open 白手套 and triple-click the side button → Start.
+3. **Quiet.** Turn on a Focus or **Do Not Disturb** (Control Center) so other apps' banners and sounds stay off the desk.
+4. **Home.** Settings → *your name* → Home (or the Home app): the phone's Apple Account must be a member of the home that has the sensor and the power strip. Then, on Status → Permissions, allow Home on this phone.
+5. Give it its own device id in Settings (e.g. `desk-mini`). Point it at the box, then turn on **Start in Desk**.
+
 ### Widgets
 
 So you can see what the agent is doing without opening the app, 白手套 has a home-screen widget (small: the agent's last `agent.say` line, or the newest job's note, with a status square and how long ago; medium: the last three jobs, note · status · time) and lock-screen widgets (rectangular and inline: the newest job's note). The app writes a small snapshot (last 5 feed rows, the agent's line, last poll, last health sync) to its App Group after every job and sync and asks WidgetKit to redraw. Every 15 minutes the widget also asks the box itself (`GET /bridge/feed`, 5 s timeout), reading the token through a shared Keychain access group, so it shows jobs the phone has not picked up yet. Widgets show one-line summaries only, never a whole result, but they do sit on the lock screen: leave the lock-screen ones off if notes or summaries are private. Tapping a widget opens the Status tab.

@@ -33,6 +33,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         AppStatus.shared.setPushState("APNs unavailable: \(error.localizedDescription)")
     }
 
+    /// iPhone: portrait, except the desk display, which also turns sideways. iPad: any way.
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        if UIDevice.current.userInterfaceIdiom == .pad { return .all }
+        return DeskStation.shared.showing ? .allButUpsideDown : .portrait
+    }
+
     /// Show `notify.show` banners even while the app is open.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                             willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {

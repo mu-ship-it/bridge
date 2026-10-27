@@ -79,7 +79,8 @@ import UIKit
         #expect(info["UIRequiresFullScreen"] as? Bool == false)
         // Bundle folds `~ipad` keys into the base key on an iPad, so check what this device gets.
         let orientations = try #require(info["UISupportedInterfaceOrientations"] as? [String])
-        #expect(Set(orientations).count == (UIDevice.current.userInterfaceIdiom == .pad ? 4 : 1))
+        // iPhone lists portrait + landscape for the desk display; AppDelegate keeps the rest portrait.
+        #expect(Set(orientations).count == (UIDevice.current.userInterfaceIdiom == .pad ? 4 : 3))
         let families = try #require(info["UIDeviceFamily"] as? [Int])
         #expect(families.contains(1) && families.contains(2))
     }

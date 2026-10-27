@@ -180,7 +180,7 @@ final class WidgetShotsUITests: XCTestCase {
         sleep(2)
     }
 
-    private func configureApp(url: String, token: String) {
+    func configureApp(url: String, token: String) {
         let app = XCUIApplication()
         app.launch()
         app.buttons["Settings"].firstMatch.tap()

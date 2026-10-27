@@ -196,7 +196,8 @@ def board_items(boards):
 def compose_attention(events, ack_events, boards):
     """Unacked items, newest first, at most ATTENTION_MAX."""
     acked = acked_ids(ack_events)
-    items = [event_item(event) for event in events] + board_items(boards)
+    # Events arrive oldest first; reversed, a same-second tie still reads newest first.
+    items = [event_item(event) for event in reversed(events)] + board_items(boards)
     items = [item for item in items if item["id"] not in acked]
     items.sort(key=lambda item: item["ts"], reverse=True)   # stable: ties keep board order
     return items[:ATTENTION_MAX]

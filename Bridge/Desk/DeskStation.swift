@@ -26,7 +26,10 @@ final class DeskStation {
     }
     /// The Desk screen is up (instead of the tabs).
     var showing: Bool {
-        didSet { DutyStation.shared.deskShowing = showing }
+        didSet {
+            DutyStation.shared.deskShowing = showing
+            if showing != oldValue { Self.updateOrientations(desk: showing) }
+        }
     }
 
     private(set) var payload: DeskPayload?
@@ -54,6 +57,17 @@ final class DeskStation {
     func brightness(now: Date = Date()) -> CGFloat {
         BrightnessPolicy.level(present: BrightnessPolicy.isPresent(payload?.presence, fetchedAt: fetchedAt, now: now),
                                lastArrival: lastArrival, now: now)
+    }
+
+    /// The desk may turn sideways; the tabs may not (AppDelegate). Leaving the desk on its side
+    /// turns the window back to portrait.
+    private static func updateOrientations(desk: Bool) {
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            scene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+            if !desk, UIDevice.current.userInterfaceIdiom == .phone {
+                scene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+            }
+        }
     }
 
     // MARK: Loops (run from the Desk screen's .task: they stop when it goes away)
