@@ -712,6 +712,17 @@
         }
       }
     },
+    "Lanes": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点卯"
+          }
+        }
+      }
+    },
     "Last job: %@": {
       "localizations": {
         "zh-Hans": {
@@ -1997,6 +2008,17 @@
         }
       }
     },
+    "no lanes": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无点卯"
+          }
+        }
+      }
+    },
     "none yet": {
       "localizations": {
         "zh-Hans": {
@@ -2102,17 +2124,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "停滞"
-          }
-        }
-      }
-    },
-    "· %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· %@"
           }
         }
       }

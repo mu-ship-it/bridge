@@ -196,3 +196,47 @@ enum ClimateSensorPick {
         return best(sensors.filter { candidates[$0].room.caseInsensitiveCompare(key) == .orderedSame })
     }
 }
+
+/// Tile 5: the muster lanes (点卯), from the same `muster` board the Board widget shows.
+/// The lanes are the section titled "Lanes" (else the first section); the rest of the board
+/// (usage and the like) stays on the widget.
+struct MusterTile: Equatable, Sendable {
+    struct Lane: Equatable, Sendable, Identifiable {
+        let row: Board.Row
+        var id: String { row.label }
+        var name: String { row.label }
+        /// The host, "Mini" or "Box": what `detail` says before its first " · ".
+        let host: String?
+        /// The state as an English catalog key ("ok", "over", …), shown localized; nil when absent.
+        var state: String? { row.state?.rawValue }
+        /// The lane's own colour for its block; nil when the board gives none.
+        var rgb: UInt32? { row.rgb }
+        /// "time used / expected".
+        var clock: String? { row.value.flatMap { $0.isEmpty ? nil : $0 } }
+        var isOver: Bool { row.state == .over }
+    }
+
+    static let boardName = BoardName.fallback
+    static let shown = 4
+
+    let lanes: [Lane]
+    /// Lanes that did not fit.
+    let hidden: Int
+
+    init(_ board: Board?, limit: Int = MusterTile.shown) {
+        let sections = board?.sections ?? []
+        let section = sections.first { $0.title?.caseInsensitiveCompare("Lanes") == .orderedSame } ?? sections.first
+        let all = (section?.rows ?? []).map { Lane(row: $0, host: Self.host(of: $0.detail)) }
+        lanes = Array(all.prefix(limit))
+        hidden = max(0, all.count - limit)
+    }
+
+    var isEmpty: Bool { lanes.isEmpty }
+
+    static func host(of detail: String?) -> String? {
+        guard let detail, let head = detail.components(separatedBy: " · ").first,
+              detail.contains(" · ") else { return nil }
+        let host = head.trimmingCharacters(in: .whitespaces)
+        return host.isEmpty ? nil : host
+    }
+}

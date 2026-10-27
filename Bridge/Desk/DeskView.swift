@@ -6,6 +6,7 @@ struct DeskView: View {
     @Bindable private var desk = DeskStation.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var brightness = DeskBrightness()
+    @State private var rowWidth: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -16,7 +17,7 @@ struct DeskView: View {
                     HStack(alignment: .top, spacing: Theme.Space.s24) {
                         VStack(alignment: .leading, spacing: Theme.Space.s16) {
                             ClockTile()
-                            HStack(alignment: .top, spacing: Theme.Space.s16) { roomTile; weatherTile }
+                            tileRow
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         attentionTile.frame(width: geo.size.width * 0.38)
@@ -27,7 +28,7 @@ struct DeskView: View {
                 } else {
                     VStack(alignment: .leading, spacing: Theme.Space.s16) {
                         ClockTile()
-                        HStack(alignment: .top, spacing: Theme.Space.s16) { roomTile; weatherTile }
+                        tileRow
                         attentionTile
                     }
                     .padding(Theme.Space.s16)
@@ -59,6 +60,37 @@ struct DeskView: View {
 
     // MARK: Tiles
 
+    /// Room, Weather and Muster side by side, one height. Room and Weather take a fixed share;
+    /// Muster, which lists lanes, gets the rest.
+    private var tileRow: some View {
+        let gap = Theme.Space.s12
+        let side: CGFloat? = rowWidth > 0 ? ((rowWidth - 2 * gap) * 0.28).rounded(.down) : nil
+        return HStack(alignment: .top, spacing: gap) {
+            roomTile.frame(width: side)
+            weatherTile.frame(width: side)
+            musterTile
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
+    }
+
+    private var musterTile: some View {
+        let tile = desk.muster
+        return DeskTile(label: "Lanes") {
+            if tile.isEmpty {
+                Text("no lanes").font(Theme.Role.body).foregroundStyle(Theme.dim)
+            } else {
+                VStack(alignment: .leading, spacing: Theme.Space.s8) {
+                    ForEach(tile.lanes) { MusterLaneRow(lane: $0) }
+                    if tile.hidden > 0 {
+                        Text("+\(tile.hidden)").font(Theme.Role.meta.bold()).foregroundStyle(Theme.dim)
+                    }
+                }
+            }
+        }
+    }
+
     private var roomTile: some View {
         DeskTile(label: "Room") {
             Text(desk.climate.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
@@ -69,7 +101,7 @@ struct DeskView: View {
             }
             .accessibilityLabel(Text("Humidity \(desk.climate.humidity)"))
             Text(desk.climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
-                .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
+                .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(3)
         }
     }
 
@@ -80,14 +112,18 @@ struct DeskView: View {
                 Text(tile.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
                 Image(systemName: tile.symbol).font(Theme.Role.section).accessibilityHidden(true)
             }
-            Text(tile.summary.localizedForDisplay).font(Theme.Role.subhead.bold()).lineLimit(1)
+            // The tile shares its row with Lanes: wrap rather than cut words off.
+            Text(tile.summary.localizedForDisplay).font(Theme.Role.subhead.bold())
+                .lineLimit(2).minimumScaleFactor(0.8)
             HStack(spacing: Theme.Space.s4) {
                 Text(tile.range)
-                if let place = tile.place { Text("· \(place)") }
                 if tile.stale { Image(systemName: "exclamationmark.triangle").foregroundStyle(Theme.red)
                     .accessibilityLabel(Text("stale")) }
             }
-            .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1)
+            .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
+            if let place = tile.place {
+                Text(place).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
+            }
         }
     }
 
@@ -148,6 +184,66 @@ private struct ClockTile: View {
     }
 }
 
+/// One lane: its colour block, name, host and state word, then the clock bar (time used /
+/// expected) drawn by the Board widget's own BoardBar — red and full when over.
+private struct MusterLaneRow: View {
+    let lane: MusterTile.Lane
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s4) {
+            // One line when it fits; otherwise the state word goes under the name, never cut short.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s4) {
+                    name
+                    Spacer(minLength: Theme.Space.s4)
+                    stateWord
+                }
+                VStack(alignment: .leading, spacing: Theme.Space.s4) {
+                    name
+                    stateWord
+                }
+            }
+            BoardBar(row: lane.row)
+            HStack(spacing: Theme.Space.s4) {
+                if let host = lane.host { Text(host).foregroundStyle(Theme.dim) }
+                Spacer(minLength: 0)
+                if let clock = lane.clock {
+                    Text(clock)
+                        .bold(lane.isOver)
+                        .foregroundStyle(lane.isOver ? Theme.red : Theme.text)
+                }
+            }
+            .font(Theme.Role.meta)
+            .lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var name: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s4) {
+            Rectangle().fill(lane.rgb.map { Color(hex: $0) } ?? Theme.text)
+                .frame(width: Theme.Space.s12, height: Theme.Space.s12)
+                .accessibilityHidden(true)
+            Text(lane.name).font(Theme.Role.widgetBody.bold()).lineLimit(1)
+                .foregroundStyle(lane.row.isMuted ? Theme.dim : Theme.text)
+        }
+    }
+
+    @ViewBuilder private var stateWord: some View {
+        if let state = lane.state {
+            HStack(spacing: Theme.Space.s4) {
+                if let symbol = BoardStyle.symbol(for: lane.row.state) {
+                    Image(systemName: symbol).accessibilityHidden(true)
+                }
+                Text(state.localizedForDisplay).textCase(.uppercase)
+            }
+            .font(Theme.Role.label)
+            .foregroundStyle(lane.isOver ? Theme.red : Theme.dim)
+            .fixedSize()
+        }
+    }
+}
+
 /// A tile: uppercase label over a 1px outline.
 private struct DeskTile<Content: View>: View {
     let label: LocalizedStringKey
@@ -167,7 +263,8 @@ private struct DeskTile<Content: View>: View {
             content
         }
         .padding(Theme.Space.s12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Fills whatever height its row gives it, so tiles side by side share one outline height.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
     }
 }

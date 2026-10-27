@@ -131,6 +131,7 @@
 		FB39450EE5736A89A333389B /* DeskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97153D42C2746170DAE92342 /* DeskTests.swift */; };
 		FB6844C98C285A86CB1CDCE8 /* ForegroundSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E529EA443F207B9F6F55AB4 /* ForegroundSession.swift */; };
 		FC37A0C933D85227950982E1 /* BackgroundTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35F2CCC98BCF98DE6E439A5 /* BackgroundTasks.swift */; };
+		FDF75D052DE0396948B7FE07 /* MusterTileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86ED4E8E5CB2B36CC394FBD4 /* MusterTileTests.swift */; };
 		FE1BE4C482F186ECB643F282 /* JobLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7485F55BA6A1D49E41A285CD /* JobLoop.swift */; };
 		FF0A20EECF81E673BB78957D /* BoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD569E2609284052A144FD01 /* BoardIntent.swift */; };
 		FF1158CD9AB6FD21A7CD99DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B27C8FE08E8F325ED2D2ACDF /* Assets.xcassets */; };
@@ -244,6 +245,7 @@
 		85738C6886F6D61966E0E538 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		860AE021569E621E5BBD593E /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		866A636D51506F10A9AF17E2 /* ShareCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCapability.swift; sourceTree = "<group>"; };
+		86ED4E8E5CB2B36CC394FBD4 /* MusterTileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusterTileTests.swift; sourceTree = "<group>"; };
 		8A59CF3CB3288DFCE70BA679 /* LocationNowCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationNowCapability.swift; sourceTree = "<group>"; };
 		8C629E0C27FAF57113A4BA35 /* BridgeIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeIntents.swift; sourceTree = "<group>"; };
 		8D2EB7002E6C084273E511E4 /* BridgeMacWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BridgeMacWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -388,6 +390,7 @@
 				09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */,
 				D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */,
 				902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */,
+				86ED4E8E5CB2B36CC394FBD4 /* MusterTileTests.swift */,
 				3E591B70D4409ED514CB981A /* PhoneCapabilityTests.swift */,
 				827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */,
 				BE564049727EC1D5C987B2F0 /* StatusFeedTests.swift */,
@@ -873,6 +876,7 @@
 				9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */,
 				B04063D9051ECC8E928FBE15 /* HomeCapabilityTests.swift in Sources */,
 				0E9CA1157F426BC4D3FC226C /* JobDispatcherTests.swift in Sources */,
+				FDF75D052DE0396948B7FE07 /* MusterTileTests.swift in Sources */,
 				74025976EEB5CF22440F8CBB /* PhoneCapabilityTests.swift in Sources */,
 				B19BEF698B3904C8F40B0FB7 /* SmallFixesTests.swift in Sources */,
 				AE8485502F0EFDB931C31D95 /* StatusFeedTests.swift in Sources */,

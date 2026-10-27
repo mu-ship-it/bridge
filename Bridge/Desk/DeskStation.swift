@@ -37,6 +37,8 @@ final class DeskStation {
     private(set) var payloadError: String?
     private(set) var climate = ClimateTile(celsius: nil, humidity: nil, sensor: nil)
     private(set) var climateError: String?
+    /// The muster lanes, from the Board widget's own fetch (GET /bridge/board/muster).
+    private(set) var muster = MusterTile(nil)
     /// Ids of items that arrived since the screen came up, until their highlight runs out.
     private(set) var highlighted: Set<String> = []
     /// When the newest item arrived (phase 3: forces the screen bright for a while).
@@ -76,6 +78,7 @@ final class DeskStation {
         seen = nil   // a fresh screen announces nothing that was already there
         while !Task.isCancelled {
             await refreshPayload()
+            await refreshMuster()
             try? await Task.sleep(for: Self.payloadInterval)
         }
     }
@@ -109,6 +112,13 @@ final class DeskStation {
         fetchedAt = now
         guard !arrived.isEmpty else { return }
         announce(arrived, now: now)
+    }
+
+    /// The board the Board widget fetches and keeps; its saved copy when the box is unreachable.
+    /// Never saved from here: what the widget last drew stays the widget's business.
+    func refreshMuster() async {
+        let snapshot = await SharedStore.fetchBoard(MusterTile.boardName) ?? SharedStore.loadBoard(MusterTile.boardName)
+        muster = MusterTile(snapshot?.board)
     }
 
     func refreshClimate() async {
