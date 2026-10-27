@@ -20,6 +20,8 @@ struct DeskView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         attentionTile.frame(width: geo.size.width * 0.38)
+                        // Its own column: an overlay here would sit on the Attention tile's corner.
+                        exitButton
                     }
                     .padding(Theme.Space.s16)
                 } else {
@@ -29,8 +31,9 @@ struct DeskView: View {
                         attentionTile
                     }
                     .padding(Theme.Space.s16)
+                    // Portrait: the corner above the clock is empty.
+                    exitButton
                 }
-                exitButton
             }
         }
         .preferredColorScheme(.dark)
