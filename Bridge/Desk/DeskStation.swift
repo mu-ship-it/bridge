@@ -50,6 +50,12 @@ final class DeskStation {
 
     var attention: [DeskPayload.Item] { payload?.attention ?? [] }
 
+    /// The screen level the desk wants right now (BrightnessPolicy).
+    func brightness(now: Date = Date()) -> CGFloat {
+        BrightnessPolicy.level(present: BrightnessPolicy.isPresent(payload?.presence, fetchedAt: fetchedAt, now: now),
+                               lastArrival: lastArrival, now: now)
+    }
+
     // MARK: Loops (run from the Desk screen's .task: they stop when it goes away)
 
     func runPayload() async {

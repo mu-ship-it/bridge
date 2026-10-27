@@ -92,6 +92,7 @@
 		9AC9545E3E2245AC3B14012A /* SensorsSampleCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0175F22BB9BC0FA9ABE424 /* SensorsSampleCapability.swift */; };
 		9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
 		A97E24934FCC62291F707943 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
+		AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */; };
 		AD02F222665998A7FEC7F39C /* BridgeMacWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8D2EB7002E6C084273E511E4 /* BridgeMacWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AD4BC4797BD3D5478767F3B6 /* MacKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3DC519585B0DB4742B2EBA1 /* MacKeychain.swift */; };
 		AE8485502F0EFDB931C31D95 /* StatusFeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE564049727EC1D5C987B2F0 /* StatusFeedTests.swift */; };
@@ -107,6 +108,7 @@
 		C4569D5FD763863B0E162E3C /* WidgetPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A6E0CD6609C828EDDF20F1 /* WidgetPublisher.swift */; };
 		C8C25616577640DFFACC16B2 /* HomeCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */; };
 		C916A75D4C593F1B2ED4BF7C /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB632E949450C76C78043988 /* JSONValue.swift */; };
+		C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0385F5B6333C919B38409E20 /* DeskBrightness.swift */; };
 		D0E7ADF1D24E42164B024539 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1C51D6132CCFBA02B50D8B3 /* Models.swift */; };
 		D3ED00E3615110BBB4F5C59D /* Presenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6898596872411DB8AC0BEF3 /* Presenter.swift */; };
 		D91E477D5416125CFB81335C /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
@@ -193,6 +195,7 @@
 		015E0581D699A8D25C81E072 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		02CAB5CF932F536F2A6B8843 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		02FD36AB2E46FCCBEEF4332A /* SuggestRouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestRouteTests.swift; sourceTree = "<group>"; };
+		0385F5B6333C919B38409E20 /* DeskBrightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBrightness.swift; sourceTree = "<group>"; };
 		047CE43C56A64BB5733B2D96 /* MotionTodayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionTodayCapability.swift; sourceTree = "<group>"; };
 		09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapperTests.swift; sourceTree = "<group>"; };
 		0C709ADD9653249F93B632A2 /* ContactsSearchCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchCapability.swift; sourceTree = "<group>"; };
@@ -226,6 +229,7 @@
 		57FC8D535C8CBFA3CB0B4136 /* ForegroundPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundPoller.swift; sourceTree = "<group>"; };
 		5860DB83D9AFCAB3C0A8EF73 /* BridgeRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeRuntime.swift; sourceTree = "<group>"; };
 		58E003C57BDD9F417908C0C4 /* Bridge.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBrightnessTests.swift; sourceTree = "<group>"; };
 		62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthQueryCapability.swift; sourceTree = "<group>"; };
 		654D641B24FE0874A4024A66 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
 		691F9B70EE9533A9EDB1B134 /* BridgeUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BridgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -353,6 +357,7 @@
 		537272E553962E8A61EA713C /* Desk */ = {
 			isa = PBXGroup;
 			children = (
+				0385F5B6333C919B38409E20 /* DeskBrightness.swift */,
 				CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */,
 				287EA21E6F2474B7C3F99947 /* DeskStation.swift */,
 				E08C2256F53E1604D2E2B393 /* DeskView.swift */,
@@ -374,6 +379,7 @@
 				B91226ABD6E3A93D60A0C974 /* BoardTests.swift */,
 				0CDE9331803FB49785C11FB1 /* BridgeIntentsTests.swift */,
 				43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */,
+				6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */,
 				97153D42C2746170DAE92342 /* DeskTests.swift */,
 				2BDA1FF357095C2C0D238679 /* DutyModeTests.swift */,
 				9BC6671EBB2D58C4AE42CF6B /* ForegroundPollerTests.swift */,
@@ -857,6 +863,7 @@
 				85707894DF82DC682F896516 /* BoardTests.swift in Sources */,
 				373ED0BED8EECD1B7749A771 /* BridgeIntentsTests.swift in Sources */,
 				7321248E84BADEC08C5F70B5 /* CapabilityParamsTests.swift in Sources */,
+				AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */,
 				FB39450EE5736A89A333389B /* DeskTests.swift in Sources */,
 				1525960468809E2EBC5BD96A /* DutyModeTests.swift in Sources */,
 				4A161381183A3F22186B42F3 /* ForegroundPollerTests.swift in Sources */,
@@ -932,6 +939,7 @@
 				B905CF4B585A0D6501FC81AB /* ComposeCapabilities.swift in Sources */,
 				EFF95A40664F1054C5422A85 /* ContactsSearchCapability.swift in Sources */,
 				EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */,
+				C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */,
 				519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */,
 				54E6126AE9151038370B39C4 /* DeskStation.swift in Sources */,
 				173B2943AC7C44B61EAB6A51 /* DeskView.swift in Sources */,

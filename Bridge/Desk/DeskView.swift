@@ -4,6 +4,8 @@ import SwiftUI
 /// and what wants attention. Boring Box: black, white, one red; portrait and landscape.
 struct DeskView: View {
     @Bindable private var desk = DeskStation.shared
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var brightness = DeskBrightness()
 
     var body: some View {
         GeometryReader { geo in
@@ -37,6 +39,19 @@ struct DeskView: View {
         .persistentSystemOverlays(.hidden)
         .task { await desk.runPayload() }
         .task { await desk.runClimate() }
+        // Bright when Mu is at the desk, dim when not; re-checked every second so a stale
+        // presence report or a new item's 30 s takes effect on time.
+        .task {
+            brightness.begin()
+            while !Task.isCancelled {
+                brightness.apply(desk.brightness())
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { brightness.end() } else if phase == .active { brightness.begin() }
+        }
+        .onDisappear { brightness.end() }
     }
 
     // MARK: Tiles
