@@ -154,6 +154,28 @@ Stores the latest **board** under `<name>` for this account, replacing the previ
 ## `GET /bridge/board/<name>` (v0.6, for the board widgets)
 → `{"board": {…as stored, every row field present, null when absent…}, "age_s": 42}`, where `age_s` is seconds since the server received it (the widgets show a stale badge past 180 s). No board under that name → `404`. Audited as `read:<name>` / `missing:<name>`.
 
+## `POST /bridge/presence` (v0.6, for the desk display)
+Body `{"source": "pc", "active": true, "idle_s": 4}`. Says whether Mu is at a desk, from whatever can tell (a PC's last-input idle time, posted every 30 s). The latest report per `source` is kept, nothing else. No device id needed. `source` matches `[a-z0-9][a-z0-9._-]{0,31}`; `active` is a boolean; `idle_s` is 0..604800. → `{"ok": true, "source": "pc"}`. Audited as `stored:<source>`.
+
+## `GET /bridge/board/desk[?tz=<IANA zone>]` (v0.6, for the desk display)
+A composite the box builds per request (never stored: posting a board named `desk` is a `400`).
+```json
+{
+  "time": {"now": "2026-10-27T09:00:00Z", "tz": "Asia/Shanghai", "utc_offset_s": 28800},
+  "weather": {"temp_c": 6.4, "feels_c": 3.9, "humidity": 61, "wind_kmh": 12.2, "code": 3, "is_day": true,
+              "high_c": 9.1, "low_c": -1.5, "precip_pct": 10, "place": "Shenyang", "lat": 41.8, "lon": 123.43,
+              "fetched_at": "2026-10-27T08:52:10Z", "age_s": 470, "stale": false},
+  "attention": [{"id": "e_01…", "kind": "alert", "title": null, "text": "Backup failed", "level": "warn",
+                 "ts": "2026-10-27T08:58:00Z", "speak": true, "source": "event"}],
+  "presence": {"present": true, "source": "pc", "active": true, "idle_s": 4, "age_s": 12,
+               "stale_after_s": 90, "sources": [{"source": "pc", "active": true, "idle_s": 4, "received": "…", "age_s": 12, "fresh": true}]}
+}
+```
+- `weather`: Open-Meteo (no key) for `BRIDGE_WEATHER_LAT` / `BRIDGE_WEATHER_LON` / `BRIDGE_WEATHER_PLACE` (default Shenyang 41.80, 123.43), cached 15 min in the server process. `code` is the WMO weather code. A failed fetch serves the last answer with `stale: true`, or `null` if there never was one.
+- `attention`: newest first, at most 20. Events of type `agent.say`, `alert` or `notify` the box received in the last 24 h (`text` = `payload.text` or the note, `title` = `payload.title`, `level` = `payload.level` or `warn` for alerts, `speak` = `payload.speak == true`), plus every board row in state `over` / `stalled` (`kind` `board.over` / `board.stalled`, id stable per board and row label). An item leaves the list once any device posts an event `{"type": "attention.ack", "payload": {"ids": [...]}}` naming it (acks are honoured for 48 h).
+- `presence.present`: some source reported `active: true` within the last 90 s. Clients should also treat the whole block as away once `age_s` plus their own time since the fetch passes `stale_after_s`.
+- Audited as `read:attention=<n>`.
+
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`
 ```json
 {

@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse
 import apns
 import config
 import db
+import desk
 import suggest
 
 VERSION = "0.1.0"
@@ -605,6 +606,69 @@ def board_name(conn, account, device_id, endpoint, name):
     return name
 
 
+DESK_BOARD = "desk"   # served composite (below), never stored: GET /bridge/board/desk is the desk display
+PRESENCE_SOURCE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
+PRESENCE_IDLE_MAX = 7 * 86_400
+
+
+@app.post("/bridge/presence")
+async def post_presence(request: Request):
+    """Something that can tell whether Mu is at the desk (a PC's last-input idle time) says so.
+    Body {source, active, idle_s}; the latest report per source is kept. No device id needed."""
+    endpoint = "POST /bridge/presence"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        try:
+            source, active, idle = body.get("source"), body.get("active"), body.get("idle_s", 0)
+            if not isinstance(source, str) or not PRESENCE_SOURCE.match(source):
+                raise BadRequest("source must match [a-z0-9][a-z0-9._-]{0,31}")
+            if not isinstance(active, bool):
+                raise BadRequest("active must be true or false")
+            if isinstance(idle, bool) or not isinstance(idle, (int, float)) or not 0 <= idle <= PRESENCE_IDLE_MAX:
+                raise BadRequest(f"idle_s must be a number of seconds, 0..{PRESENCE_IDLE_MAX}")
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:presence")
+            raise
+        with conn:
+            db.put_presence(conn, account["id"], source, active, int(idle))
+            db.audit(conn, account["id"], device_id, endpoint, f"stored:{source}")
+    return {"ok": True, "source": source}
+
+
+@app.get("/bridge/board/desk")
+def get_desk(request: Request):
+    """For the desk display: {time, weather, attention[], presence}, composed per request
+    (see desk.py). Registered before /bridge/board/{name} so it wins the route."""
+    endpoint = "GET /bridge/board/desk"
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint)
+        tz = timezone_of(request, conn, account, device_id, endpoint)
+        now = datetime.now(tz)
+        events = [db.event_dict(row) for row in db.events_of_types_since(
+            conn, account["id"], desk.ATTENTION_TYPES, desk.iso(now - desk.ATTENTION_LOOKBACK))]
+        ack_since = desk.iso(now - desk.ACK_LOOKBACK)
+        acks = [db.event_dict(row) for row in db.events_of_types_since(
+            conn, account["id"], (desk.ACK_TYPE,), ack_since, limit=1000)]
+        boards = [b for b in db.list_boards(conn, account["id"]) if b[0] != DESK_BOARD]
+        attention = desk.compose_attention(events, acks, boards)
+        presence = desk.summarize_presence(db.list_presence(conn, account["id"]), now)
+        with conn:
+            if device_id:
+                db.touch_device(conn, account["id"], device_id)
+            db.audit(conn, account["id"], device_id, endpoint, f"read:attention={len(attention)}")
+    lat, lon, place = desk.location()
+    offset = now.utcoffset()
+    return {
+        "time": {"now": db.now_iso(), "tz": getattr(tz, "key", None) or now.tzname(),
+                 "utc_offset_s": int(offset.total_seconds()) if offset is not None else 0},
+        "weather": desk.weather_cache.get(lat, lon, place),
+        "attention": attention,
+        "presence": presence,
+    }
+
+
 @app.post("/bridge/board/{name}")
 async def post_board(name: str, request: Request):
     """Whoever owns the board (an agent, a cron job) posts its latest state; widgets read it.
@@ -614,6 +678,10 @@ async def post_board(name: str, request: Request):
     with closing(db.connect()) as conn:
         account, device_id = authenticate(conn, request, endpoint)
         board_name(conn, account, device_id, endpoint, name)
+        if name == DESK_BOARD:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:reserved")
+            raise BadRequest("board name 'desk' is reserved for the desk display")
         if len(raw) > BOARD_MAX_BYTES:
             with conn:
                 db.audit(conn, account["id"], device_id, endpoint, "too_large")

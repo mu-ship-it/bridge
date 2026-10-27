@@ -118,6 +118,17 @@ CREATE TABLE IF NOT EXISTS boards (
     PRIMARY KEY (account_id, name)
 );
 
+-- The desk display (v0.6): the latest presence report per source (a PC's last-input idle
+-- time, say), so the phone on the desk can tell whether Mu is sitting there.
+CREATE TABLE IF NOT EXISTS presence (
+    account_id TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    active     INTEGER NOT NULL,
+    idle_s     INTEGER NOT NULL,
+    received   TEXT NOT NULL,
+    PRIMARY KEY (account_id, source)
+);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -522,6 +533,37 @@ def get_board(conn, account_id, name):
     return (unjson(row["board_json"]), row["received"]) if row else None
 
 
+def list_boards(conn, account_id):
+    """[(name, board, received_iso)] for every board of this account, by name."""
+    rows = conn.execute(
+        "SELECT name, board_json, received FROM boards WHERE account_id = ? ORDER BY name",
+        (account_id,),
+    ).fetchall()
+    return [(row["name"], unjson(row["board_json"]), row["received"]) for row in rows]
+
+
+# ---------------------------------------------------------------- presence
+
+def put_presence(conn, account_id, source, active, idle_s, received=None):
+    conn.execute(
+        "INSERT INTO presence (account_id, source, active, idle_s, received) VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT (account_id, source)"
+        " DO UPDATE SET active = excluded.active, idle_s = excluded.idle_s, received = excluded.received",
+        (account_id, source, int(bool(active)), int(idle_s), received or now_iso()),
+    )
+
+
+def list_presence(conn, account_id):
+    """[{source, active, idle_s, received}], freshest first."""
+    rows = conn.execute(
+        "SELECT source, active, idle_s, received FROM presence WHERE account_id = ?"
+        " ORDER BY received DESC, source",
+        (account_id,),
+    ).fetchall()
+    return [{"source": row["source"], "active": bool(row["active"]), "idle_s": row["idle_s"],
+             "received": row["received"]} for row in rows]
+
+
 # ---------------------------------------------------------------- events
 
 def add_event(conn, account_id, device_id, event_type, ts, note, payload=None):
@@ -553,6 +595,16 @@ def list_events(conn, account_id, device_id=None, since=None, event_type=None, l
     sql += " ORDER BY id LIMIT ?"
     args.append(limit)
     return conn.execute(sql, args).fetchall()
+
+
+def events_of_types_since(conn, account_id, types, since_iso, limit=200):
+    """Events of any of `types` the box received after `since_iso`, oldest first, any device."""
+    marks = ",".join("?" * len(types))
+    return conn.execute(
+        f"SELECT * FROM events WHERE account_id = ? AND type IN ({marks}) AND received > ?"
+        " ORDER BY id LIMIT ?",
+        [account_id, *types, since_iso, limit],
+    ).fetchall()
 
 
 def event_dict(row):

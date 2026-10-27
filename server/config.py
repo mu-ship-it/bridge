@@ -28,6 +28,10 @@ DEFAULTS = {
     "APNS_TEAM_ID": "",
     "APNS_TOPIC": "",
     "APNS_SANDBOX": "0",
+    # The desk display's weather spot (Open-Meteo, no key). Default: Shenyang.
+    "BRIDGE_WEATHER_LAT": "41.80",
+    "BRIDGE_WEATHER_LON": "123.43",
+    "BRIDGE_WEATHER_PLACE": "Shenyang",
 }
 
 _file_env = None
