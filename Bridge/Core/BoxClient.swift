@@ -89,6 +89,18 @@ struct BoxClient: Sendable {
         return request("bridge/suggest/tap", method: "POST", bearer: true, body: body)
     }
 
+    /// The desk display's composite: time, weather, attention, presence (v0.6).
+    func fetchDesk(timeZone: TimeZone = .current) async throws -> DeskPayload {
+        let data = try await send(deskRequest(timeZone: timeZone))
+        return try JSONDecoder().decode(DeskPayload.self, from: data)
+    }
+
+    func deskRequest(timeZone: TimeZone) -> URLRequest {
+        var r = request("bridge/board/desk", query: [.init(name: "tz", value: timeZone.identifier)], method: "GET", bearer: true)
+        r.timeoutInterval = 15
+        return r
+    }
+
     /// Existing Health-Auto-Export-compatible endpoint. Note: raw token, no `Bearer` prefix.
     func ingest(_ body: Data) async throws {
         _ = try await send(request("hk/ingest", method: "POST", bearer: false, body: body))

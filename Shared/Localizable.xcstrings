@@ -141,6 +141,17 @@
         }
       }
     },
+    "A full-screen board for a phone parked on a desk: clock, room temperature and humidity from a HomeKit sensor, the box's weather, and what needs your attention. The screen stays on and jobs keep running while it shows. Leave it with the small button in the corner. Leave the sensor empty to use the first accessory that has one.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "给放在桌上的手机用的全屏看板：时钟、HomeKit 传感器读到的室内温度和湿度、盒子提供的天气，以及需要你处理的事。显示期间屏幕常亮，任务照常执行。点角落的小按钮离开。传感器留空则使用第一个带传感器的配件。"
+          }
+        }
+      }
+    },
     "A language like zh-CN, or a voice identifier": {
       "localizations": {
         "zh-Hans": {
@@ -239,6 +250,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "请求"
+          }
+        }
+      }
+    },
+    "Attention": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待处理"
           }
         }
       }
@@ -376,6 +398,17 @@
         }
       }
     },
+    "Clear sky": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "晴"
+          }
+        }
+      }
+    },
     "Clear the activity feed?": {
       "localizations": {
         "zh-Hans": {
@@ -450,6 +483,17 @@
         }
       }
     },
+    "Desk": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "值班台"
+          }
+        }
+      }
+    },
     "Details": {
       "localizations": {
         "zh-Hans": {
@@ -466,6 +510,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "设备 ID"
+          }
+        }
+      }
+    },
+    "Drizzle": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毛毛雨"
           }
         }
       }
@@ -527,6 +582,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "只看动态"
+          }
+        }
+      }
+    },
+    "Fog": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雾"
           }
         }
       }
@@ -625,6 +691,17 @@
         }
       }
     },
+    "Humidity %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "湿度 %@"
+          }
+        }
+      }
+    },
     "Job loop": {
       "localizations": {
         "zh-Hans": {
@@ -661,6 +738,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "上次同步"
+          }
+        }
+      }
+    },
+    "Leave desk": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "离开值班台"
           }
         }
       }
@@ -772,6 +860,28 @@
         }
       }
     },
+    "No sensor": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有传感器"
+          }
+        }
+      }
+    },
+    "No weather": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无天气"
+          }
+        }
+      }
+    },
     "Not asked": {
       "extractionState": "manual",
       "localizations": {
@@ -838,12 +948,34 @@
         }
       }
     },
+    "Note": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示"
+          }
+        }
+      }
+    },
     "Nothing %@.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "没有%@。"
+          }
+        }
+      }
+    },
+    "Nothing needs you": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要你处理的事"
           }
         }
       }
@@ -970,6 +1102,17 @@
         }
       }
     },
+    "Open desk": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开值班台"
+          }
+        }
+      }
+    },
     "Opens any link or app URL scheme (maps:, weixin:, https:) the way the agent's open.url does.": {
       "localizations": {
         "zh-Hans": {
@@ -980,12 +1123,34 @@
         }
       }
     },
+    "Overcast": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阴"
+          }
+        }
+      }
+    },
     "Params (JSON)": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "参数（JSON）"
+          }
+        }
+      }
+    },
+    "Partly cloudy": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多云"
           }
         }
       }
@@ -1058,6 +1223,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "退出白手套 Mac"
+          }
+        }
+      }
+    },
+    "Rain": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雨"
           }
         }
       }
@@ -1152,6 +1328,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "结果"
+          }
+        }
+      }
+    },
+    "Room": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "室内"
+          }
+        }
+      }
+    },
+    "Room sensor (accessory or room)": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "室内传感器（配件或房间名）"
           }
         }
       }
@@ -1317,6 +1515,17 @@
         }
       }
     },
+    "Snow": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雪"
+          }
+        }
+      }
+    },
     "Speak": {
       "localizations": {
         "zh-Hans": {
@@ -1354,6 +1563,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "语音识别"
+          }
+        }
+      }
+    },
+    "Start in Desk": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动时进入值班台"
           }
         }
       }
@@ -1424,6 +1644,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "服务器上没有“%@”，或者白手套还没设置好。"
+          }
+        }
+      }
+    },
+    "Thunderstorm": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雷雨"
           }
         }
       }
@@ -1520,12 +1751,34 @@
         }
       }
     },
+    "Warning": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "警告"
+          }
+        }
+      }
+    },
     "Watching: %@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "正在关注：%@"
+          }
+        }
+      }
+    },
+    "Weather": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "天气"
           }
         }
       }
@@ -1849,6 +2102,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "停滞"
+          }
+        }
+      }
+    },
+    "· %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· %@"
           }
         }
       }

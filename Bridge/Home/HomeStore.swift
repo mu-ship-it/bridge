@@ -140,6 +140,35 @@ final class HomeStore: NSObject, HMHomeManagerDelegate {
         ])
     }
 
+    // MARK: Desk display
+
+    /// The room sensor's temperature (°C) and humidity (%) for the desk display: the accessory
+    /// `wanted` names (accessory or room, see ClimateSensorPick), read fresh. Nil values when the
+    /// sensor lacks one or the read fails; throws only when HomeKit or a sensor is unavailable.
+    func climate(wanted: String) async throws -> (celsius: Double?, humidity: Double?, sensor: String) {
+        let all = try await homes().flatMap(\.accessories)
+        func reading(_ a: HMAccessory, _ type: String) -> HMCharacteristic? {
+            a.services.lazy.flatMap(\.characteristics).first { $0.characteristicType == type }
+        }
+        let candidates = all.map { a in
+            ClimateSensorPick.Candidate(name: a.name, room: a.room?.name ?? "",
+                                        hasTemperature: reading(a, HMCharacteristicTypeCurrentTemperature) != nil,
+                                        hasHumidity: reading(a, HMCharacteristicTypeCurrentRelativeHumidity) != nil)
+        }
+        guard let index = ClimateSensorPick.pick(candidates, wanted: wanted) else {
+            throw CapabilityError(code: "not_found", message: "No accessory with a temperature or humidity sensor")
+        }
+        let accessory = all[index]
+        guard accessory.isReachable else { throw Self.unreachable(accessory) }
+        func value(_ type: String) async -> Double? {
+            guard let c = reading(accessory, type) else { return nil }
+            try? await Self.read(c)
+            return (c.value as? NSNumber)?.doubleValue
+        }
+        return (await value(HMCharacteristicTypeCurrentTemperature),
+                await value(HMCharacteristicTypeCurrentRelativeHumidity), accessory.name)
+    }
+
     // MARK: Helpers
 
     private func find(_ target: HomeTarget) async throws -> HMAccessory {

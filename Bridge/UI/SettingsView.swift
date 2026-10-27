@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var message: String?
     @State private var testing = false
     @Bindable private var duty = DutyStation.shared
+    @Bindable private var desk = DeskStation.shared
 
     var body: some View {
         NavigationStack {
@@ -47,6 +48,21 @@ struct SettingsView: View {
                     Text("Duty").boxLabel()
                 } footer: {
                     Text("For an iPad left plugged in with 白手套 in a small Stage Manager window. While the app is on screen: the connection to the box stays open for as long as it runs, the screen does not lock, and the box gets a heartbeat every 5 minutes. When 白手套 leaves the screen it all stops, and resumes when it comes back. Nothing runs in the background.")
+                        .font(Theme.Role.prose).foregroundStyle(Theme.dim)
+                }
+                .boxRows()
+                Section {
+                    Button("Open desk") { desk.showing = true }
+                        .buttonStyle(.box())
+                    Toggle("Start in Desk", isOn: $desk.startInDesk)
+                        .tint(Theme.red)
+                    TextField("Room sensor (accessory or room)", text: $desk.sensorName)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                } header: {
+                    Text("Desk").boxLabel()
+                } footer: {
+                    Text("A full-screen board for a phone parked on a desk: clock, room temperature and humidity from a HomeKit sensor, the box's weather, and what needs your attention. The screen stays on and jobs keep running while it shows. Leave it with the small button in the corner. Leave the sensor empty to use the first accessory that has one.")
                         .font(Theme.Role.prose).foregroundStyle(Theme.dim)
                 }
                 .boxRows()

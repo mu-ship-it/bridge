@@ -21,6 +21,15 @@ final class DutyStation {
     }
     @ObservationIgnored var onEnabledChange: @MainActor () -> Void = {}
 
+    /// The desk display (值班台) is on screen: a station too, whatever the switch says —
+    /// screen awake, heartbeats, the same long poll. Set by DeskStation.
+    var deskShowing = false {
+        didSet { if deskShowing != oldValue { onEnabledChange() } }
+    }
+
+    /// What ForegroundSession acts on.
+    var wantsDuty: Bool { enabled || deskShowing }
+
     /// Start of the current unbroken on-duty stretch; nil when not on duty.
     private(set) var onDutySince: Date?
     /// Set by ForegroundSession from the poller's reports.

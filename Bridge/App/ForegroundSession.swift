@@ -56,7 +56,7 @@ final class ForegroundSession {
             boards = nil
         }
 
-        let onDuty = foreground && duty.enabled
+        let onDuty = foreground && duty.wantsDuty
         UIApplication.shared.isIdleTimerDisabled = onDuty
         if onDuty, heartbeats == nil {
             duty.begin()

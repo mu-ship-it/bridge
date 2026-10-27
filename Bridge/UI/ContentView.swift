@@ -6,11 +6,18 @@ struct ContentView: View {
     /// This window's identity for ForegroundSession; each Stage Manager window has its own.
     @State private var sceneID = UUID()
     @State private var tab = "status"
+    private var desk = DeskStation.shared
 
     var body: some View {
-        TabView(selection: $tab) {
-            Tab("Status", systemImage: "antenna.radiowaves.left.and.right", value: "status") { StatusView() }
-            Tab("Settings", systemImage: "gearshape", value: "settings") { SettingsView() }
+        Group {
+            if desk.showing {
+                DeskView()
+            } else {
+                TabView(selection: $tab) {
+                    Tab("Status", systemImage: "antenna.radiowaves.left.and.right", value: "status") { StatusView() }
+                    Tab("Settings", systemImage: "gearshape", value: "settings") { SettingsView() }
+                }
+            }
         }
         // Boring Box: always black; the tab bar stays system, white when selected.
         .preferredColorScheme(.dark)
@@ -18,7 +25,7 @@ struct ContentView: View {
         // A tap on a widget (`bridge-widget://status`) lands on the Status tab.
         // A tap on a Suggest slot (`bridge://suggest/<id>`): log it, then open what it points at.
         .onOpenURL { url in
-            if url.scheme == "bridge-widget" { tab = "status" }
+            if url.scheme == "bridge-widget" { desk.showing = false; tab = "status" }
             if let id = SuggestRoute.itemID(from: url) {
                 Task { await SuggestLauncher.launch(id: id) }
             }
