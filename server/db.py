@@ -129,6 +129,17 @@ CREATE TABLE IF NOT EXISTS presence (
     PRIMARY KEY (account_id, source)
 );
 
+-- The desk's Room tile: the latest temperature / humidity reading per source (a Home
+-- Assistant sensor, say). Either value may be NULL.
+CREATE TABLE IF NOT EXISTS room (
+    account_id TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    temp_c     REAL,
+    humidity   REAL,
+    received   TEXT NOT NULL,
+    PRIMARY KEY (account_id, source)
+);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -561,6 +572,28 @@ def list_presence(conn, account_id):
         (account_id,),
     ).fetchall()
     return [{"source": row["source"], "active": bool(row["active"]), "idle_s": row["idle_s"],
+             "received": row["received"]} for row in rows]
+
+
+# ---------------------------------------------------------------- room
+
+def put_room(conn, account_id, source, temp_c, humidity, received=None):
+    conn.execute(
+        "INSERT INTO room (account_id, source, temp_c, humidity, received) VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT (account_id, source)"
+        " DO UPDATE SET temp_c = excluded.temp_c, humidity = excluded.humidity, received = excluded.received",
+        (account_id, source, temp_c, humidity, received or now_iso()),
+    )
+
+
+def list_room(conn, account_id):
+    """[{source, temp_c, humidity, received}], freshest first."""
+    rows = conn.execute(
+        "SELECT source, temp_c, humidity, received FROM room WHERE account_id = ?"
+        " ORDER BY received DESC, source",
+        (account_id,),
+    ).fetchall()
+    return [{"source": row["source"], "temp_c": row["temp_c"], "humidity": row["humidity"],
              "received": row["received"]} for row in rows]
 
 

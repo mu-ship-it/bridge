@@ -159,6 +159,38 @@ def test_attention_is_capped_and_texts_clipped():
     assert len(items) == desk.ATTENTION_MAX and len(items[0]["text"]) == desk.ATTENTION_TEXT_MAX
 
 
+# ------------------------------------------------------------------ room
+
+def test_room_keeps_the_latest_report_and_the_desk_serves_it(client, account):
+    empty = client.get("/bridge/board/desk", headers=bearer(account)).json()["room"]
+    assert empty == {"temp_c": None, "humidity": None, "source": None, "age_s": None, "stale": False}
+    for body in ({"source": "study", "temp_c": 22.0, "humidity": 50}, {"source": "study", "temp_c": 23.4, "humidity": None}):
+        assert client.post("/bridge/room", headers=bearer(account), json=body).status_code == 200
+    room = client.get("/bridge/board/desk", headers=bearer(account)).json()["room"]
+    assert room["temp_c"] == 23.4 and room["humidity"] is None and room["source"] == "study"
+    assert room["stale"] is False and room["age_s"] < 5
+
+
+@pytest.mark.parametrize("body", [
+    {}, {"source": "Bad Source", "temp_c": 20}, {"source": "study", "temp_c": "hot"},
+    {"source": "study", "temp_c": True}, {"source": "study", "humidity": 101}, {"source": "study", "temp_c": 999},
+])
+def test_bad_room_is_a_400(client, account, body):
+    assert client.post("/bridge/room", headers=bearer(account), json=body).status_code == 400
+
+
+def test_room_needs_a_token(client):
+    assert client.post("/bridge/room", json={"source": "study", "temp_c": 20}).status_code == 401
+
+
+def test_room_goes_stale_after_fifteen_minutes():
+    def report(minutes):
+        received = (NOW - timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
+        return [{"source": "study", "temp_c": 21.0, "humidity": 40.0, "received": received}]
+    assert desk.summarize_room(report(14), NOW)["stale"] is False
+    assert desk.summarize_room(report(16), NOW)["stale"] is True
+
+
 # ------------------------------------------------------------------ the endpoint
 
 def test_desk_composes_time_weather_attention_and_presence(client, conn, account, fake_weather):

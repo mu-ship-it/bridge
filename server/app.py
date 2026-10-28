@@ -637,9 +637,38 @@ async def post_presence(request: Request):
     return {"ok": True, "source": source}
 
 
+@app.post("/bridge/room")
+async def post_room(request: Request):
+    """A room sensor (Home Assistant's Mijia, say) reports. Body {source, temp_c, humidity},
+    either value may be null; the latest report per source is kept."""
+    endpoint = "POST /bridge/room"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        try:
+            source = body.get("source")
+            if not isinstance(source, str) or not PRESENCE_SOURCE.match(source):
+                raise BadRequest("source must match [a-z0-9][a-z0-9._-]{0,31}")
+            values = {}
+            for key, low, high in (("temp_c", -60, 80), ("humidity", 0, 100)):
+                value = body.get(key)
+                if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))
+                                          or not low <= value <= high):
+                    raise BadRequest(f"{key} must be a number {low}..{high} or null")
+                values[key] = None if value is None else float(value)
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:room")
+            raise
+        with conn:
+            db.put_room(conn, account["id"], source, values["temp_c"], values["humidity"])
+            db.audit(conn, account["id"], device_id, endpoint, f"stored:{source}")
+    return {"ok": True, "source": source}
+
+
 @app.get("/bridge/board/desk")
 def get_desk(request: Request):
-    """For the desk display: {time, weather, attention[], presence}, composed per request
+    """For the desk display: {time, weather, room, attention[], presence}, composed per request
     (see desk.py). Registered before /bridge/board/{name} so it wins the route."""
     endpoint = "GET /bridge/board/desk"
     with closing(db.connect()) as conn:
@@ -654,6 +683,7 @@ def get_desk(request: Request):
         boards = [b for b in db.list_boards(conn, account["id"]) if b[0] != DESK_BOARD]
         attention = desk.compose_attention(events, acks, boards)
         presence = desk.summarize_presence(db.list_presence(conn, account["id"]), now)
+        room = desk.summarize_room(db.list_room(conn, account["id"]), now)
         with conn:
             if device_id:
                 db.touch_device(conn, account["id"], device_id)
@@ -664,6 +694,7 @@ def get_desk(request: Request):
         "time": {"now": db.now_iso(), "tz": getattr(tz, "key", None) or now.tzname(),
                  "utc_offset_s": int(offset.total_seconds()) if offset is not None else 0},
         "weather": desk.weather_cache.get(lat, lon, place),
+        "room": room,
         "attention": attention,
         "presence": presence,
     }

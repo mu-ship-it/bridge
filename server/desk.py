@@ -9,6 +9,8 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
 * Attention is composed, not stored: `agent.say` / `alert` / `notify` events of the last
   24 hours, plus board rows in a state that needs a human (`over`, `stalled`), minus whatever
   the phone acknowledged with an `attention.ack` event (payload `{"ids": [...]}`).
+* Room is the latest temperature / humidity report (`POST /bridge/room`, from Home Assistant);
+  older than 15 minutes it is marked stale.
 * Presence is the latest report per source (`POST /bridge/presence`); a report older than
   90 s counts as away.
 """
@@ -32,6 +34,7 @@ ATTENTION_TEXT_MAX = 200
 BOARD_ATTENTION_STATES = ("over", "stalled")
 
 PRESENCE_STALE_SECONDS = 90
+ROOM_STALE_SECONDS = 15 * 60
 
 
 def iso(moment):
@@ -224,3 +227,16 @@ def summarize_presence(reports, now):
         "stale_after_s": PRESENCE_STALE_SECONDS,
         "sources": sources,
     }
+
+
+# ------------------------------------------------------------------ room
+
+def summarize_room(reports, now):
+    """Latest-per-source room reports (freshest first) -> the desk's `room` object. Null fields
+    when nothing was ever posted."""
+    if not reports:
+        return {"temp_c": None, "humidity": None, "source": None, "age_s": None, "stale": False}
+    best = reports[0]
+    age = _age(best["received"], now)
+    return {"temp_c": best["temp_c"], "humidity": best["humidity"], "source": best["source"],
+            "age_s": age, "stale": age > ROOM_STALE_SECONDS}
