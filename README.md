@@ -60,11 +60,13 @@ Setting the iPad up:
 
 ### Desk display
 
-**值班台 / Desk** turns a spare iPhone parked on a desk (plugged in, 白手套 on screen all day) into a full-screen board: a big clock and the date, the room's temperature and humidity, the weather, and an **Attention** list of what wants you. It works in portrait and landscape. Open it from **Settings → Desk → Open desk**; turn on **Start in Desk** so a relaunch lands straight on it. The small grid button in the corner goes back to the tabs.
+**值班台 / Desk** turns a spare iPhone parked on a desk (plugged in, 白手套 on screen all day) into a full-screen board: the room's temperature and humidity, the weather, the lanes, and an **Attention** list of what wants you. There is no clock (put a real one next to the phone); only a small date line sits in the corner. It works in portrait and landscape. Open it from **Settings → Desk → Open desk**; turn on **Start in Desk** so a relaunch lands straight on it. The small grid button in the corner goes back to the tabs.
 
 - **Room** is read on the phone through HomeKit, every 60 s, from any accessory with a temperature or humidity sensor (a HomePod mini has both). Put the accessory's or the room's name in **Settings → Desk → Room sensor**; leave it empty to use the first one found. A reading that is not available shows `—`.
 - **Weather** comes from the box (`GET /bridge/board/desk`), which asks Open-Meteo (no key) for `BRIDGE_WEATHER_LAT` / `BRIDGE_WEATHER_LON` (default Shenyang 41.80, 123.43) and caches it for 15 minutes.
 - **Attention** lists `agent.say`, `alert` and `notify` events from the last 24 h, plus any board row that is `over` or `stalled`. When a new item arrives the phone gives a haptic tap and highlights the item. It never plays sound unless the item has `"speak": true` in its payload. Tap the check box to clear an item: the phone posts an `attention.ack` event and the item leaves the list everywhere.
+- **Attention takes only the room it needs.** With nothing to show it is one thin line at the bottom ("Nothing needs you"); with items it grows to fit, up to 45 % of the screen height, and Room, Weather and Lanes shrink to make space.
+- **Burn-in guard.** Every 3 minutes the whole layout moves to a new spot, random within ±6 pt in x and y, over 1 s. Borders stay at the faint 1 px #2a2a2a.
 - **Brightness follows you.** Something on your computer posts `POST /bridge/presence {"source": "pc", "active": true, "idle_s": 4}` every 30 s. While you are at the desk the screen is at 85 % (50 % between 23:00 and 07:00). When you are away, or no report has arrived for 90 s, it drops to 10 % (never off). A new attention item lights it for 30 s. Leaving the desk puts your own brightness back.
 - While the desk shows, it counts as duty: the screen does not lock, the box gets heartbeats, and jobs (`home.set`, `agent.say`, …) keep running through the same foreground connection. Nothing runs in the background.
 

@@ -107,6 +107,7 @@
 		BD4DECD40FC830B04BBA9740 /* ClipboardCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */; };
 		C32A5C5EAA48971EFB5D5503 /* PermissionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7270EB759CEF8D4BB0698FAC /* PermissionState.swift */; };
 		C4569D5FD763863B0E162E3C /* WidgetPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A6E0CD6609C828EDDF20F1 /* WidgetPublisher.swift */; };
+		C5E72B990F6896E1B635BBAD /* DeskLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */; };
 		C8C25616577640DFFACC16B2 /* HomeCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */; };
 		C916A75D4C593F1B2ED4BF7C /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB632E949450C76C78043988 /* JSONValue.swift */; };
 		C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0385F5B6333C919B38409E20 /* DeskBrightness.swift */; };
@@ -292,6 +293,7 @@
 		E08C2256F53E1604D2E2B393 /* DeskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskView.swift; sourceTree = "<group>"; };
 		E1C51D6132CCFBA02B50D8B3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCapabilities.swift; sourceTree = "<group>"; };
+		E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskLayout.swift; sourceTree = "<group>"; };
 		E5B2FD4194A7691C01952713 /* HomeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStore.swift; sourceTree = "<group>"; };
 		E80007E7BD78CA3752376854 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 			isa = PBXGroup;
 			children = (
 				0385F5B6333C919B38409E20 /* DeskBrightness.swift */,
+				E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */,
 				CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */,
 				287EA21E6F2474B7C3F99947 /* DeskStation.swift */,
 				E08C2256F53E1604D2E2B393 /* DeskView.swift */,
@@ -947,6 +950,7 @@
 				EFF95A40664F1054C5422A85 /* ContactsSearchCapability.swift in Sources */,
 				EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */,
 				C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */,
+				C5E72B990F6896E1B635BBAD /* DeskLayout.swift in Sources */,
 				519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */,
 				54E6126AE9151038370B39C4 /* DeskStation.swift in Sources */,
 				173B2943AC7C44B61EAB6A51 /* DeskView.swift in Sources */,

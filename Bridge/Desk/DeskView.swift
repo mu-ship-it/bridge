@@ -1,41 +1,27 @@
 import SwiftUI
 
-/// 值班台 / Desk: the full-screen board for a phone parked on a desk. Clock, room, weather,
-/// and what wants attention. Boring Box: black, white, one red; portrait and landscape.
+/// 值班台 / Desk: the full-screen board for a phone parked on a desk. Room, weather, lanes
+/// and what wants attention (a nixie clock sits next to the phone, so the date is all the time). Boring Box: black, white, one red; portrait and landscape.
 struct DeskView: View {
     @Bindable private var desk = DeskStation.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var brightness = DeskBrightness()
-    @State private var rowWidth: CGFloat = 0
+    @State private var shift = LayoutShift.offset(slot: LayoutShift.slot(at: Date()))
 
     var body: some View {
         GeometryReader { geo in
             let landscape = geo.size.width > geo.size.height
-            ZStack(alignment: .topTrailing) {
-                Theme.background.ignoresSafeArea()
-                if landscape {
-                    HStack(alignment: .top, spacing: Theme.Space.s24) {
-                        VStack(alignment: .leading, spacing: Theme.Space.s16) {
-                            ClockTile()
-                            tileRow
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        attentionTile.frame(width: geo.size.width * 0.38)
-                        // Its own column: an overlay here would sit on the Attention tile's corner.
-                        exitButton
-                    }
-                    .padding(Theme.Space.s16)
-                } else {
-                    VStack(alignment: .leading, spacing: Theme.Space.s16) {
-                        ClockTile()
-                        tileRow
-                        attentionTile
-                    }
-                    .padding(Theme.Space.s16)
-                    // Portrait: the corner above the clock is empty.
-                    exitButton
-                }
+            let attentionHeight = AttentionSizing.height(items: desk.attention.count, screen: geo.size.height)
+            VStack(alignment: .leading, spacing: Theme.Space.s12) {
+                topBar
+                tiles(landscape: landscape)
+                attentionTile.frame(height: attentionHeight)
             }
+            .padding(Theme.Space.s16)
+            .offset(x: CGFloat(shift.x), y: CGFloat(shift.y))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.background.ignoresSafeArea())
+            .animation(.easeInOut(duration: 0.4), value: attentionHeight)
         }
         .preferredColorScheme(.dark)
         .foregroundStyle(Theme.text)
@@ -43,6 +29,18 @@ struct DeskView: View {
         .persistentSystemOverlays(.hidden)
         .task { await desk.runPayload() }
         .task { await desk.runClimate() }
+        // Burn-in guard: a new place every 3 minutes, moved over 1 s.
+        .task {
+            while !Task.isCancelled {
+                let now = Date()
+                withAnimation(.easeInOut(duration: 1)) {
+                    let o = LayoutShift.offset(slot: LayoutShift.slot(at: now))
+                    shift = (o.x, o.y)
+                }
+                let wait = LayoutShift.nextChange(after: now).timeIntervalSince(now)
+                try? await Task.sleep(for: .seconds(wait))
+            }
+        }
         // Bright when Mu is at the desk, dim when not; re-checked every second so a stale
         // presence report or a new item's 30 s takes effect on time.
         .task {
@@ -60,19 +58,37 @@ struct DeskView: View {
 
     // MARK: Tiles
 
-    /// Room, Weather and Muster side by side, one height. Room and Weather take a fixed share;
-    /// Muster, which lists lanes, gets the rest.
-    private var tileRow: some View {
-        let gap = Theme.Space.s12
-        let side: CGFloat? = rowWidth > 0 ? ((rowWidth - 2 * gap) * 0.28).rounded(.down) : nil
-        return HStack(alignment: .top, spacing: gap) {
-            roomTile.frame(width: side)
-            weatherTile.frame(width: side)
-            musterTile
+    /// Small date line in the corner, the exit button opposite.
+    private var topBar: some View {
+        HStack {
+            TimelineView(.everyMinute) { context in
+                Text(context.date, format: .dateTime.weekday(.wide).month(.abbreviated).day())
+                    .font(Theme.Role.body.bold()).foregroundStyle(Theme.dim)
+            }
+            Spacer()
+            exitButton
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
+    }
+
+    /// Portrait: Room and Weather side by side, Lanes under them. Landscape: all three in a row.
+    /// They share whatever height Attention leaves.
+    @ViewBuilder private func tiles(landscape: Bool) -> some View {
+        let gap = Theme.Space.s12
+        if landscape {
+            HStack(alignment: .top, spacing: gap) {
+                roomTile
+                weatherTile
+                musterTile
+            }
+        } else {
+            VStack(spacing: gap) {
+                HStack(alignment: .top, spacing: gap) {
+                    roomTile
+                    weatherTile
+                }
+                musterTile
+            }
+        }
     }
 
     private var musterTile: some View {
@@ -95,13 +111,13 @@ struct DeskView: View {
         DeskTile(label: "Room") {
             Text(desk.climate.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
             Label {
-                Text(desk.climate.humidity).font(Theme.Role.subhead.bold()).monospacedDigit()
+                Text(desk.climate.humidity).font(Theme.Role.section.bold()).monospacedDigit()
             } icon: {
                 Image(systemName: "humidity.fill")
             }
             .accessibilityLabel(Text("Humidity \(desk.climate.humidity)"))
             Text(desk.climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
-                .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(3)
+                .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(3)
         }
     }
 
@@ -113,26 +129,30 @@ struct DeskView: View {
                 Image(systemName: tile.symbol).font(Theme.Role.section).accessibilityHidden(true)
             }
             // The tile shares its row with Lanes: wrap rather than cut words off.
-            Text(tile.summary.localizedForDisplay).font(Theme.Role.subhead.bold())
+            Text(tile.summary.localizedForDisplay).font(Theme.Role.section.bold())
                 .lineLimit(2).minimumScaleFactor(0.8)
             HStack(spacing: Theme.Space.s4) {
                 Text(tile.range)
                 if tile.stale { Image(systemName: "exclamationmark.triangle").foregroundStyle(Theme.red)
                     .accessibilityLabel(Text("stale")) }
             }
-            .font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
+            .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
             if let place = tile.place {
-                Text(place).font(Theme.Role.meta).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
+                Text(place).font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
             }
         }
     }
 
-    private var attentionTile: some View {
-        DeskTile(label: "Attention", badge: desk.attention.isEmpty ? nil : desk.attention.count) {
-            if desk.attention.isEmpty {
-                Label("Nothing needs you", systemImage: "checkmark.square")
-                    .font(Theme.Role.body).foregroundStyle(Theme.dim)
-            } else {
+    @ViewBuilder private var attentionTile: some View {
+        if desk.attention.isEmpty && desk.payloadError == nil {
+            // Thin strip: one line, no label.
+            Label("Nothing needs you", systemImage: "checkmark.square")
+                .font(Theme.Role.body).foregroundStyle(Theme.dim).lineLimit(1)
+                .padding(.horizontal, Theme.Space.s12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
+        } else {
+            DeskTile(label: "Attention", badge: desk.attention.isEmpty ? nil : desk.attention.count) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Space.s8) {
                         ForEach(desk.attention) { item in
@@ -143,13 +163,12 @@ struct DeskView: View {
                     }
                 }
                 .scrollIndicators(.hidden)
-            }
-            if let error = desk.payloadError {
-                Label(error, systemImage: "xmark.square.fill")
-                    .font(Theme.Role.meta).foregroundStyle(Theme.red).lineLimit(2)
+                if let error = desk.payloadError {
+                    Label(error, systemImage: "xmark.square.fill")
+                        .font(Theme.Role.meta).foregroundStyle(Theme.red).lineLimit(2)
+                }
             }
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     /// Back to the tabs. Small and in the corner: the desk is for reading, not tapping.
@@ -160,27 +179,9 @@ struct DeskView: View {
             Image(systemName: "square.grid.2x2")
                 .font(Theme.Role.body)
                 .foregroundStyle(Theme.dim)
-                .padding(Theme.Space.s12)
+                .padding(.horizontal, Theme.Space.s12)
         }
         .accessibilityLabel(Text("Leave desk"))
-    }
-}
-
-/// Tile 1: big clock and the date, in the phone's locale and time zone.
-private struct ClockTile: View {
-    var body: some View {
-        TimelineView(.everyMinute) { context in
-            VStack(alignment: .leading, spacing: Theme.Space.s0) {
-                Text(context.date, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-                    .font(Theme.Role.clock)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.3)
-                Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
-                    .font(Theme.Role.section.bold())
-                    .foregroundStyle(Theme.dim)
-            }
-            .accessibilityElement(children: .combine)
-        }
     }
 }
 
@@ -213,7 +214,7 @@ private struct MusterLaneRow: View {
                         .foregroundStyle(lane.isOver ? Theme.red : Theme.text)
                 }
             }
-            .font(Theme.Role.meta)
+            .font(Theme.Role.data)
             .lineLimit(1)
         }
         .accessibilityElement(children: .combine)
@@ -224,7 +225,7 @@ private struct MusterLaneRow: View {
             Rectangle().fill(lane.rgb.map { Color(hex: $0) } ?? Theme.text)
                 .frame(width: Theme.Space.s12, height: Theme.Space.s12)
                 .accessibilityHidden(true)
-            Text(lane.name).font(Theme.Role.widgetBody.bold()).lineLimit(1)
+            Text(lane.name).font(Theme.Role.body.bold()).lineLimit(1)
                 .foregroundStyle(lane.row.isMuted ? Theme.dim : Theme.text)
         }
     }

@@ -90,4 +90,32 @@ import Testing
         #expect(r.url?.query()?.contains("tz=Asia/Shanghai") == true)
         #expect(r.value(forHTTPHeaderField: "Authorization") == "Bearer t")
     }
+
+    @Test func attentionIsAThinStripWhenEmptyAndGrowsToFitUpToTheCap() {
+        let screen: CGFloat = 800
+        #expect(AttentionSizing.height(items: 0, screen: screen) == AttentionSizing.strip)
+        let one = AttentionSizing.height(items: 1, screen: screen)
+        let two = AttentionSizing.height(items: 2, screen: screen)
+        #expect(one > AttentionSizing.strip && two > one)
+        #expect(AttentionSizing.height(items: 50, screen: screen) == screen * AttentionSizing.maxShare)
+        // A short landscape screen never goes below the strip.
+        #expect(AttentionSizing.height(items: 1, screen: 60) == AttentionSizing.strip)
+    }
+
+    @Test func theLayoutShiftsEveryThreeMinutesWithinSixPoints() {
+        let t = Date(timeIntervalSince1970: 1_800_000_000)
+        #expect(LayoutShift.slot(at: t) == LayoutShift.slot(at: t.addingTimeInterval(1)))
+        let next = LayoutShift.nextChange(after: t)
+        #expect(next > t && next.timeIntervalSince(t) <= 180)
+        #expect(LayoutShift.slot(at: next) == LayoutShift.slot(at: t) + 1)
+        #expect(LayoutShift.slot(at: next.addingTimeInterval(-0.001)) == LayoutShift.slot(at: t))
+        var seen = Set<[Int]>()
+        for slot in 0..<500 {
+            let o = LayoutShift.offset(slot: slot)
+            #expect(abs(o.x) <= 6 && abs(o.y) <= 6)
+            #expect(o == LayoutShift.offset(slot: slot))
+            seen.insert([o.x, o.y])
+        }
+        #expect(seen.count > 50)
+    }
 }

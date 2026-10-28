@@ -55,12 +55,10 @@ enum Theme {
         static let label = Font.system(.caption2, weight: .bold)
         /// Times, ages, counts, one-line summaries.
         static let meta = Font.system(.caption2, design: .monospaced)
-        /// The desk display's clock, read from across a desk. The one role that is not a text
+        /// The desk display's big readings (room, weather): read from across a desk. The one role that is not a text
         /// style: no style is big enough. Sized from the spacing scale, shrinks to fit
         /// (`minimumScaleFactor`), bold, tabular digits.
-        static let clock = Font.system(size: Space.s96 + Space.s48, weight: .bold).monospacedDigit()
-        /// The desk display's big readings (room, weather): the clock's companion, a size down.
-        static let reading = Font.system(size: Space.s64, weight: .bold).monospacedDigit()
+        static let reading = Font.system(size: Space.s96, weight: .bold).monospacedDigit()
     }
 }
 
