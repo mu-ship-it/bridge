@@ -1,4 +1,5 @@
 import Foundation
+import EventKit
 import Observation
 import UIKit
 
@@ -39,6 +40,8 @@ final class DeskStation {
     private(set) var climateError: String?
     /// The muster lanes, from the Board widget's own fetch (GET /bridge/board/muster).
     private(set) var muster = MusterTile(nil)
+    /// The next timed event within 24 h on the phone's own calendars; nil without access or events.
+    private(set) var nextEvent: NextEvent?
     /// Ids of items that arrived since the screen came up, until their highlight runs out.
     private(set) var highlighted: Set<String> = []
     /// When the newest item arrived (phase 3: forces the screen bright for a while).
@@ -82,6 +85,7 @@ final class DeskStation {
         while !Task.isCancelled {
             await refreshPayload()
             await refreshMuster()
+            refreshNextEvent()
             try? await Task.sleep(for: Self.payloadInterval)
         }
     }
@@ -122,6 +126,15 @@ final class DeskStation {
     func refreshMuster() async {
         let snapshot = await SharedStore.fetchBoard(MusterTile.boardName) ?? SharedStore.loadBoard(MusterTile.boardName)
         muster = MusterTile(snapshot?.board)
+    }
+
+    /// The `calendar.events` capability's source (EventKit), read only when Calendar is already allowed.
+    func refreshNextEvent(now: Date = Date()) {
+        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { nextEvent = nil; return }
+        let store = EKEventStore()
+        let found = store.events(matching: store.predicateForEvents(
+            withStart: now, end: now.addingTimeInterval(NextEvent.window), calendars: nil))
+        nextEvent = NextEvent.pick(found.map { ($0.title ?? "", $0.startDate, $0.isAllDay) }, now: now)
     }
 
     func refreshClimate() async {

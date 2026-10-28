@@ -1,22 +1,6 @@
 import Foundation
 import CoreGraphics
 
-/// How tall the Attention area is. Pure, so the policy is tested.
-enum AttentionSizing {
-    /// The most the area may take, of the screen's height.
-    static let maxShare: CGFloat = 0.45
-    /// Label row and padding, then one item row; what the sizing assumes a row costs.
-    static let header: CGFloat = 48
-    static let row: CGFloat = 88
-
-    /// Zero items: nothing at all. Otherwise as tall as its items need, never above `maxShare`.
-    static func height(items: Int, screen: CGFloat) -> CGFloat {
-        guard items > 0 else { return 0 }
-        let wanted = header + CGFloat(items) * row
-        return min(wanted, screen * maxShare)
-    }
-}
-
 /// OLED burn-in guard: the whole layout moves a few points every few minutes. Pure: the
 /// offset is a function of the schedule slot, so the same slot always gives the same place.
 enum LayoutShift {
@@ -45,37 +29,61 @@ enum LayoutShift {
     }
 }
 
-/// Edge-to-edge desk layout: margins, gaps and padding per size class, plus the size of the big
-/// readings. Pure, so a 13 mini and a 17 are tested the same way.
+/// What the main area shows, beside Room. Pure, so the three states are tested.
+enum DeskState: Equatable {
+    /// Nothing to report: Room | Weather.
+    case idle
+    /// Lanes are running: Room | Lanes (Weather hidden).
+    case lanes
+    /// Something wants Mu: Room | Attention | Weather.
+    case attention
+
+    static func make(laneCount: Int, attentionCount: Int) -> DeskState {
+        if attentionCount > 0 { return .attention }
+        return laneCount > 0 ? .lanes : .idle
+    }
+
+    enum Tile: Equatable { case room, weather, lanes, attention }
+
+    var tiles: [Tile] {
+        switch self {
+        case .idle: [.room, .weather]
+        case .lanes: [.room, .lanes]
+        case .attention: [.room, .attention, .weather]
+        }
+    }
+
+    /// Room's number is smaller when it shares the row with three tiles.
+    var roomIsCompact: Bool { self == .attention }
+}
+
+/// Edge-to-edge desk layout: margins, gaps and padding, plus the size of the big readings.
+/// Pure, so a 13 mini and a 17 are tested the same way.
 struct DeskMetrics: Equatable {
     var margin: CGFloat
     var gap: CGFloat
     var tilePadding: CGFloat
-    /// Date, weather one-liner and exit button share this row.
+    /// Date, seats line and exit button share this row.
     var topBarHeight: CGFloat
+    /// Clocks, next event and rings: always present.
+    var footerHeight: CGFloat
     var landscape: Bool
 
     /// `size` is the safe-area-inset screen: the notch and home indicator are already out of it.
     static func make(size: CGSize) -> DeskMetrics {
-        DeskMetrics(margin: 6, gap: 6, tilePadding: 10,
-                    topBarHeight: size.width > size.height ? 32 : 36,
+        DeskMetrics(margin: 6, gap: 6, tilePadding: 10, topBarHeight: 34, footerHeight: 46,
                     landscape: size.width > size.height)
     }
 
-    /// Height left for the tile grid: everything but the top bar, Attention and the gaps between.
-    func gridHeight(screenHeight: CGFloat, attention: CGFloat) -> CGFloat {
-        max(0, screenHeight - 2 * margin - topBarHeight - attention - (attention > 0 ? 2 : 1) * gap)
+    /// Height left for the tile grid: everything but the two bars and the gaps between.
+    func gridHeight(screenHeight: CGFloat) -> CGFloat {
+        max(0, screenHeight - 2 * margin - topBarHeight - footerHeight - 2 * gap)
     }
 
-    /// Point size of a big reading that must fit `tile` (its inner area), about five glyphs wide.
-    /// `alone`: Room has the whole row, so the number may take about half its width and most of its height.
-    static func readingSize(tile: CGSize, alone: Bool = false) -> CGFloat {
-        if alone { return max(24, min(tile.width / 6.4, tile.height * 0.7, 240)) }
-        return max(24, min(tile.width / 3.2, tile.height * 0.42, 160))
+    /// Point size of a big reading that must fit `tile` (its inner area): about five glyphs wide ("23.6°" is
+    /// 2.4 em), and as tall as the header and the one sub line leave. `compact` for Room beside two other tiles.
+    static func readingSize(tile: CGSize, compact: Bool = false) -> CGFloat {
+        let size = max(24, min(tile.width / 2.6, (tile.height - 48) / 1.05, 240))
+        return compact ? max(24, size * 0.72) : size
     }
-}
-
-/// Which tiles share the grid. Lanes only takes space when there are lanes.
-enum DeskRow {
-    static func showsLanes(laneCount: Int) -> Bool { laneCount > 0 }
 }

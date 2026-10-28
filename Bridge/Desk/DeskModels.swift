@@ -102,16 +102,45 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         var hasValue: Bool { tempC != nil || humidity != nil }
     }
 
+    /// One Claude seat's weekly use (the muster board's Usage rows, passed through by the box).
+    struct Seat: Decodable, Sendable, Equatable, Identifiable {
+        let name: String
+        let pct: Int
+        var id: String { name }
+    }
+
+    /// Today's activity from Health Auto Export; a ring's value is nil until the export carries it.
+    struct Activity: Decodable, Sendable, Equatable {
+        let movePct: Int?
+        let exercisePct: Int?
+        let standPct: Int?
+        let steps: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case movePct = "move_pct", exercisePct = "exercise_pct", standPct = "stand_pct", steps
+        }
+
+        /// The three rings exist only when all three metrics do.
+        var rings: (move: Int, exercise: Int, stand: Int)? {
+            guard let movePct, let exercisePct, let standPct else { return nil }
+            return (movePct, exercisePct, standPct)
+        }
+    }
+
     let time: Time?
     let weather: Weather?
     let room: Room?
     let attention: [Item]
     let presence: Presence?
+    let seats: [Seat]
+    let activity: Activity?
 
-    enum CodingKeys: String, CodingKey { case time, weather, room, attention, presence }
+    enum CodingKeys: String, CodingKey { case time, weather, room, attention, presence, seats, activity }
 
-    init(time: Time? = nil, weather: Weather? = nil, room: Room? = nil, attention: [Item] = [], presence: Presence? = nil) {
+    init(time: Time? = nil, weather: Weather? = nil, room: Room? = nil, attention: [Item] = [],
+         presence: Presence? = nil, seats: [Seat] = [], activity: Activity? = nil) {
         (self.time, self.weather, self.room, self.attention, self.presence) = (time, weather, room, attention, presence)
+        (self.seats, self.activity) = (seats, activity)
     }
 
     init(from decoder: Decoder) throws {
@@ -121,6 +150,8 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         room = try c.decodeIfPresent(Room.self, forKey: .room)
         attention = try c.decodeIfPresent([Item].self, forKey: .attention) ?? []
         presence = try c.decodeIfPresent(Presence.self, forKey: .presence)
+        seats = try c.decodeIfPresent([Seat].self, forKey: .seats) ?? []
+        activity = try c.decodeIfPresent(Activity.self, forKey: .activity)
     }
 }
 
@@ -343,5 +374,60 @@ struct MusterTile: Equatable, Sendable {
               detail.contains(" · ") else { return nil }
         let host = head.trimmingCharacters(in: .whitespaces)
         return host.isEmpty ? nil : host
+    }
+}
+
+// MARK: - Top row and bottom strip (pure)
+
+/// The seats one-liner: "Max 62% · Team 97% · Admin 18%", a seat at 90 % or more flagged.
+enum SeatsLine {
+    static let redFrom = 90
+
+    struct Segment: Equatable, Sendable, Identifiable {
+        let text: String
+        let red: Bool
+        var id: String { text }
+    }
+
+    static func segments(_ seats: [DeskPayload.Seat]) -> [Segment] {
+        seats.map { Segment(text: "\($0.name) \($0.pct)%", red: $0.pct >= redFrom) }
+    }
+}
+
+/// The next calendar event within a day, for the bottom strip.
+struct NextEvent: Equatable, Sendable {
+    let title: String
+    let start: Date
+
+    static let window: TimeInterval = 24 * 3600
+
+    /// The earliest timed event starting after `now` and within 24 h.
+    static func pick(_ events: [(title: String, start: Date, allDay: Bool)], now: Date) -> NextEvent? {
+        events
+            .filter { !$0.allDay && $0.start > now && $0.start.timeIntervalSince(now) <= window }
+            .min { $0.start < $1.start }
+            .map { NextEvent(title: $0.title, start: $0.start) }
+    }
+
+    /// "21:00 (6h)", or "(25m)" under an hour; the time is on the phone's clock.
+    func when(now: Date, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.hour, .minute], from: start)
+        let clock = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+        let minutes = max(1, Int((start.timeIntervalSince(now) / 60).rounded(.up)))
+        return "\(clock) (\(minutes < 60 ? "\(minutes)m" : "\(Int((Double(minutes) / 60).rounded()))h"))"
+    }
+}
+
+/// The three world clocks of the bottom strip: label and zone. No local clock (a nixie sits next to the phone).
+enum DeskClocks {
+    static let zones: [(label: String, id: String)] = [
+        ("PHX", "America/Phoenix"), ("KHI", "Asia/Karachi"), ("DEL", "Asia/Kolkata"),
+    ]
+
+    static func time(_ date: Date, zone id: String) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: id) ?? .gmt
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
     }
 }

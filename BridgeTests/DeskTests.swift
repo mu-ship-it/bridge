@@ -120,46 +120,88 @@ import Testing
         #expect(r.value(forHTTPHeaderField: "Authorization") == "Bearer t")
     }
 
-    @Test func attentionIsNothingWhenEmptyAndGrowsToFitUpToTheCap() {
-        let screen: CGFloat = 800
-        #expect(AttentionSizing.height(items: 0, screen: screen) == 0)
-        let one = AttentionSizing.height(items: 1, screen: screen)
-        let two = AttentionSizing.height(items: 2, screen: screen)
-        #expect(one > 0 && two > one)
-        #expect(AttentionSizing.height(items: 50, screen: screen) == screen * AttentionSizing.maxShare)
-    }
-
     @Test func deskMetricsFillTheScreenOnABigAndASmallPhone() {
         for size in [CGSize(width: 812, height: 375), CGSize(width: 874, height: 402),
                      CGSize(width: 375, height: 812), CGSize(width: 402, height: 874)] {
             let m = DeskMetrics.make(size: size)
             #expect(m.margin <= 6 && m.gap == 6 && m.tilePadding == 10)
+            #expect(m.topBarHeight == 34 && m.footerHeight == 46)
             #expect(m.landscape == (size.width > size.height))
-            #expect(m.topBarHeight <= (m.landscape ? 32 : 36))
-            // Grid takes everything left: nothing unaccounted for at top or bottom, no gap for an absent Attention.
-            let bare = m.gridHeight(screenHeight: size.height, attention: 0)
-            #expect(2 * m.margin + m.topBarHeight + m.gap + bare == size.height)
-            let shown = m.gridHeight(screenHeight: size.height, attention: 100)
-            #expect(2 * m.margin + m.topBarHeight + 2 * m.gap + shown + 100 == size.height)
+            // Top bar, grid and the always-present strip use every point: no band at top or bottom.
+            let grid = m.gridHeight(screenHeight: size.height)
+            #expect(2 * m.margin + m.topBarHeight + m.footerHeight + 2 * m.gap + grid == size.height)
             // The shift never pushes content past the margin.
             #expect(CGFloat(LayoutShift.reach) <= m.margin)
         }
     }
 
-    @Test func lanesTileOnlyAppearsWhenThereAreLanes() {
-        #expect(!DeskRow.showsLanes(laneCount: 0))
-        #expect(DeskRow.showsLanes(laneCount: 1))
-        #expect(DeskRow.showsLanes(laneCount: 5))
+    @Test func theThreeStatesPickTheirTiles() {
+        let idle = DeskState.make(laneCount: 0, attentionCount: 0)
+        #expect(idle == .idle && idle.tiles == [.room, .weather])
+        let lanes = DeskState.make(laneCount: 2, attentionCount: 0)
+        #expect(lanes == .lanes && lanes.tiles == [.room, .lanes])      // Weather hidden
+        let attention = DeskState.make(laneCount: 2, attentionCount: 1)
+        #expect(attention == .attention && attention.tiles == [.room, .attention, .weather])
+        #expect(attention.roomIsCompact && !idle.roomIsCompact && !lanes.roomIsCompact)
     }
 
-    @Test func readingsScaleWithTheTile() {
+    @Test func readingsScaleWithTheTileAndTakeTheHeightTheSubLineLeaves() {
         let small = DeskMetrics.readingSize(tile: CGSize(width: 140, height: 140))
         let big = DeskMetrics.readingSize(tile: CGSize(width: 300, height: 300))
         #expect(big > small)
         #expect(DeskMetrics.readingSize(tile: .zero) >= 24)
-        let tile = CGSize(width: 780, height: 280)
-        #expect(DeskMetrics.readingSize(tile: tile, alone: true) > DeskMetrics.readingSize(tile: tile))
-        #expect(DeskMetrics.readingSize(tile: CGSize(width: 2000, height: 2000)) <= 160)
+        #expect(DeskMetrics.readingSize(tile: CGSize(width: 2000, height: 2000)) <= 240)
+        // A wide, short tile (13 mini landscape): the height decides.
+        let wide = CGSize(width: 380, height: 160)
+        #expect(DeskMetrics.readingSize(tile: wide) == (160 - 48) / 1.05)
+        #expect(DeskMetrics.readingSize(tile: wide, compact: true) < DeskMetrics.readingSize(tile: wide))
+    }
+
+    @Test func seatsReadAsOneLineWithTheHotOnesFlagged() {
+        let seats = [DeskPayload.Seat(name: "Max", pct: 62), .init(name: "Team", pct: 97), .init(name: "Admin", pct: 18)]
+        let line = SeatsLine.segments(seats)
+        #expect(line.map(\.text) == ["Max 62%", "Team 97%", "Admin 18%"])
+        #expect(line.map(\.red) == [false, true, false])
+        #expect(SeatsLine.segments([.init(name: "X", pct: 90)])[0].red)
+        #expect(SeatsLine.segments([]).isEmpty)
+    }
+
+    @Test func theNextEventIsTheEarliestTimedOneWithinADay() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let events: [(title: String, start: Date, allDay: Bool)] = [
+            ("Later", now.addingTimeInterval(3 * 3600), false),
+            ("Holiday", now.addingTimeInterval(1800), true),
+            ("Past", now.addingTimeInterval(-60), false),
+            ("Far", now.addingTimeInterval(30 * 3600), false),
+            ("Sooner", now.addingTimeInterval(1500), false),
+        ]
+        #expect(NextEvent.pick(events, now: now)?.title == "Sooner")
+        #expect(NextEvent.pick(Array(events.prefix(1)) + [events[3]], now: now)?.title == "Later")
+        #expect(NextEvent.pick([events[2], events[3], events[1]], now: now) == nil)
+        var utc = Calendar(identifier: .gregorian); utc.timeZone = .gmt
+        let next = NextEvent(title: "Exec call", start: Date(timeIntervalSince1970: 1_800_000_000 + 6 * 3600))
+        #expect(next.when(now: now, calendar: utc) == "\(String(format: "%02d", utc.component(.hour, from: next.start))):\(String(format: "%02d", utc.component(.minute, from: next.start))) (6h)")
+        #expect(NextEvent(title: "x", start: now.addingTimeInterval(25 * 60)).when(now: now, calendar: utc).hasSuffix("(25m)"))
+    }
+
+    @Test func theWorldClocksShowHoursAndMinutesInTheirOwnZones() {
+        let t = Date(timeIntervalSince1970: 1_793_000_000)   // 2026-10-26 07:33:20 UTC
+        #expect(DeskClocks.zones.map(\.label) == ["PHX", "KHI", "DEL"])
+        #expect(DeskClocks.time(t, zone: "America/Phoenix") == "00:33")
+        #expect(DeskClocks.time(t, zone: "Asia/Karachi") == "12:33")
+        #expect(DeskClocks.time(t, zone: "Asia/Kolkata") == "13:03")
+    }
+
+    @Test func theDeskPayloadDecodesSeatsAndActivityAndToleratesTheirAbsence() throws {
+        let json = #"{"attention": [], "seats": [{"name": "Max", "pct": 62, "bar": 0.62, "detail": "x"}],"#
+            + #""activity": {"move_pct": null, "exercise_pct": null, "stand_pct": null, "steps": 6214}}"#
+        let payload = try JSONDecoder().decode(DeskPayload.self, from: Data(json.utf8))
+        #expect(payload.seats == [.init(name: "Max", pct: 62)])
+        #expect(payload.activity?.steps == 6214 && payload.activity?.rings == nil)
+        let rings = DeskPayload.Activity(movePct: 60, exercisePct: 150, standPct: 50, steps: 1)
+        #expect(rings.rings?.exercise == 150)
+        let bare = try JSONDecoder().decode(DeskPayload.self, from: Data(#"{"attention": []}"#.utf8))
+        #expect(bare.seats.isEmpty && bare.activity == nil)
     }
 
     @Test func theLayoutShiftsEveryThreeMinutesWithinFourPoints() {
