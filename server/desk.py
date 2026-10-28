@@ -15,6 +15,8 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
   90 s counts as away.
 """
 import hashlib
+import json
+from pathlib import Path
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -240,3 +242,89 @@ def summarize_room(reports, now):
     age = _age(best["received"], now)
     return {"temp_c": best["temp_c"], "humidity": best["humidity"], "source": best["source"],
             "age_s": age, "stale": age > ROOM_STALE_SECONDS}
+
+
+# ------------------------------------------------------------------ seats
+
+SEATS_BOARD = "muster"
+SEATS_SECTION = "usage"
+
+
+def compose_seats(boards):
+    """[(name, board, received)] -> the Usage rows of the muster board as
+    [{name, pct, bar, detail}]: Max / Team / Admin weekly use. [] when there is no such board."""
+    for name, board, _received in boards:
+        if name != SEATS_BOARD:
+            continue
+        seats = []
+        for section in (board or {}).get("sections") or []:
+            if str(section.get("title") or "").strip().lower() != SEATS_SECTION:
+                continue
+            for row in section.get("rows") or []:
+                bar = row.get("bar")
+                if isinstance(bar, bool) or not isinstance(bar, (int, float)):
+                    continue
+                seats.append({"name": str(row.get("label") or "").strip().title() or "?",
+                              "pct": int(round(bar * 100)), "bar": float(bar),
+                              "detail": row.get("detail") or None})
+        return seats
+    return []
+
+
+# ------------------------------------------------------------------ activity
+
+ACTIVITY_GOALS = {"move": 500.0, "exercise": 30.0, "stand": 12.0}   # kcal, minutes, hours
+KILOJOULES_PER_KCAL = 4.184
+
+
+def _metric_sum(metrics, name, day):
+    """Sum of a Health Auto Export metric's `qty` over entries dated `day` (YYYY-MM-DD); None
+    when the export has no such metric or no entry that day."""
+    for metric in metrics:
+        if metric.get("name") != name:
+            continue
+        total, seen = 0.0, False
+        for entry in metric.get("data") or []:
+            qty = entry.get("qty")
+            if str(entry.get("date") or "")[:10] == day and isinstance(qty, (int, float)) and not isinstance(qty, bool):
+                total, seen = total + qty, True
+        if not seen:
+            return None
+        if metric.get("units") in ("kJ", "kj"):
+            total /= KILOJOULES_PER_KCAL
+        return total
+    return None
+
+
+def parse_activity(export):
+    """A Health Auto Export JSON -> {move_pct, exercise_pct, stand_pct, steps}. Each is None when
+    the export lacks that metric, so the phone can show steps as text until the rings exist.
+    "Today" is the day of the newest step/ring entry."""
+    metrics = ((export or {}).get("data") or {}).get("metrics") or []
+    names = ("step_count", "active_energy", "apple_exercise_time", "apple_stand_hour")
+    dates = [str(e.get("date") or "")[:10] for m in metrics if m.get("name") in names for e in m.get("data") or []]
+    empty = {"move_pct": None, "exercise_pct": None, "stand_pct": None, "steps": None}
+    if not dates:
+        return empty
+    day = max(dates)
+
+    def pct(name, goal):
+        value = _metric_sum(metrics, name, day)
+        return None if value is None else int(round(value / goal * 100))
+
+    steps = _metric_sum(metrics, "step_count", day)
+    return {"move_pct": pct("active_energy", ACTIVITY_GOALS["move"]),
+            "exercise_pct": pct("apple_exercise_time", ACTIVITY_GOALS["exercise"]),
+            "stand_pct": pct("apple_stand_hour", ACTIVITY_GOALS["stand"]),
+            "steps": None if steps is None else int(round(steps))}
+
+
+def read_activity(directory=None):
+    """The newest file in the health directory, parsed; all-None when missing or unreadable."""
+    try:
+        folder = Path(directory or config.get("BRIDGE_HEALTH_DIR"))
+        newest = max((f for f in folder.iterdir() if f.is_file() and f.suffix == ".json"),
+                     key=lambda f: f.stat().st_mtime)
+        return parse_activity(json.loads(newest.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return parse_activity(None)

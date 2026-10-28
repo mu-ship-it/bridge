@@ -168,12 +168,16 @@ A composite the box builds per request (never stored: posting a board named `des
   "attention": [{"id": "e_01…", "kind": "alert", "title": null, "text": "Backup failed", "level": "warn",
                  "ts": "2026-10-27T08:58:00Z", "speak": true, "source": "event"}],
   "presence": {"present": true, "source": "pc", "active": true, "idle_s": 4, "age_s": 12,
-               "stale_after_s": 90, "sources": [{"source": "pc", "active": true, "idle_s": 4, "received": "…", "age_s": 12, "fresh": true}]}
+               "stale_after_s": 90, "sources": [{"source": "pc", "active": true, "idle_s": 4, "received": "…", "age_s": 12, "fresh": true}]},
+  "seats": [{"name": "Max", "pct": 62, "bar": 0.62, "detail": "resets Tue 08:00"}],
+  "activity": {"move_pct": null, "exercise_pct": null, "stand_pct": null, "steps": 6214}
 }
 ```
 - `weather`: Open-Meteo (no key) for `BRIDGE_WEATHER_LAT` / `BRIDGE_WEATHER_LON` / `BRIDGE_WEATHER_PLACE` (default Shenyang 41.80, 123.43), cached 15 min in the server process. `code` is the WMO weather code. A failed fetch serves the last answer with `stale: true`, or `null` if there never was one.
 - `attention`: newest first, at most 20. Events of type `agent.say`, `alert` or `notify` the box received in the last 24 h (`text` = `payload.text` or the note, `title` = `payload.title`, `level` = `payload.level` or `warn` for alerts, `speak` = `payload.speak == true`), plus every board row in state `over` / `stalled` (`kind` `board.over` / `board.stalled`, id stable per board and row label). An item leaves the list once any device posts an event `{"type": "attention.ack", "payload": {"ids": [...]}}` naming it (acks are honoured for 48 h).
 - `presence.present`: some source reported `active: true` within the last 90 s. Clients should also treat the whole block as away once `age_s` plus their own time since the fetch passes `stale_after_s`.
+- `seats`: the rows of the `Usage` section of the stored `muster` board that carry a `bar` (Max / Team / Admin weekly use), `pct` = bar × 100; `[]` when there is no such board.
+- `activity`: from the newest `*.json` in `BRIDGE_HEALTH_DIR` (default `/home/agentops/health/raw`, Health Auto Export). Today = the day of the newest entry. `steps` sums `step_count`; `move_pct` / `exercise_pct` / `stand_pct` are `active_energy` / `apple_exercise_time` / `apple_stand_hour` over goals 500 kcal / 30 min / 12 h, `null` while the export lacks the metric. All `null` when there is no file.
 - Audited as `read:attention=<n>`.
 
 ## `GET /bridge/jobs?device=<id>[&wait=<seconds>]`

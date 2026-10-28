@@ -251,3 +251,48 @@ def test_the_desk_board_name_is_reserved(client, account):
     response = client.post("/bridge/board/desk", headers=bearer(account),
                            json={"title": "x", "sections": []})
     assert response.status_code == 400 and "reserved" in response.json()["error"]
+
+
+# ------------------------------------------------------------------ seats and activity
+
+def _kit(name):
+    import json
+    from pathlib import Path
+    return json.loads((Path(__file__).parent / "fixtures" / name).read_text(encoding="utf-8"))
+
+
+def test_seats_are_the_usage_rows_of_the_muster_board():
+    board = _kit("muster-sample.json")["board"]
+    seats = desk.compose_seats([("muster", board, "2026-10-28T05:37:26Z")])
+    assert [(s["name"], s["pct"]) for s in seats] == [("Max", 26), ("Team", 4)]
+    assert seats[0]["detail"] == "resets Tue 08:00"
+    assert desk.compose_seats([]) == [] and desk.compose_seats([("other", board, "x")]) == []
+
+
+def test_activity_sums_todays_steps_and_leaves_missing_rings_null():
+    activity = desk.parse_activity(_kit("health-sample.json"))
+    assert activity == {"move_pct": None, "exercise_pct": None, "stand_pct": None, "steps": 871}
+    assert desk.parse_activity(None)["steps"] is None
+
+
+def test_activity_rings_are_percent_of_the_goals():
+    day = "2026-10-28 09:00:00 +0800"
+    export = {"data": {"metrics": [
+        {"name": "active_energy", "units": "kcal", "data": [{"date": day, "qty": 250}, {"date": day, "qty": 50}]},
+        {"name": "apple_exercise_time", "units": "min", "data": [{"date": day, "qty": 45}]},
+        {"name": "apple_stand_hour", "units": "hr", "data": [{"date": day, "qty": 6}]},
+        {"name": "step_count", "units": "count", "data": [{"date": day, "qty": 6214}]},
+    ]}}
+    assert desk.parse_activity(export) == {"move_pct": 60, "exercise_pct": 150, "stand_pct": 50, "steps": 6214}
+
+
+def test_desk_payload_carries_seats_and_activity(client, account, monkeypatch, tmp_path):
+    import shutil
+    from pathlib import Path
+    shutil.copy(Path(__file__).parent / "fixtures" / "health-sample.json", tmp_path / "2026-10-28.json")
+    monkeypatch.setattr(desk.config, "get", lambda key, _get=desk.config.get: str(tmp_path) if key == "BRIDGE_HEALTH_DIR" else _get(key))
+    board = _kit("muster-sample.json")["board"]
+    assert client.post("/bridge/board/muster", headers=bearer(account), json=board).status_code == 200
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()
+    assert [(s["name"], s["pct"]) for s in body["seats"]] == [("Max", 26), ("Team", 4)]
+    assert body["activity"]["steps"] == 871 and body["activity"]["move_pct"] is None

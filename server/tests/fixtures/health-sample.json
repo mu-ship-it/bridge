@@ -1,0 +1,196 @@
+{
+ "data": {
+  "metrics": [
+   {
+    "data": [
+     {
+      "date": "2026-10-23 21:23:20 +0800",
+      "qty": 99,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-23 21:25:53 +0800",
+      "qty": 96,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-23 21:30:42 +0800",
+      "qty": 91,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     }
+    ],
+    "name": "heart_rate",
+    "units": "count/min"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-26 00:00:39 +0800",
+      "qty": 71,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-27 00:08:00 +0800",
+      "qty": 79,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-28 00:00:30 +0800",
+      "qty": 75,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     }
+    ],
+    "name": "resting_heart_rate",
+    "units": "count/min"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-28 02:34:07 +0800",
+      "qty": 41.6224,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-28 04:34:08 +0800",
+      "qty": 67.0364,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-28 06:34:44 +0800",
+      "qty": 29.4486,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     }
+    ],
+    "name": "heart_rate_variability",
+    "units": "ms"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-28 05:55:08 +0800",
+      "qty": 11.5,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-28 06:07:05 +0800",
+      "qty": 11,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     },
+     {
+      "date": "2026-10-28 06:14:33 +0800",
+      "qty": 12,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch"
+     }
+    ],
+    "name": "respiratory_rate",
+    "units": "count/min"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-28 01:45:41 +0800",
+      "qty": 95,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     },
+     {
+      "date": "2026-10-28 00:43:40 +0800",
+      "qty": 99,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     },
+     {
+      "date": "2026-10-28 06:18:10 +0800",
+      "qty": 96,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     }
+    ],
+    "name": "blood_oxygen_saturation",
+    "units": "%"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-28 08:45:27 +0800",
+      "qty": 440,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     },
+     {
+      "date": "2026-10-28 08:55:23 +0800",
+      "qty": 4,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     },
+     {
+      "date": "2026-10-28 09:09:27 +0800",
+      "qty": 427,
+      "source": "\u5c39\u7267\u2019s iPhone"
+     }
+    ],
+    "name": "step_count",
+    "units": "count"
+   },
+   {
+    "data": [
+     {
+      "date": "2026-10-28 06:16:03 +0800",
+      "endDate": "2026-10-28 06:20:32 +0800",
+      "qty": 0.0747,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch",
+      "startDate": "2026-10-28 06:16:03 +0800",
+      "value": "Core"
+     },
+     {
+      "date": "2026-10-28 06:20:32 +0800",
+      "endDate": "2026-10-28 06:21:02 +0800",
+      "qty": 0.0083,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch",
+      "startDate": "2026-10-28 06:20:32 +0800",
+      "value": "Awake"
+     },
+     {
+      "date": "2026-10-28 06:21:02 +0800",
+      "endDate": "2026-10-28 06:30:29 +0800",
+      "qty": 0.1577,
+      "source": "\u5c39\u7267\u2019s Apple\u00a0Watch",
+      "startDate": "2026-10-28 06:21:02 +0800",
+      "value": "Core"
+     }
+    ],
+    "name": "sleep_analysis",
+    "units": "hr"
+   }
+  ],
+  "workouts": [
+   {
+    "activeEnergyBurned": {
+     "qty": 408.334,
+     "units": "kcal"
+    },
+    "distance": {
+     "qty": 1.025,
+     "units": "km"
+    },
+    "duration": 3027.526,
+    "end": "2026-10-22 14:58:34 +0800",
+    "id": "6FE42FCC-DBE7-480D-99C2-C70E78AED152",
+    "name": "Swimming",
+    "source": "\u5c39\u7267\u2019s Apple\u00a0Watch",
+    "start": "2026-10-22 14:08:07 +0800"
+   },
+   {
+    "activeEnergyBurned": {
+     "qty": 392.3736,
+     "units": "kcal"
+    },
+    "distance": {
+     "qty": 0.925,
+     "units": "km"
+    },
+    "duration": 2565.2285,
+    "end": "2026-10-23 13:59:14 +0800",
+    "id": "7C992D79-3FC7-489D-BD14-7426322D1131",
+    "name": "Swimming",
+    "source": "\u5c39\u7267\u2019s Apple\u00a0Watch",
+    "start": "2026-10-23 13:16:29 +0800"
+   }
+  ]
+ }
+}

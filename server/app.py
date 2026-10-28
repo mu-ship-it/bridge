@@ -668,7 +668,7 @@ async def post_room(request: Request):
 
 @app.get("/bridge/board/desk")
 def get_desk(request: Request):
-    """For the desk display: {time, weather, room, attention[], presence}, composed per request
+    """For the desk display: {time, weather, room, attention[], presence, seats[], activity}, composed per request
     (see desk.py). Registered before /bridge/board/{name} so it wins the route."""
     endpoint = "GET /bridge/board/desk"
     with closing(db.connect()) as conn:
@@ -682,6 +682,7 @@ def get_desk(request: Request):
             conn, account["id"], (desk.ACK_TYPE,), ack_since, limit=1000)]
         boards = [b for b in db.list_boards(conn, account["id"]) if b[0] != DESK_BOARD]
         attention = desk.compose_attention(events, acks, boards)
+        seats = desk.compose_seats(db.list_boards(conn, account["id"]))
         presence = desk.summarize_presence(db.list_presence(conn, account["id"]), now)
         room = desk.summarize_room(db.list_room(conn, account["id"]), now)
         with conn:
@@ -697,6 +698,8 @@ def get_desk(request: Request):
         "room": room,
         "attention": attention,
         "presence": presence,
+        "seats": seats,
+        "activity": desk.read_activity(),
     }
 
 
