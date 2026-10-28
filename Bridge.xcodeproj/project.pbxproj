@@ -30,6 +30,7 @@
 		2765087CEFE87C0F227DC6CC /* HostCommandLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2456F94C6D2BAB144BCCFF64 /* HostCommandLine.swift */; };
 		2779736D5B845C5127F6FA9F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F20F0C79EBC19D3E04C82B /* SettingsView.swift */; };
 		286F898CCF34C8B018CEBB86 /* MacWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FB61BEA021F7FD593DE6B27 /* MacWidgetBundle.swift */; };
+		298DFD2D8F748281380971C3 /* DeskShatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F6C697474AA95E70C1F09B /* DeskShatter.swift */; };
 		2A3F19A9CEB55ECFEBC7A912 /* FaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12F5535605223D8A4D4AD2C /* FaceTests.swift */; };
 		2A90E0ABEC18D3FCF9150C0C /* FilesCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBECDC5515CDBDFE3100F2C5 /* FilesCapabilities.swift */; };
 		2AE0D75CC53DD4BC9E3E4D0F /* PhotosRecentCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */; };
@@ -221,6 +222,7 @@
 		2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSayCapability.swift; sourceTree = "<group>"; };
 		2EBA9446753DB8F5EF177141 /* Bridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bridge.entitlements; sourceTree = "<group>"; };
 		2FE4BFC6B8A72D6BC718FF56 /* BridgeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BridgeWidget.entitlements; sourceTree = "<group>"; };
+		31F6C697474AA95E70C1F09B /* DeskShatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskShatter.swift; sourceTree = "<group>"; };
 		3968868B373BD8B4DE7CB2B0 /* Capability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Capability.swift; sourceTree = "<group>"; };
 		3BF91A005F35C592F3774778 /* SpeakCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakCapability.swift; sourceTree = "<group>"; };
 		3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -373,6 +375,7 @@
 				E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */,
 				CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */,
 				0316A8767AF4342DEF21F449 /* DeskMotion.swift */,
+				31F6C697474AA95E70C1F09B /* DeskShatter.swift */,
 				287EA21E6F2474B7C3F99947 /* DeskStation.swift */,
 				E08C2256F53E1604D2E2B393 /* DeskView.swift */,
 				0F10FD442F1D74014CF8EF04 /* Face.swift */,
@@ -963,6 +966,7 @@
 				C5E72B990F6896E1B635BBAD /* DeskLayout.swift in Sources */,
 				519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */,
 				A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */,
+				298DFD2D8F748281380971C3 /* DeskShatter.swift in Sources */,
 				54E6126AE9151038370B39C4 /* DeskStation.swift in Sources */,
 				173B2943AC7C44B61EAB6A51 /* DeskView.swift in Sources */,
 				50C65E0A46C6ECB65D4D256C /* DeviceControlCapabilities.swift in Sources */,

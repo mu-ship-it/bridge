@@ -6,12 +6,12 @@ struct DeskView: View {
     @Bindable private var desk = DeskStation.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var brightness = DeskBrightness()
-    /// Burn-in protection (BurnIn): the layout steps to its next offset only as the hourly sweep passes;
+    /// Burn-in protection (BurnIn): the layout steps to its next offset only at the hourly shatter;
     /// lights-out blanks it but for the face.
     @State private var shift = BurnIn.offset(at: Date())
     @State private var sweepHour = BurnIn.sweepHour(at: Date())
-    @State private var sweepTick = 0
-    @State private var sweepX: CGFloat?
+    @State private var shatterTick = 0
+    @State private var shatter = ShatterDirector()
     @State private var lightsOut = false
 
     var body: some View {
@@ -38,9 +38,11 @@ struct DeskView: View {
             .background(Theme.background.ignoresSafeArea())
             .animation(.easeInOut(duration: 0.4), value: state)
             .animation(DeskMotion.lightsOut, value: lightsOut)
-            .overlay(alignment: .leading) { sweepLine(width: geo.size.width) }
-            .onChange(of: sweepTick) { runSweep(width: geo.size.width) }
-            .background(TwoFingerTap { desk.toggleLightsOut() })
+            .overlay { if let run = shatter.run { ShatterOverlay(run: run) } }
+            .modifier(ShakeEffect(progress: shatter.shake))
+            .onChange(of: shatterTick) { runShatter(size: geo.size) }
+            .background(FingerTap(touches: 2) { desk.toggleLightsOut() })
+            .background(FingerTap(touches: 3) { runShatter(size: geo.size) })
         }
         .preferredColorScheme(.dark)
         .foregroundStyle(Theme.text)
@@ -57,7 +59,7 @@ struct DeskView: View {
                 desk.trackPresence()
                 let now = Date()
                 let hour = BurnIn.sweepHour(at: now)
-                if hour != sweepHour { sweepHour = hour; sweepTick += 1 }
+                if hour != sweepHour { sweepHour = hour; shatterTick += 1 }
                 lightsOut = BurnIn.lightsOut(at: now, manualSince: desk.lightsOutSince)
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -122,27 +124,11 @@ struct DeskView: View {
         .lineLimit(1).fixedSize()
     }
 
-    /// The hourly light line: 2 pt, white at 40 %, left to right across the whole screen.
-    @ViewBuilder private func sweepLine(width: CGFloat) -> some View {
-        if let sweepX {
-            Rectangle().fill(Color.white.opacity(0.4)).frame(width: 2)
-                .offset(x: sweepX).ignoresSafeArea().allowsHitTesting(false)
-        }
-    }
-
-    /// 1 s sweep; as it passes, the layout steps to this hour's offset in 0.3 s. Nothing else ever moves it.
-    /// Reduce Motion: the line fades in place instead of travelling.
-    private func runSweep(width: CGFloat) {
-        let target = BurnIn.offset(at: Date())
-        var plain = Transaction(animation: nil)
-        plain.disablesAnimations = true
-        withTransaction(plain) { sweepX = DeskMotion.reduce ? width / 2 : 0 }
-        if !DeskMotion.reduce { withAnimation(.linear(duration: BurnIn.sweepDuration)) { sweepX = width } }
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(BurnIn.stepAt))
-            withAnimation(BurnIn.stepAnimation) { shift = target }
-            try? await Task.sleep(for: .seconds(BurnIn.stepDuration + 0.05))
-            sweepX = nil
+    /// The hourly shatter (or the three-finger tap): the old frame breaks into squares and falls away while the
+    /// layout, hidden under it, has already stepped to this hour's offset. Reduce Motion: a 0.4 s crossfade.
+    private func runShatter(size: CGSize) {
+        shatter.trigger(size: size, reduce: DeskMotion.reduce, snapshot: ShatterDirector.windowSnapshot) {
+            shift = BurnIn.offset(at: Date())
         }
     }
 
@@ -654,13 +640,14 @@ private struct Sleeper: View {
     }
 }
 
-/// Two fingers tapping anywhere on the desk: a recognizer on the window, so the buttons keep working.
-private struct TwoFingerTap: UIViewRepresentable {
+/// Two or three fingers tapping anywhere on the desk: a recognizer on the window, so the buttons keep working.
+private struct FingerTap: UIViewRepresentable {
+    let touches: Int
     let action: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(action) }
 
-    func makeUIView(context: Context) -> UIView { Anchor(coordinator: context.coordinator) }
+    func makeUIView(context: Context) -> UIView { Anchor(coordinator: context.coordinator, touches: touches) }
 
     func updateUIView(_ view: UIView, context: Context) { context.coordinator.action = action }
 
@@ -672,15 +659,17 @@ private struct TwoFingerTap: UIViewRepresentable {
 
     private final class Anchor: UIView {
         let coordinator: Coordinator
+        let touches: Int
         private lazy var recognizer: UITapGestureRecognizer = {
             let r = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped))
-            r.numberOfTouchesRequired = 2
+            r.numberOfTouchesRequired = touches
             r.cancelsTouchesInView = false
             return r
         }()
 
-        init(coordinator: Coordinator) {
+        init(coordinator: Coordinator, touches: Int) {
             self.coordinator = coordinator
+            self.touches = touches
             super.init(frame: .zero)
             isUserInteractionEnabled = false
         }

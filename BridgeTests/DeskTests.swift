@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import Bridge
 
 @Suite struct DeskTests {
@@ -232,6 +233,36 @@ import Testing
         return (c.date(from: DateComponents(year: 2026, month: 10, day: day, hour: h, minute: m, second: sec))!, c)
     }
 
+    @MainActor @Test func aShatterStepsTheLayoutExactlyOnceAndTheOverlayIsGoneAfterTwoAndAHalfSeconds() async throws {
+        let director = ShatterDirector()
+        let size = CGSize(width: 375, height: 812)
+        var steps = 0
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 10, height: 10)).image { $0.fill(CGRect(x: 0, y: 0, width: 10, height: 10)) }
+        director.trigger(size: size, reduce: false, snapshot: { image }, step: { steps += 1 })
+        #expect(steps == 1)
+        #expect(director.run != nil)
+        #expect(director.run?.tiles.count == 11 * 24)
+        // A second trigger mid-shatter steps the layout but keeps the one overlay.
+        director.trigger(size: size, reduce: false, snapshot: { image }, step: { steps += 1 })
+        #expect(steps == 2 && director.run != nil)
+        try await Task.sleep(for: .seconds(2.5))
+        #expect(director.run == nil && director.shake == 0)
+    }
+
+    @Test func theShatterTimingFollowsTheSpec() {
+        #expect(Shatter.grid(for: CGSize(width: 812, height: 375)) == (24, 11))
+        #expect(Shatter.grid(for: CGSize(width: 375, height: 812)) == (11, 24))
+        var rng = SystemRandomNumberGenerator()
+        let tiles = Shatter.tiles(cols: 24, rows: 11, using: &rng)
+        #expect(tiles.allSatisfy { $0.delay >= 0 && $0.delay <= 0.5 && abs($0.tilt) <= 12 })
+        let loose = tiles.filter { !$0.straggler }
+        #expect(loose.allSatisfy { Shatter.fall($0, at: 1.2) == 1 })
+        let hung = tiles.filter(\.straggler)
+        #expect(hung.allSatisfy { Shatter.fall($0, at: 1.45) == 0 && Shatter.fall($0, at: 1.8) == 1 })
+        #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 1) == 0)
+        #expect(Shatter.total < 2)
+    }
+
     @Test func theLayoutStepsExactlyOncePerHourAndNeverBetween() {
         // Across a whole day the offset is the same at every minute of an hour and different the next hour.
         for h in 0..<24 {
@@ -251,7 +282,6 @@ import Testing
         #expect(Set(walk.map { "\($0.x),\($0.y)" }).count == 8)
         #expect(walk.allSatisfy { abs($0.x) <= BurnIn.reach && abs($0.y) <= BurnIn.reach && ($0.x, $0.y) != (0, 0) })
         #expect(BurnIn.offset(at: local(9, 0).0, calendar: cal) == walk[1])
-        #expect(BurnIn.stepAt + BurnIn.stepDuration == BurnIn.sweepDuration)   // the step is the tail of the sweep
         #expect(CGFloat(BurnIn.reach) <= DeskMetrics.make(size: CGSize(width: 375, height: 812)).margin)
     }
 

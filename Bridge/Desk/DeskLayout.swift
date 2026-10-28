@@ -3,31 +3,26 @@ import CoreGraphics
 import SwiftUI
 
 /// OLED burn-in protection, all of it visible and none of it random:
-///  - Hourly sweep: at every :00 a thin light line crosses the screen in 1 s, and as it passes the whole layout
-///    steps to its next offset (one step per hour round the 8 points of a ±4 pt grid) in a 0.3 s ease. The layout
-///    never moves at any other time, and content never changes place.
-///  - Dim when away (BrightnessPolicy) and a nightly lights-out: 03:00–03:01 (or 60 s from a two-finger tap)
+///  - Hourly shatter: at every :00 the old frame breaks into squares that fall away (DeskShatter), and under it
+///    the whole layout has already stepped to its next offset (one step per hour round the 8 points of a ±4 pt
+///    grid). The layout never moves at any other time, and content never changes place.
+///  - Dim when away (BrightnessPolicy) and a nightly lights-out: 03:00–03:01 (or 60 s from a two-finger tap; a three-finger tap runs the shatter on demand)
 ///    the screen is black but for the sleeping face.
 enum BurnIn {
     static let lightsOutHour = 3
     static let lightsOutLength: TimeInterval = 60
-    static let sweepDuration: TimeInterval = 1
-    static let stepDuration: TimeInterval = 0.3
-    /// When in the sweep the layout steps: so the 0.3 s move ends with the line leaving the screen.
-    static let stepAt: TimeInterval = sweepDuration - stepDuration
     static let reach = 4
-    static var stepAnimation: Animation { .easeInOut(duration: stepDuration) }
 
     /// The eight non-centre points of the ±4 grid, in the order the hours walk them.
     static let ring: [(x: Int, y: Int)] = [(4, 0), (4, 4), (0, 4), (-4, 4), (-4, 0), (-4, -4), (0, -4), (4, -4)]
 
     /// Constant within an hour (24 is a multiple of 8, so the walk also continues across midnight). The view
-    /// adopts a new value only when a sweep passes.
+    /// adopts a new value only at a shatter.
     static func offset(at date: Date, calendar: Calendar = .current) -> (x: Int, y: Int) {
         ring[calendar.component(.hour, from: date) % ring.count]
     }
 
-    /// The hour the sweep belongs to: it changes at :00 and nowhere else.
+    /// The hour the shatter belongs to: it changes at :00 and nowhere else.
     static func sweepHour(at date: Date, calendar: Calendar = .current) -> Int {
         calendar.component(.hour, from: date)
     }
