@@ -120,18 +120,49 @@ import Testing
         #expect(r.value(forHTTPHeaderField: "Authorization") == "Bearer t")
     }
 
-    @Test func attentionIsAThinStripWhenEmptyAndGrowsToFitUpToTheCap() {
+    @Test func attentionIsNothingWhenEmptyAndGrowsToFitUpToTheCap() {
         let screen: CGFloat = 800
-        #expect(AttentionSizing.height(items: 0, screen: screen) == AttentionSizing.strip)
+        #expect(AttentionSizing.height(items: 0, screen: screen) == 0)
         let one = AttentionSizing.height(items: 1, screen: screen)
         let two = AttentionSizing.height(items: 2, screen: screen)
-        #expect(one > AttentionSizing.strip && two > one)
+        #expect(one > 0 && two > one)
         #expect(AttentionSizing.height(items: 50, screen: screen) == screen * AttentionSizing.maxShare)
-        // A short landscape screen never goes below the strip.
-        #expect(AttentionSizing.height(items: 1, screen: 60) == AttentionSizing.strip)
     }
 
-    @Test func theLayoutShiftsEveryThreeMinutesWithinSixPoints() {
+    @Test func deskMetricsFillTheScreenOnABigAndASmallPhone() {
+        for size in [CGSize(width: 812, height: 375), CGSize(width: 874, height: 402),
+                     CGSize(width: 375, height: 812), CGSize(width: 402, height: 874)] {
+            let m = DeskMetrics.make(size: size)
+            #expect(m.margin <= 6 && m.gap == 6 && m.tilePadding == 10)
+            #expect(m.landscape == (size.width > size.height))
+            #expect(m.topBarHeight <= (m.landscape ? 32 : 36))
+            // Grid takes everything left: nothing unaccounted for at top or bottom, no gap for an absent Attention.
+            let bare = m.gridHeight(screenHeight: size.height, attention: 0)
+            #expect(2 * m.margin + m.topBarHeight + m.gap + bare == size.height)
+            let shown = m.gridHeight(screenHeight: size.height, attention: 100)
+            #expect(2 * m.margin + m.topBarHeight + 2 * m.gap + shown + 100 == size.height)
+            // The shift never pushes content past the margin.
+            #expect(CGFloat(LayoutShift.reach) <= m.margin)
+        }
+    }
+
+    @Test func lanesTileOnlyAppearsWhenThereAreLanes() {
+        #expect(!DeskRow.showsLanes(laneCount: 0))
+        #expect(DeskRow.showsLanes(laneCount: 1))
+        #expect(DeskRow.showsLanes(laneCount: 5))
+    }
+
+    @Test func readingsScaleWithTheTile() {
+        let small = DeskMetrics.readingSize(tile: CGSize(width: 140, height: 140))
+        let big = DeskMetrics.readingSize(tile: CGSize(width: 300, height: 300))
+        #expect(big > small)
+        #expect(DeskMetrics.readingSize(tile: .zero) >= 24)
+        let tile = CGSize(width: 780, height: 280)
+        #expect(DeskMetrics.readingSize(tile: tile, alone: true) > DeskMetrics.readingSize(tile: tile))
+        #expect(DeskMetrics.readingSize(tile: CGSize(width: 2000, height: 2000)) <= 160)
+    }
+
+    @Test func theLayoutShiftsEveryThreeMinutesWithinFourPoints() {
         let t = Date(timeIntervalSince1970: 1_800_000_000)
         #expect(LayoutShift.slot(at: t) == LayoutShift.slot(at: t.addingTimeInterval(1)))
         let next = LayoutShift.nextChange(after: t)
@@ -141,7 +172,7 @@ import Testing
         var seen = Set<[Int]>()
         for slot in 0..<500 {
             let o = LayoutShift.offset(slot: slot)
-            #expect(abs(o.x) <= 6 && abs(o.y) <= 6)
+            #expect(abs(o.x) <= 4 && abs(o.y) <= 4)
             #expect(o == LayoutShift.offset(slot: slot))
             seen.insert([o.x, o.y])
         }

@@ -11,17 +11,22 @@ struct DeskView: View {
     var body: some View {
         GeometryReader { geo in
             let landscape = geo.size.width > geo.size.height
-            let attentionHeight = AttentionSizing.height(items: desk.attention.count, screen: geo.size.height)
-            VStack(alignment: .leading, spacing: Theme.Space.s12) {
-                topBar
-                tiles(landscape: landscape)
-                attentionTile.frame(height: attentionHeight)
+            let attentionHeight = AttentionSizing.height(items: max(desk.attention.count, desk.payloadError == nil ? 0 : 1), screen: geo.size.height)
+            let m = DeskMetrics.make(size: geo.size)
+            VStack(alignment: .leading, spacing: m.gap) {
+                topBar.frame(height: m.topBarHeight)
+                tiles(landscape: landscape, gap: m.gap, padding: m.tilePadding)
+                    .frame(maxHeight: .infinity)
+                if attentionHeight > 0 {
+                    attentionTile(padding: m.tilePadding).frame(height: attentionHeight)
+                }
             }
-            .padding(Theme.Space.s16)
+            .padding(m.margin)
             .offset(x: CGFloat(shift.x), y: CGFloat(shift.y))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .animation(.easeInOut(duration: 0.4), value: attentionHeight)
+            .animation(.easeInOut(duration: 0.4), value: desk.muster.lanes.count)
         }
         .preferredColorScheme(.dark)
         .foregroundStyle(Theme.text)
@@ -58,42 +63,63 @@ struct DeskView: View {
 
     // MARK: Tiles
 
-    /// Small date line in the corner, the exit button opposite.
+    /// Date on the left; weather one-liner and the exit button on the right.
     private var topBar: some View {
-        HStack {
+        HStack(spacing: Theme.Space.s12) {
             TimelineView(.everyMinute) { context in
                 Text(context.date, format: .dateTime.weekday(.wide).month(.abbreviated).day())
-                    .font(Theme.Role.body.bold()).foregroundStyle(Theme.dim)
+                    .font(Theme.Role.body.bold()).foregroundStyle(Theme.dim).lineLimit(1)
             }
-            Spacer()
+            Spacer(minLength: Theme.Space.s8)
+            weatherLine
             exitButton
         }
     }
 
-    /// Portrait: Room and Weather side by side, Lanes under them. Landscape: all three in a row.
-    /// They share whatever height Attention leaves.
-    @ViewBuilder private func tiles(landscape: Bool) -> some View {
-        let gap = Theme.Space.s12
-        if landscape {
+    /// "9° ☀ Clear sky   -1° / 14° · Shenyang": the long form first, shorter ones when the row is narrow.
+    private var weatherLine: some View {
+        let tile = WeatherTile(desk.payload?.weather)
+        let temp = Text(tile.temperature).font(Theme.Role.section.bold()).monospacedDigit()
+        let symbol = Image(systemName: tile.symbol).font(Theme.Role.body).accessibilityHidden(true)
+        let summary = Text(tile.summary.localizedForDisplay).font(Theme.Role.body.bold())
+        let rangeText = tile.place.map { "\(tile.range) · \($0)" } ?? tile.range
+        let detail = HStack(spacing: Theme.Space.s4) {
+            Text(rangeText)
+            if tile.stale { Image(systemName: "exclamationmark.triangle").foregroundStyle(Theme.red)
+                .accessibilityLabel(Text("stale")) }
+        }
+        .font(Theme.Role.data).foregroundStyle(Theme.dim)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Space.s8) { temp; symbol; summary; detail }
+            HStack(spacing: Theme.Space.s8) { temp; symbol; summary }
+            HStack(spacing: Theme.Space.s8) { temp; symbol }
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Room and Lanes: side by side in landscape, stacked in portrait. With no lanes Room is alone,
+    /// full width.
+    @ViewBuilder private func tiles(landscape: Bool, gap: CGFloat, padding: CGFloat) -> some View {
+        let lanes = DeskRow.showsLanes(laneCount: desk.muster.lanes.count)
+        if !lanes {
+            roomTile(padding, alone: true)
+        } else if landscape {
             HStack(alignment: .top, spacing: gap) {
-                roomTile
-                weatherTile
-                musterTile
+                roomTile(padding, alone: false)
+                musterTile(padding).transition(.opacity)
             }
         } else {
             VStack(spacing: gap) {
-                HStack(alignment: .top, spacing: gap) {
-                    roomTile
-                    weatherTile
-                }
-                musterTile
+                roomTile(padding, alone: false)
+                musterTile(padding).transition(.opacity)
             }
         }
     }
 
-    private var musterTile: some View {
+    private func musterTile(_ padding: CGFloat) -> some View {
         let tile = desk.muster
-        return DeskTile(label: "Lanes") {
+        return DeskTile(label: "Lanes", padding: padding) { _ in
             if tile.isEmpty {
                 Text("no lanes").font(Theme.Role.body).foregroundStyle(Theme.dim)
             } else {
@@ -107,19 +133,35 @@ struct DeskView: View {
         }
     }
 
-    private var roomTile: some View {
-        DeskTile(label: "Room") {
+    private func roomTile(_ padding: CGFloat, alone: Bool) -> some View {
+        DeskTile(label: "Room", padding: padding) { size in
             let climate = desk.roomClimate
-            Text(climate.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
-            Label {
+            let temp = Text(climate.temperature)
+                .font(.system(size: DeskMetrics.readingSize(tile: size, alone: alone), weight: .bold).monospacedDigit())
+                .lineLimit(1).minimumScaleFactor(0.4)
+            let humidity = Label {
                 Text(climate.humidity).font(Theme.Role.section.bold()).monospacedDigit()
             } icon: {
                 Image(systemName: "humidity.fill")
             }
             .accessibilityLabel(Text("Humidity \(climate.humidity)"))
-            comfortLine(climate)
-            Text(climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
+            let sensor = Text(climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
                 .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(3)
+            if alone {
+                HStack(alignment: .center, spacing: Theme.Space.s24) {
+                    temp
+                    VStack(alignment: .leading, spacing: Theme.Space.s8) {
+                        humidity
+                        comfortLine(climate)
+                        sensor
+                    }
+                }
+            } else {
+                temp
+                humidity
+                comfortLine(climate)
+                sensor
+            }
         }
     }
 
@@ -145,52 +187,21 @@ struct DeskView: View {
         }
     }
 
-    private var weatherTile: some View {
-        let tile = WeatherTile(desk.payload?.weather)
-        return DeskTile(label: "Weather") {
-            HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
-                Text(tile.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
-                Image(systemName: tile.symbol).font(Theme.Role.section).accessibilityHidden(true)
-            }
-            // The tile shares its row with Lanes: wrap rather than cut words off.
-            Text(tile.summary.localizedForDisplay).font(Theme.Role.section.bold())
-                .lineLimit(2).minimumScaleFactor(0.8)
-            HStack(spacing: Theme.Space.s4) {
-                Text(tile.range)
-                if tile.stale { Image(systemName: "exclamationmark.triangle").foregroundStyle(Theme.red)
-                    .accessibilityLabel(Text("stale")) }
-            }
-            .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
-            if let place = tile.place {
-                Text(place).font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(1).minimumScaleFactor(0.8)
-            }
-        }
-    }
-
-    @ViewBuilder private var attentionTile: some View {
-        if desk.attention.isEmpty && desk.payloadError == nil {
-            // Thin strip: one line, no label.
-            Label("Nothing needs you", systemImage: "checkmark.square")
-                .font(Theme.Role.body).foregroundStyle(Theme.dim).lineLimit(1)
-                .padding(.horizontal, Theme.Space.s12)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
-        } else {
-            DeskTile(label: "Attention", badge: desk.attention.isEmpty ? nil : desk.attention.count) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Theme.Space.s8) {
-                        ForEach(desk.attention) { item in
-                            AttentionRow(item: item, highlighted: desk.highlighted.contains(item.id)) {
-                                Task { await desk.acknowledge(item) }
-                            }
+    @ViewBuilder private func attentionTile(padding: CGFloat) -> some View {
+        DeskTile(label: "Attention", padding: padding, badge: desk.attention.isEmpty ? nil : desk.attention.count) { _ in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Space.s8) {
+                    ForEach(desk.attention) { item in
+                        AttentionRow(item: item, highlighted: desk.highlighted.contains(item.id)) {
+                            Task { await desk.acknowledge(item) }
                         }
                     }
                 }
-                .scrollIndicators(.hidden)
-                if let error = desk.payloadError {
-                    Label(error, systemImage: "xmark.square.fill")
-                        .font(Theme.Role.meta).foregroundStyle(Theme.red).lineLimit(2)
-                }
+            }
+            .scrollIndicators(.hidden)
+            if let error = desk.payloadError {
+                Label(error, systemImage: "xmark.square.fill")
+                    .font(Theme.Role.meta).foregroundStyle(Theme.red).lineLimit(2)
             }
         }
     }
@@ -203,7 +214,7 @@ struct DeskView: View {
             Image(systemName: "square.grid.2x2")
                 .font(Theme.Role.body)
                 .foregroundStyle(Theme.dim)
-                .padding(.horizontal, Theme.Space.s12)
+                .padding(.horizontal, Theme.Space.s8)
         }
         .accessibilityLabel(Text("Leave desk"))
     }
@@ -272,10 +283,18 @@ private struct MusterLaneRow: View {
 /// A tile: uppercase label over a 1px outline.
 private struct DeskTile<Content: View>: View {
     let label: LocalizedStringKey
+    let padding: CGFloat
     var badge: Int?
-    @ViewBuilder let content: Content
+    /// Gets the tile's inner size, so big readings scale with the tile.
+    @ViewBuilder let content: (CGSize) -> Content
 
     var body: some View {
+        GeometryReader { geo in
+            inner(CGSize(width: geo.size.width - 2 * padding, height: geo.size.height - 2 * padding))
+        }
+    }
+
+    private func inner(_ size: CGSize) -> some View {
         VStack(alignment: .leading, spacing: Theme.Space.s8) {
             HStack(spacing: Theme.Space.s8) {
                 Text(label).boxLabel()
@@ -285,9 +304,9 @@ private struct DeskTile<Content: View>: View {
                         .background(Theme.red).foregroundStyle(Theme.text)
                 }
             }
-            content
+            content(size)
         }
-        .padding(Theme.Space.s12)
+        .padding(padding)
         // Fills whatever height its row gives it, so tiles side by side share one outline height.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
