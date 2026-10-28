@@ -6,7 +6,13 @@ struct DeskView: View {
     @Bindable private var desk = DeskStation.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var brightness = DeskBrightness()
-    @State private var shift = LayoutShift.offset(slot: LayoutShift.slot(at: Date()))
+    /// Burn-in protection (BurnIn): the layout steps to its next offset only as the hourly sweep passes;
+    /// lights-out blanks it but for the face.
+    @State private var shift = BurnIn.offset(at: Date())
+    @State private var sweepHour = BurnIn.sweepHour(at: Date())
+    @State private var sweepTick = 0
+    @State private var sweepX: CGFloat?
+    @State private var lightsOut = false
 
     var body: some View {
         GeometryReader { geo in
@@ -14,17 +20,27 @@ struct DeskView: View {
             let m = DeskMetrics.make(size: geo.size)
             let state = DeskState.make(laneCount: desk.muster.lanes.count,
                                        attentionCount: max(desk.attention.count, desk.payloadError == nil ? 0 : 1))
-            VStack(alignment: .leading, spacing: m.gap) {
-                topBar.frame(height: m.topBarHeight)
-                tiles(state, landscape: landscape, gap: m.gap, padding: m.tilePadding)
-                    .frame(maxHeight: .infinity)
-                footer.frame(height: m.footerHeight)
+            ZStack {
+                sleepingFace.opacity(lightsOut ? 1 : 0)
+                VStack(alignment: .leading, spacing: m.gap) {
+                    topBar(weather: state.weatherInTopRow).frame(height: m.topBarHeight)
+                    tiles(state, landscape: landscape, gap: m.gap, padding: m.tilePadding)
+                        .frame(maxHeight: .infinity)
+                    footer(m).frame(height: m.footerHeight)
+                }
+                .padding(m.margin)
+                .offset(x: CGFloat(shift.x), y: CGFloat(shift.y))
+                // Reduce Motion: the lights-out is a crossfade, not a slide.
+                .offset(x: lightsOut && !DeskMotion.reduce ? -geo.size.width : 0)
+                .opacity(lightsOut && DeskMotion.reduce ? 0 : 1)
             }
-            .padding(m.margin)
-            .offset(x: CGFloat(shift.x), y: CGFloat(shift.y))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .animation(.easeInOut(duration: 0.4), value: state)
+            .animation(DeskMotion.lightsOut, value: lightsOut)
+            .overlay(alignment: .leading) { sweepLine(width: geo.size.width) }
+            .onChange(of: sweepTick) { runSweep(width: geo.size.width) }
+            .background(TwoFingerTap { desk.toggleLightsOut() })
         }
         .preferredColorScheme(.dark)
         .foregroundStyle(Theme.text)
@@ -32,24 +48,17 @@ struct DeskView: View {
         .persistentSystemOverlays(.hidden)
         .task { await desk.runPayload() }
         .task { await desk.runClimate() }
-        // Burn-in guard: a new place every 3 minutes, moved over 1 s.
-        .task {
-            while !Task.isCancelled {
-                let now = Date()
-                withAnimation(.easeInOut(duration: 1)) {
-                    let o = LayoutShift.offset(slot: LayoutShift.slot(at: now))
-                    shift = (o.x, o.y)
-                }
-                let wait = LayoutShift.nextChange(after: now).timeIntervalSince(now)
-                try? await Task.sleep(for: .seconds(wait))
-            }
-        }
         // Bright when Mu is at the desk, dim when not; re-checked every second so a stale
         // presence report or a new item's 30 s takes effect on time.
         .task {
             brightness.begin()
             while !Task.isCancelled {
                 brightness.apply(desk.brightness())
+                desk.trackPresence()
+                let now = Date()
+                let hour = BurnIn.sweepHour(at: now)
+                if hour != sweepHour { sweepHour = hour; sweepTick += 1 }
+                lightsOut = BurnIn.lightsOut(at: now, manualSince: desk.lightsOutSince)
                 try? await Task.sleep(for: .seconds(1))
             }
         }
@@ -61,17 +70,90 @@ struct DeskView: View {
 
     // MARK: Tiles
 
-    /// Date on the left, the seats one-liner, the exit button on the right.
-    private var topBar: some View {
-        HStack(spacing: Theme.Space.s12) {
-            TimelineView(.everyMinute) { context in
-                Text(context.date, format: .dateTime.weekday(.wide).month(.abbreviated).day())
-                    .font(Theme.Role.body.bold()).foregroundStyle(Theme.dim).lineLimit(1)
+    private enum TopItem: Hashable { case date, spacer, weather, seats, exit }
+
+    /// Date on the left, the seats one-liner, the exit button on the right; with Attention and Lanes both up,
+    /// Weather's one-liner joins the row, left of the seats. The row gives up the weather, then the weekday,
+    /// before it would cut anything short.
+    @ViewBuilder private func topBar(weather: Bool) -> some View {
+        ViewThatFits(in: .horizontal) {
+            if weather {
+                topRow([.date, .spacer, .weather, .seats, .exit], shortDate: false)
+                topRow([.date, .spacer, .weather, .seats, .exit], shortDate: true)
             }
-            Spacer(minLength: Theme.Space.s8)
-            seatsLine
-            exitButton
+            topRow([.date, .spacer, .seats, .exit], shortDate: false)
+            topRow([.date, .spacer, .seats, .exit], shortDate: true)
         }
+    }
+
+    private func topRow(_ items: [TopItem], shortDate: Bool) -> some View {
+        HStack(spacing: Theme.Space.s12) {
+            ForEach(items, id: \.self) { item in
+                switch item {
+                case .weather: weatherLine
+                case .date:
+                    TimelineView(.everyMinute) { context in
+                        Group {
+                            if shortDate {
+                                Text(context.date, format: .dateTime.month(.abbreviated).day())
+                            } else {
+                                Text(context.date, format: .dateTime.weekday(.wide).month(.abbreviated).day())
+                            }
+                        }
+                        .font(Theme.Role.body.bold()).foregroundStyle(Theme.dim).lineLimit(1).fixedSize()
+                    }
+                case .spacer: Spacer(minLength: Theme.Space.s8)
+                case .seats: seatsLine
+                case .exit: exitButton
+                }
+            }
+        }
+    }
+
+    /// Weather as one mono line: "14° · 6°/19°".
+    private var weatherLine: some View {
+        let tile = WeatherTile(desk.payload?.weather)
+        return HStack(spacing: Theme.Space.s4) {
+            Image(systemName: tile.symbol).accessibilityHidden(true)
+            Text(tile.temperature)
+        }
+        .font(.system(size: 20, weight: .bold, design: .monospaced))
+        .foregroundStyle(Theme.dim)
+        .lineLimit(1).fixedSize()
+    }
+
+    /// The hourly light line: 2 pt, white at 40 %, left to right across the whole screen.
+    @ViewBuilder private func sweepLine(width: CGFloat) -> some View {
+        if let sweepX {
+            Rectangle().fill(Color.white.opacity(0.4)).frame(width: 2)
+                .offset(x: sweepX).ignoresSafeArea().allowsHitTesting(false)
+        }
+    }
+
+    /// 1 s sweep; as it passes, the layout steps to this hour's offset in 0.3 s. Nothing else ever moves it.
+    /// Reduce Motion: the line fades in place instead of travelling.
+    private func runSweep(width: CGFloat) {
+        let target = BurnIn.offset(at: Date())
+        var plain = Transaction(animation: nil)
+        plain.disablesAnimations = true
+        withTransaction(plain) { sweepX = DeskMotion.reduce ? width / 2 : 0 }
+        if !DeskMotion.reduce { withAnimation(.linear(duration: BurnIn.sweepDuration)) { sweepX = width } }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(BurnIn.stepAt))
+            withAnimation(BurnIn.stepAnimation) { shift = target }
+            try? await Task.sleep(for: .seconds(BurnIn.stepDuration + 0.05))
+            sweepX = nil
+        }
+    }
+
+    /// Lights-out: black, the sleeping face in the middle.
+    private var sleepingFace: some View {
+        HStack(spacing: Theme.Space.s12) {
+            Text(Mood.asleep.face)
+            Sleeper(text: Mood.asleep.suffix ?? "")
+        }
+        .font(.system(size: 56, weight: .bold, design: .monospaced))
+        .accessibilityHidden(true)
     }
 
     /// "Max 62% · Team 97% · Admin 18%": mono, a seat at 90 % or more in red.
@@ -83,7 +165,7 @@ struct DeskView: View {
             }
         }
         .font(.system(size: 20, weight: .bold, design: .monospaced))
-        .lineLimit(1).minimumScaleFactor(0.5)
+        .lineLimit(1).fixedSize()
     }
 
     /// Room first, then what the state puts beside it. Landscape: a row; portrait: a column.
@@ -106,35 +188,58 @@ struct DeskView: View {
     }
 
     /// Bottom strip, always there: three world clocks, the next event, the rings (or today's steps).
-    private var footer: some View {
-        HStack(spacing: Theme.Space.s16) {
-            TimelineView(.everyMinute) { context in
-                HStack(spacing: Theme.Space.s16) {
-                    ForEach(DeskClocks.zones, id: \.label) { zone in
-                        HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s4) {
-                            Text(zone.label).font(Theme.Role.label).foregroundStyle(Theme.dim)
-                            Text(DeskClocks.time(context.date, zone: zone.id))
-                                .font(.system(size: 20, weight: .heavy, design: .monospaced))
-                        }
-                    }
-                }
-            }
-            .lineLimit(1).minimumScaleFactor(0.6)
-            Spacer(minLength: Theme.Space.s8)
-            if let next = desk.nextEvent {
-                TimelineView(.everyMinute) { context in
-                    HStack(spacing: Theme.Space.s8) {
-                        Text("NEXT").font(Theme.Role.label).foregroundStyle(Theme.dim)
-                        Text("\(next.title) · \(next.when(now: context.date))").font(Theme.Role.body.bold())
-                    }
-                }
-                .lineLimit(1).minimumScaleFactor(0.6)
-            }
-            activity
+    private enum FooterItem: Hashable { case face, clocks, spacer, next, activity }
+
+    private func footer(_ m: DeskMetrics) -> some View {
+        // Whatever does not fit goes (next event, then steps/rings), never squeezed into nonsense.
+        ViewThatFits(in: .horizontal) {
+            footerRow(m, [.face, .clocks, .spacer, .next, .activity])
+            footerRow(m, [.face, .clocks, .spacer, .activity])
+            footerRow(m, [.face, .clocks, .spacer])
         }
         .padding(.horizontal, Theme.Space.s12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
+    }
+
+    private func footerRow(_ m: DeskMetrics, _ items: [FooterItem]) -> some View {
+        HStack(spacing: m.clockGap) {
+            ForEach(items, id: \.self) { item in
+                switch item {
+                case .face: FaceView(desk: desk)
+                case .clocks: clocks(m).fixedSize()
+                case .spacer: Spacer(minLength: Theme.Space.s8)
+                case .next: nextEvent.fixedSize()
+                case .activity: activity.fixedSize()
+                }
+            }
+        }
+    }
+
+    private func clocks(_ m: DeskMetrics) -> some View {
+        TimelineView(.everyMinute) { context in
+            HStack(spacing: m.clockGap) {
+                ForEach(DeskClocks.zones, id: \.label) { zone in
+                    HStack(alignment: .center, spacing: Theme.Space.s4) {
+                        Text(zone.label).font(Theme.Role.label).foregroundStyle(Theme.dim)
+                        FlipClock(time: DeskClocks.time(context.date, zone: zone.id),
+                                  font: .system(size: m.clockSize, weight: .heavy, design: .monospaced))
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var nextEvent: some View {
+        if let next = desk.nextEvent {
+            TimelineView(.everyMinute) { context in
+                HStack(spacing: Theme.Space.s8) {
+                    Text("NEXT").font(Theme.Role.label).foregroundStyle(Theme.dim)
+                    Text("\(next.title) · \(next.when(now: context.date))").font(Theme.Role.body.bold())
+                }
+            }
+            .lineLimit(1)
+        }
     }
 
     /// Rings once the export carries all three metrics; until then today's steps as text; else nothing.
@@ -156,7 +261,7 @@ struct DeskView: View {
                 Text("no lanes").font(Theme.Role.body).foregroundStyle(Theme.dim)
             } else {
                 VStack(alignment: .leading, spacing: Theme.Space.s8) {
-                    ForEach(tile.lanes) { MusterLaneRow(lane: $0) }
+                    ForEach(desk.shownLanes) { MusterLaneRow(lane: $0).transition(DeskMotion.laneTransition) }
                     if tile.hidden > 0 {
                         Text("+\(tile.hidden)").font(Theme.Role.meta.bold()).foregroundStyle(Theme.dim)
                     }
@@ -228,13 +333,15 @@ struct DeskView: View {
     }
 
     private func attentionTile(_ padding: CGFloat) -> some View {
-        DeskTile(label: "Attention", padding: padding, badge: desk.attention.isEmpty ? nil : desk.attention.count) { _ in
+        DeskTile(label: "Attention", padding: padding, badge: desk.attention.isEmpty ? nil : desk.attention.count,
+                 flash: desk.lastArrival) { _ in
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Space.s8) {
                     ForEach(desk.attention) { item in
                         AttentionRow(item: item, highlighted: desk.highlighted.contains(item.id)) {
                             Task { await desk.acknowledge(item) }
                         }
+                        .transition(DeskMotion.itemTransition)
                     }
                 }
             }
@@ -264,6 +371,7 @@ struct DeskView: View {
 /// expected) drawn by the Board widget's own BoardBar — red and full when over.
 private struct MusterLaneRow: View {
     let lane: MusterTile.Lane
+    @State private var swatch: CGFloat = DeskMotion.reduce ? 1 : 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s4) {
@@ -279,7 +387,7 @@ private struct MusterLaneRow: View {
                     stateWord
                 }
             }
-            BoardBar(row: lane.row)
+            BoardBar(row: lane.row).animation(DeskMotion.bar, value: lane.row.fill)
             HStack(spacing: Theme.Space.s4) {
                 if let host = lane.host { Text(host).foregroundStyle(Theme.dim) }
                 Spacer(minLength: 0)
@@ -299,6 +407,8 @@ private struct MusterLaneRow: View {
         HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s4) {
             Rectangle().fill(lane.rgb.map { Color(hex: $0) } ?? Theme.text)
                 .frame(width: Theme.Space.s12, height: Theme.Space.s12)
+                .scaleEffect(swatch)
+                .onAppear { withAnimation(DeskMotion.laneIn) { swatch = 1 } }
                 .accessibilityHidden(true)
             Text(lane.name).font(Theme.Role.body.bold()).lineLimit(1)
                 .foregroundStyle(lane.row.isMuted ? Theme.dim : Theme.text)
@@ -325,6 +435,9 @@ private struct DeskTile<Content: View>: View {
     let label: LocalizedStringKey
     let padding: CGFloat
     var badge: Int?
+    /// When something new arrived: the border flashes once (white → grey).
+    var flash: Date?
+    @State private var flashing = false
     /// Gets the tile's inner size, so big readings scale with the tile.
     @ViewBuilder let content: (CGSize) -> Content
 
@@ -349,7 +462,14 @@ private struct DeskTile<Content: View>: View {
         .padding(padding)
         // Fills whatever height its row gives it, so tiles side by side share one outline height.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: Theme.hairline))
+        .overlay(Rectangle().strokeBorder(flashing ? Theme.text : Theme.line, lineWidth: Theme.hairline))
+        .onChange(of: flash) { _, new in if new != nil { pulse() } }
+        .onAppear { if let flash, Date().timeIntervalSince(flash) < 2 { pulse() } }
+    }
+
+    private func pulse() {
+        withTransaction(Transaction(animation: nil)) { flashing = true }
+        Task { @MainActor in withAnimation(DeskMotion.borderFlash) { flashing = false } }
     }
 }
 
@@ -375,7 +495,7 @@ private struct AttentionRow: View {
                 .foregroundStyle(item.isWarning ? Theme.red : (highlighted ? Theme.background : Theme.dim))
                 .accessibilityLabel(Text(item.isWarning ? "Warning" : "Note"))
             VStack(alignment: .leading, spacing: Theme.Space.s4) {
-                if let title = item.title { Text(title).font(Theme.Role.body.bold()).lineLimit(1) }
+                if let title = item.title { AttentionTitle(text: title) }
                 Text(item.text).font(Theme.Role.body).lineLimit(3)
                 if let date = ISO.date(item.ts) {
                     Text(date, format: .dateTime.hour().minute()).font(Theme.Role.meta)
@@ -404,11 +524,12 @@ private struct ProgressRow: View {
     let title: String
     let progress: DeskPayload.Item.Progress
     let acknowledge: (() -> Void)?
+    @State private var flash = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s4) {
             HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
-                Text(title).font(Theme.Role.body.bold()).lineLimit(1)
+                AttentionTitle(text: title)
                 Spacer(minLength: 0)
                 Text(progress.summary).font(Theme.Role.meta.monospacedDigit()).lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -422,6 +543,8 @@ private struct ProgressRow: View {
                     GeometryReader { box in
                         Rectangle().fill(progress.isFailed ? Theme.red : Theme.text)
                             .frame(width: box.size.width * progress.fraction)
+                            .opacity(flash ? 0.15 : 1)
+                            .animation(DeskMotion.bar, value: progress.fraction)
                     }
                 }
             if let note = progress.note, !note.isEmpty {
@@ -430,6 +553,17 @@ private struct ProgressRow: View {
         }
         .padding(Theme.Space.s8)
         .accessibilityElement(children: .combine)
+        .onChange(of: progress.state) { _, state in if state == "done" { blink() } }
+        .onAppear { if progress.state == "done" { blink() } }
+    }
+
+    /// The bar flashes once when the job is done, before the row leaves.
+    private func blink() {
+        withAnimation(.easeOut(duration: 0.15)) { flash = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(150))
+            withAnimation(.easeIn(duration: 0.25)) { flash = false }
+        }
     }
 }
 
@@ -457,5 +591,121 @@ private struct ActivityRings: View {
                 .rotationEffect(.degrees(-90))
         }
         .padding(inset + 2)
+    }
+}
+
+/// The face in the bottom strip: one mono line, white on black. Its mood is `Face.mood`; this view
+/// only adds the blink timer, the nod when a lane crosses a 10 % mark, and the sleeper's slow zZ.
+private struct FaceView: View {
+    let desk: DeskStation
+    @State private var blinking = false
+    @State private var nod: CGFloat = 0
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let mood = Face.mood(desk.faceInput(now: context.date, blink: blinking))
+            // Blinking swaps the text in place; any other change of mood crossfades.
+            let base: Mood = mood == .blink ? .calm : mood
+            HStack(spacing: Theme.Space.s8) {
+                Text(mood.face).id(base).transition(.opacity)
+                if let suffix = mood.suffix {
+                    Sleeper(text: suffix).transition(.opacity)
+                }
+            }
+            .animation(DeskMotion.face, value: base)
+        }
+        .font(.system(size: 26, weight: .bold, design: .monospaced))
+        .lineLimit(1).fixedSize()
+        .layoutPriority(2)
+        .offset(y: nod)
+        .accessibilityHidden(true)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(Double.random(in: 4...9)))
+                blinking = true
+                try? await Task.sleep(for: .milliseconds(120))
+                blinking = false
+            }
+        }
+        .onChange(of: desk.nodCount) {
+            guard !DeskMotion.reduce else { return }
+            withAnimation(.easeOut(duration: 0.15)) { nod = 3 }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
+                withAnimation(.easeIn(duration: 0.15)) { nod = 0 }
+            }
+        }
+    }
+}
+
+/// `zZ`, fading in and out slowly (still, under Reduce Motion).
+private struct Sleeper: View {
+    let text: String
+    @State private var lit = false
+
+    var body: some View {
+        Text(text)
+            .foregroundStyle(Theme.dim)
+            .opacity(DeskMotion.reduce || lit ? 1 : 0.15)
+            .onAppear {
+                guard !DeskMotion.reduce else { return }
+                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) { lit = true }
+            }
+    }
+}
+
+/// Two fingers tapping anywhere on the desk: a recognizer on the window, so the buttons keep working.
+private struct TwoFingerTap: UIViewRepresentable {
+    let action: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(action) }
+
+    func makeUIView(context: Context) -> UIView { Anchor(coordinator: context.coordinator) }
+
+    func updateUIView(_ view: UIView, context: Context) { context.coordinator.action = action }
+
+    final class Coordinator: NSObject {
+        var action: () -> Void
+        init(_ action: @escaping () -> Void) { self.action = action }
+        @objc func tapped() { action() }
+    }
+
+    private final class Anchor: UIView {
+        let coordinator: Coordinator
+        private lazy var recognizer: UITapGestureRecognizer = {
+            let r = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped))
+            r.numberOfTouchesRequired = 2
+            r.cancelsTouchesInView = false
+            return r
+        }()
+
+        init(coordinator: Coordinator) {
+            self.coordinator = coordinator
+            super.init(frame: .zero)
+            isUserInteractionEnabled = false
+        }
+
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            window?.addGestureRecognizer(recognizer)
+        }
+
+        override func willMove(toWindow newWindow: UIWindow?) {
+            recognizer.view?.removeGestureRecognizer(recognizer)
+        }
+    }
+}
+
+/// An Attention title is never cut with an ellipsis: if it does not fit at body size it drops one step.
+private struct AttentionTitle: View {
+    let text: String
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(text).font(Theme.Role.body.bold()).fixedSize()
+            Text(text).font(Theme.Role.widgetBody.bold()).fixedSize()
+        }
     }
 }

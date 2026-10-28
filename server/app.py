@@ -707,7 +707,7 @@ async def post_progress(request: Request):
                 db.audit(conn, account["id"], device_id, endpoint, "bad_request:progress")
             raise
         with conn:
-            db.put_progress(conn, account["id"], source, title.strip()[:60],
+            db.put_progress(conn, account["id"], source, desk.clip_title(title, source),
                             numbers["done"], numbers["total"], texts["unit"], texts["eta"], state, texts["note"])
             db.audit(conn, account["id"], device_id, endpoint, f"stored:{source}")
     return {"ok": True, "source": source}

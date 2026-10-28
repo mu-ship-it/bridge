@@ -30,6 +30,7 @@
 		2765087CEFE87C0F227DC6CC /* HostCommandLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2456F94C6D2BAB144BCCFF64 /* HostCommandLine.swift */; };
 		2779736D5B845C5127F6FA9F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F20F0C79EBC19D3E04C82B /* SettingsView.swift */; };
 		286F898CCF34C8B018CEBB86 /* MacWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FB61BEA021F7FD593DE6B27 /* MacWidgetBundle.swift */; };
+		2A3F19A9CEB55ECFEBC7A912 /* FaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D12F5535605223D8A4D4AD2C /* FaceTests.swift */; };
 		2A90E0ABEC18D3FCF9150C0C /* FilesCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBECDC5515CDBDFE3100F2C5 /* FilesCapabilities.swift */; };
 		2AE0D75CC53DD4BC9E3E4D0F /* PhotosRecentCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */; };
 		2BED3FD5D942CA90F403D655 /* HealthSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E87FD5E1B83D9815E538800 /* HealthSync.swift */; };
@@ -92,6 +93,7 @@
 		9A7E8F432EDBFD8C0C9F10D2 /* DutyStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1AF5861890AC1F4D1A6F03 /* DutyStation.swift */; };
 		9AC9545E3E2245AC3B14012A /* SensorsSampleCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0175F22BB9BC0FA9ABE424 /* SensorsSampleCapability.swift */; };
 		9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
+		A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0316A8767AF4342DEF21F449 /* DeskMotion.swift */; };
 		A97E24934FCC62291F707943 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */; };
 		AD02F222665998A7FEC7F39C /* BridgeMacWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8D2EB7002E6C084273E511E4 /* BridgeMacWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -116,6 +118,7 @@
 		D91E477D5416125CFB81335C /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
 		DA0F3172A8EC206D1099C65C /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B038AABA09207670B61959C0 /* WidgetSnapshot.swift */; };
 		DBDD9479C1FAC44E1371C276 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA7B2DB5558491517438CE7 /* Theme.swift */; };
+		DC21CB6FF8FA3E792C604BA5 /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F10FD442F1D74014CF8EF04 /* Face.swift */; };
 		E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */; };
 		E367534174DBFF869614DEB3 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
 		E57056E3E4E693AD7056A996 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
@@ -198,12 +201,14 @@
 		015E0581D699A8D25C81E072 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		02CAB5CF932F536F2A6B8843 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		02FD36AB2E46FCCBEEF4332A /* SuggestRouteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestRouteTests.swift; sourceTree = "<group>"; };
+		0316A8767AF4342DEF21F449 /* DeskMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskMotion.swift; sourceTree = "<group>"; };
 		0358B3C07CEFA620653AAE25 /* DeskShotsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskShotsUITests.swift; sourceTree = "<group>"; };
 		0385F5B6333C919B38409E20 /* DeskBrightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBrightness.swift; sourceTree = "<group>"; };
 		047CE43C56A64BB5733B2D96 /* MotionTodayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionTodayCapability.swift; sourceTree = "<group>"; };
 		09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapperTests.swift; sourceTree = "<group>"; };
 		0C709ADD9653249F93B632A2 /* ContactsSearchCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsSearchCapability.swift; sourceTree = "<group>"; };
 		0CDE9331803FB49785C11FB1 /* BridgeIntentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeIntentsTests.swift; sourceTree = "<group>"; };
+		0F10FD442F1D74014CF8EF04 /* Face.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Face.swift; sourceTree = "<group>"; };
 		14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCapabilities.swift; sourceTree = "<group>"; };
 		151B9555351CFD8BB1CD407C /* BridgeMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeMacApp.swift; sourceTree = "<group>"; };
 		1D35F189A98B879024C07A7D /* BridgeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -282,6 +287,7 @@
 		CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskModels.swift; sourceTree = "<group>"; };
 		CD569E2609284052A144FD01 /* BoardIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardIntent.swift; sourceTree = "<group>"; };
 		CF04B0EDF5D4C52C448E720F /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
+		D12F5535605223D8A4D4AD2C /* FaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceTests.swift; sourceTree = "<group>"; };
 		D2F5D00B260BFBBDA0106D25 /* PhotosRecentCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosRecentCapability.swift; sourceTree = "<group>"; };
 		D35F2CCC98BCF98DE6E439A5 /* BackgroundTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTasks.swift; sourceTree = "<group>"; };
 		D3DC519585B0DB4742B2EBA1 /* MacKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacKeychain.swift; sourceTree = "<group>"; };
@@ -366,8 +372,10 @@
 				0385F5B6333C919B38409E20 /* DeskBrightness.swift */,
 				E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */,
 				CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */,
+				0316A8767AF4342DEF21F449 /* DeskMotion.swift */,
 				287EA21E6F2474B7C3F99947 /* DeskStation.swift */,
 				E08C2256F53E1604D2E2B393 /* DeskView.swift */,
+				0F10FD442F1D74014CF8EF04 /* Face.swift */,
 			);
 			path = Desk;
 			sourceTree = "<group>";
@@ -389,6 +397,7 @@
 				6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */,
 				97153D42C2746170DAE92342 /* DeskTests.swift */,
 				2BDA1FF357095C2C0D238679 /* DutyModeTests.swift */,
+				D12F5535605223D8A4D4AD2C /* FaceTests.swift */,
 				9BC6671EBB2D58C4AE42CF6B /* ForegroundPollerTests.swift */,
 				09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */,
 				D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */,
@@ -875,6 +884,7 @@
 				AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */,
 				FB39450EE5736A89A333389B /* DeskTests.swift in Sources */,
 				1525960468809E2EBC5BD96A /* DutyModeTests.swift in Sources */,
+				2A3F19A9CEB55ECFEBC7A912 /* FaceTests.swift in Sources */,
 				4A161381183A3F22186B42F3 /* ForegroundPollerTests.swift in Sources */,
 				9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */,
 				B04063D9051ECC8E928FBE15 /* HomeCapabilityTests.swift in Sources */,
@@ -952,6 +962,7 @@
 				C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */,
 				C5E72B990F6896E1B635BBAD /* DeskLayout.swift in Sources */,
 				519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */,
+				A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */,
 				54E6126AE9151038370B39C4 /* DeskStation.swift in Sources */,
 				173B2943AC7C44B61EAB6A51 /* DeskView.swift in Sources */,
 				50C65E0A46C6ECB65D4D256C /* DeviceControlCapabilities.swift in Sources */,
@@ -959,6 +970,7 @@
 				062CB24FCB47016385193F6D /* DutyBanner.swift in Sources */,
 				9A7E8F432EDBFD8C0C9F10D2 /* DutyStation.swift in Sources */,
 				FA83B3EF013547E43C6A3E49 /* EventKitCapabilities.swift in Sources */,
+				DC21CB6FF8FA3E792C604BA5 /* Face.swift in Sources */,
 				2A90E0ABEC18D3FCF9150C0C /* FilesCapabilities.swift in Sources */,
 				923FDAA7C8C67EAFCBC881D8 /* ForegroundPoller.swift in Sources */,
 				FB6844C98C285A86CB1CDCE8 /* ForegroundSession.swift in Sources */,

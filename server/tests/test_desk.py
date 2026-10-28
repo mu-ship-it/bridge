@@ -143,7 +143,7 @@ def test_attention_merges_events_and_board_rows_newest_first_minus_acks():
     items = desk.compose_attention(events, acks, boards)
     assert [i["kind"] for i in items] == ["board.over", "board.stalled", "alert", "agent.say"]
     over, stalled, alert, said = items
-    assert over["title"] == "Lanes · red" and over["text"] == "140m / 98m" and over["level"] == "warn"
+    assert over["title"] == "red" and over["text"] == "140m / 98m" and over["level"] == "warn"
     assert stalled["level"] == "info" and stalled["text"] == "no output"
     assert alert["speak"] is True and alert["title"] == "lab box" and alert["level"] == "warn"
     assert said["text"] == "Lunch?" and said["speak"] is False and said["level"] == "info"
@@ -352,3 +352,21 @@ def test_bad_progress_is_a_400(client, account, body):
 
 def test_progress_needs_a_token(client):
     assert client.post("/bridge/progress", json={"source": "a", "title": "x", "done": 1}).status_code == 401
+
+
+def test_attention_titles_are_clipped_to_eight_wide_cjk_counting_two(caplog):
+    with caplog.at_level("WARNING", logger="bridge.desk"):
+        assert desk.clip_title("Google Drive", "fileindex") == "Google D"   # 8 Latin
+        assert desk.clip_title("谷歌云端硬盘") == "谷歌云端"                                # 4 CJK = 8
+        assert desk.clip_title("索引 ok") == "索引 ok"                                      # 2+2+1+... fits
+        assert desk.clip_title("Drive") == "Drive"
+    assert "fileindex" in caplog.text and "clipped" in caplog.text
+    assert len(caplog.records) == 2        # only the two that were cut are logged
+
+
+def test_progress_and_event_titles_reach_the_desk_clipped(client, account):
+    r = client.post("/bridge/progress", headers=bearer(account),
+                    json={"source": "gdrive", "title": "Google Drive download", "done": 1, "total": 2})
+    assert r.status_code == 200
+    items = client.get("/bridge/board/desk", headers=bearer(account)).json()["attention"]
+    assert [i["title"] for i in items if i["kind"] == "progress"] == ["Google D"]

@@ -1,6 +1,7 @@
 import Foundation
 import EventKit
 import Observation
+import SwiftUI
 import UIKit
 
 /// The desk display (值班台): a phone parked on a desk, plugged in, 白手套 on screen all day.
@@ -40,6 +41,14 @@ final class DeskStation {
     private(set) var climateError: String?
     /// The muster lanes, from the Board widget's own fetch (GET /bridge/board/muster).
     private(set) var muster = MusterTile(nil)
+    /// Lanes that just left the board, kept for a moment at 100 % before their rows collapse.
+    private(set) var departing: [MusterTile.Lane] = []
+    /// Bumped whenever a lane's bar crosses a 10 % mark: the face nods.
+    private(set) var nodCount = 0
+    private(set) var awayTracker = AwayTracker()
+    /// When a two-finger tap started the lights-out by hand.
+    private(set) var lightsOutSince: Date?
+    @ObservationIgnored private var laneMarks: [String: Int] = [:]
     /// The next timed event within 24 h on the phone's own calendars; nil without access or events.
     private(set) var nextEvent: NextEvent?
     /// Ids of items that arrived since the screen came up, until their highlight runs out.
@@ -60,6 +69,29 @@ final class DeskStation {
     var roomClimate: ClimateTile { ClimateSourcePolicy.choose(server: payload?.room, homeKit: climate) }
 
     var attention: [DeskPayload.Item] { payload?.attention ?? [] }
+
+    /// What the Lanes tile draws: the board's lanes, then any that just finished.
+    var shownLanes: [MusterTile.Lane] { muster.lanes + departing }
+
+    /// Two-finger tap: lights-out for 60 s; tapping again during it brings the layout back.
+    func toggleLightsOut(now: Date = Date()) {
+        lightsOutSince = BurnIn.lightsOut(at: now, manualSince: lightsOutSince) ? nil : now
+    }
+
+    func isPresent(now: Date = Date()) -> Bool {
+        BrightnessPolicy.isPresent(payload?.presence, fetchedAt: fetchedAt, now: now)
+    }
+
+    /// Called once a second by the desk screen.
+    func trackPresence(now: Date = Date()) { awayTracker.update(present: isPresent(now: now), now: now) }
+
+    func faceInput(now: Date, blink: Bool = false) -> FaceInput {
+        var input = Face.input(attention: attention, seats: payload?.seats ?? [], lanes: muster.lanes.count)
+        input.awayFor = awayTracker.awayFor(now: now)
+        input.glance = NightGlance.isActive(now: now, present: isPresent(now: now))
+        input.blink = blink
+        return input
+    }
 
     /// The screen level the desk wants right now (BrightnessPolicy).
     func brightness(now: Date = Date()) -> CGFloat {
@@ -115,7 +147,10 @@ final class DeskStation {
     func accept(_ fresh: DeskPayload, now: Date = Date()) {
         let arrived = AttentionDiff.newItems(fresh.attention, seen: seen)
         seen = Set(fresh.attention.map(\.id))
-        payload = fresh
+        let removed = !Set(attention.map(\.id)).subtracting(fresh.attention.map(\.id)).isEmpty
+        withAnimation(!arrived.isEmpty ? DeskMotion.itemIn : (removed ? DeskMotion.itemOut : nil)) {
+            payload = fresh
+        }
         fetchedAt = now
         guard !arrived.isEmpty else { return }
         announce(arrived, now: now)
@@ -125,7 +160,30 @@ final class DeskStation {
     /// Never saved from here: what the widget last drew stays the widget's business.
     func refreshMuster() async {
         let snapshot = await SharedStore.fetchBoard(MusterTile.boardName) ?? SharedStore.loadBoard(MusterTile.boardName)
-        muster = MusterTile(snapshot?.board)
+        let fresh = MusterTile(snapshot?.board)
+        let finished = LaneDeparture.finished(old: muster.lanes, new: fresh.lanes)
+        let wait = finished.map { gone in
+            LaneDeparture.wait(previous: muster.lanes.first { $0.id == gone.id })
+        }.max() ?? .zero
+        let crossings = ProgressMarks.crossings(old: laneMarks, lanes: fresh.lanes.map { ($0.id, $0.row.fill) })
+        laneMarks = crossings.marks
+        if crossings.crossed { nodCount += 1 }
+        let appeared = !Set(fresh.lanes.map(\.id)).subtracting(muster.lanes.map(\.id)).isEmpty
+        withAnimation(appeared ? DeskMotion.laneIn : DeskMotion.bar) {
+            muster = fresh
+            departing.removeAll { gone in fresh.lanes.contains { $0.id == gone.id } }
+            departing += finished
+        }
+        if !finished.isEmpty { holdThenCollapse(finished, wait: wait) }
+    }
+
+    /// Each finished lane shows full (the bar's own animation first), holds, then its row collapses.
+    private func holdThenCollapse(_ lanes: [MusterTile.Lane], wait: Duration) {
+        let ids = Set(lanes.map(\.id))
+        Task { [weak self] in
+            try? await Task.sleep(for: wait)
+            withAnimation(DeskMotion.laneOut) { self?.departing.removeAll { ids.contains($0.id) } }
+        }
     }
 
     /// The `calendar.events` capability's source (EventKit), read only when Calendar is already allowed.
@@ -177,8 +235,11 @@ final class DeskStation {
     /// Mu cleared an item: drop it here at once and tell the box (it leaves the list there too).
     func acknowledge(_ item: DeskPayload.Item) async {
         if let current = payload {
-            payload = DeskPayload(time: current.time, weather: current.weather,
-                                  attention: current.attention.filter { $0.id != item.id }, presence: current.presence)
+            withAnimation(DeskMotion.itemOut) {
+                payload = DeskPayload(time: current.time, weather: current.weather, room: current.room,
+                                      attention: current.attention.filter { $0.id != item.id },
+                                      presence: current.presence, seats: current.seats, activity: current.activity)
+            }
         }
         highlighted.remove(item.id)
         guard let config = ConfigStore.load() else { return }

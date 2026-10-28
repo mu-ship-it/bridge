@@ -16,6 +16,8 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
 """
 import hashlib
 import json
+import logging
+import unicodedata
 from pathlib import Path
 import threading
 import time
@@ -33,6 +35,10 @@ ATTENTION_LOOKBACK = timedelta(hours=24)
 ACK_LOOKBACK = timedelta(hours=48)
 ATTENTION_MAX = 20
 ATTENTION_TEXT_MAX = 200
+# House rule: an Attention title is <= 4 CJK characters or one short Latin word. Width 8, CJK counts 2.
+ATTENTION_TITLE_WIDTH = 8
+
+log = logging.getLogger("bridge.desk")
 BOARD_ATTENTION_STATES = ("over", "stalled")
 
 PRESENCE_STALE_SECONDS = 90
@@ -150,6 +156,24 @@ def _clip(text):
     return text if len(text) <= ATTENTION_TEXT_MAX else text[:ATTENTION_TEXT_MAX - 1] + "…"
 
 
+def _width(char):
+    return 2 if unicodedata.east_asian_width(char) in ("W", "F") else 1
+
+
+def clip_title(title, source=None):
+    """An Attention title cut to ATTENTION_TITLE_WIDTH (CJK counts 2), no ellipsis; a cut is logged with its source."""
+    title = " ".join(str(title).split())
+    used, out = 0, []
+    for char in title:
+        if used + _width(char) > ATTENTION_TITLE_WIDTH:
+            log.warning("attention title %r from %s clipped to %r (max %d wide, CJK = 2)",
+                        title, source or "?", "".join(out), ATTENTION_TITLE_WIDTH)
+            break
+        out.append(char)
+        used += _width(char)
+    return "".join(out)
+
+
 def acked_ids(ack_events):
     """Every id named in `attention.ack` events' payload `ids`."""
     ids = set()
@@ -168,7 +192,7 @@ def event_item(event):
     level = payload.get("level") if payload.get("level") in ("info", "warn", "critical") else (
         "warn" if event["type"] == "alert" else "info")
     return {
-        "id": event["id"], "kind": event["type"], "title": _clip(title) if title else None,
+        "id": event["id"], "kind": event["type"], "title": clip_title(title, "event") if title else None,
         "text": _clip(text), "level": level, "ts": event["received"],
         "speak": payload.get("speak") is True, "source": "event",
     }
@@ -192,7 +216,7 @@ def board_items(boards):
                 detail = " · ".join(part for part in (row.get("detail"), row.get("value")) if part)
                 items.append({
                     "id": board_row_id(name, label), "kind": f"board.{row['state']}",
-                    "title": _clip(f"{board.get('title') or name} · {label}"),
+                    "title": clip_title(label or board.get("title") or name, f"board:{name}"),
                     "text": _clip(detail or row["state"]),
                     "level": "warn" if row["state"] == "over" else "info",
                     "ts": received, "speak": False, "source": f"board:{name}",

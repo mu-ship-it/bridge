@@ -130,8 +130,6 @@ import Testing
             // Top bar, grid and the always-present strip use every point: no band at top or bottom.
             let grid = m.gridHeight(screenHeight: size.height)
             #expect(2 * m.margin + m.topBarHeight + m.footerHeight + 2 * m.gap + grid == size.height)
-            // The shift never pushes content past the margin.
-            #expect(CGFloat(LayoutShift.reach) <= m.margin)
         }
     }
 
@@ -140,9 +138,11 @@ import Testing
         #expect(idle == .idle && idle.tiles == [.room, .weather])
         let lanes = DeskState.make(laneCount: 2, attentionCount: 0)
         #expect(lanes == .lanes && lanes.tiles == [.room, .lanes])      // Weather hidden
-        let attention = DeskState.make(laneCount: 2, attentionCount: 1)
-        #expect(attention == .attention && attention.tiles == [.room, .attention, .weather])
-        #expect(attention.roomIsCompact && !idle.roomIsCompact && !lanes.roomIsCompact)
+        let attention = DeskState.make(laneCount: 0, attentionCount: 1)
+        #expect(attention == .attention && attention.tiles == [.room, .attention, .weather] && !attention.weatherInTopRow)
+        let both = DeskState.make(laneCount: 2, attentionCount: 1)       // lanes must not vanish behind Attention
+        #expect(both == .attentionAndLanes && both.tiles == [.room, .attention, .lanes] && both.weatherInTopRow)
+        #expect(attention.roomIsCompact && both.roomIsCompact && !idle.roomIsCompact && !lanes.roomIsCompact)
     }
 
     @Test func aProgressRowDecodesAndAnAreaOfOnlyProgressStillShows() throws {
@@ -163,7 +163,8 @@ import Testing
         #expect(p.attention.map(\.id) == ["e_1", "progress:drive"] && p.attention[0].progress == nil)
         #expect(p.attention[1].isWarning && p.attention[1].progress?.summary == "3")
         let state = DeskState.make(laneCount: 2, attentionCount: p.attention.count)
-        #expect(state.tiles == [.room, .attention, .weather])
+        #expect(state.tiles == [.room, .attention, .lanes])
+        #expect(DeskState.make(laneCount: 0, attentionCount: p.attention.count).tiles == [.room, .attention, .weather])
     }
 
     @Test func readingsScaleWithTheTileAndTakeTheHeightTheSubLineLeaves() {
@@ -225,21 +226,45 @@ import Testing
         #expect(bare.seats.isEmpty && bare.activity == nil)
     }
 
-    @Test func theLayoutShiftsEveryThreeMinutesWithinFourPoints() {
-        let t = Date(timeIntervalSince1970: 1_800_000_000)
-        #expect(LayoutShift.slot(at: t) == LayoutShift.slot(at: t.addingTimeInterval(1)))
-        let next = LayoutShift.nextChange(after: t)
-        #expect(next > t && next.timeIntervalSince(t) <= 180)
-        #expect(LayoutShift.slot(at: next) == LayoutShift.slot(at: t) + 1)
-        #expect(LayoutShift.slot(at: next.addingTimeInterval(-0.001)) == LayoutShift.slot(at: t))
-        var seen = Set<[Int]>()
-        for slot in 0..<500 {
-            let o = LayoutShift.offset(slot: slot)
-            #expect(abs(o.x) <= 4 && abs(o.y) <= 4)
-            #expect(o == LayoutShift.offset(slot: slot))
-            seen.insert([o.x, o.y])
+    private func local(_ h: Int, _ m: Int, _ sec: Int = 0, day: Int = 28) -> (Date, Calendar) {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "America/Phoenix")!
+        return (c.date(from: DateComponents(year: 2026, month: 10, day: day, hour: h, minute: m, second: sec))!, c)
+    }
+
+    @Test func theLayoutStepsExactlyOncePerHourAndNeverBetween() {
+        // Across a whole day the offset is the same at every minute of an hour and different the next hour.
+        for h in 0..<24 {
+            let (start, cal) = local(h, 0)
+            let here = BurnIn.offset(at: start, calendar: cal)
+            for m in [1, 20, 59] {
+                #expect(BurnIn.offset(at: local(h, m, 59).0, calendar: cal) == here)
+                #expect(BurnIn.sweepHour(at: local(h, m).0, calendar: cal) == h)
+            }
+            let (next, _) = local((h + 1) % 24, 0, 0, day: h == 23 ? 29 : 28)
+            #expect(BurnIn.offset(at: next, calendar: cal) != here, "hour \(h)")
+            #expect(BurnIn.sweepHour(at: next, calendar: cal) != h)
         }
-        #expect(seen.count > 50)
+        // Eight distinct points, all on the ±4 grid, never the centre, and the walk repeats every eight hours.
+        let (_, cal) = local(0, 0)
+        let walk = (0..<8).map { BurnIn.offset(at: local($0, 0).0, calendar: cal) }
+        #expect(Set(walk.map { "\($0.x),\($0.y)" }).count == 8)
+        #expect(walk.allSatisfy { abs($0.x) <= BurnIn.reach && abs($0.y) <= BurnIn.reach && ($0.x, $0.y) != (0, 0) })
+        #expect(BurnIn.offset(at: local(9, 0).0, calendar: cal) == walk[1])
+        #expect(BurnIn.stepAt + BurnIn.stepDuration == BurnIn.sweepDuration)   // the step is the tail of the sweep
+        #expect(CGFloat(BurnIn.reach) <= DeskMetrics.make(size: CGSize(width: 375, height: 812)).margin)
+    }
+
+    @Test func lightsOutIsThreeToThreeOhOneOrSixtySecondsFromATap() {
+        let (_, cal) = local(0, 0)
+        func off(_ h: Int, _ m: Int, _ s: Int = 0, manual: Date? = nil) -> Bool {
+            BurnIn.lightsOut(at: local(h, m, s).0, manualSince: manual, calendar: cal)
+        }
+        #expect(!off(2, 59, 59) && off(3, 0) && off(3, 0, 59) && !off(3, 1))
+        let (t, _) = local(14, 0)
+        #expect(BurnIn.lightsOut(at: t.addingTimeInterval(59), manualSince: t, calendar: cal))
+        #expect(!BurnIn.lightsOut(at: t.addingTimeInterval(60), manualSince: t, calendar: cal))
+        #expect(!BurnIn.lightsOut(at: t.addingTimeInterval(-1), manualSince: t, calendar: cal))
     }
 
     @Test func comfortFollowsTheAshraeZone() {
