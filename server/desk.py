@@ -37,6 +37,8 @@ BOARD_ATTENTION_STATES = ("over", "stalled")
 
 PRESENCE_STALE_SECONDS = 90
 ROOM_STALE_SECONDS = 15 * 60
+PROGRESS_STALE_SECONDS = 30 * 60      # a running job that stopped reporting
+PROGRESS_DONE_SECONDS = 10 * 60       # a finished job's row lingers this long
 
 
 def iso(moment):
@@ -198,14 +200,41 @@ def board_items(boards):
     return items
 
 
-def compose_attention(events, ack_events, boards):
-    """Unacked items, newest first, at most ATTENTION_MAX."""
+def progress_items(reports, now):
+    """Latest-per-source progress reports -> attention rows. A running row goes stale after
+    PROGRESS_STALE_SECONDS, a done row expires after PROGRESS_DONE_SECONDS, a failed row stays
+    until acked (id `progress:<source>`)."""
+    items = []
+    for report in reports:
+        age = _age(report["received"], now)
+        state = report["state"]
+        if (state == "running" and age > PROGRESS_STALE_SECONDS) or (
+                state == "done" and age > PROGRESS_DONE_SECONDS):
+            continue
+        done, total = report["done"], report.get("total")
+        pct = None if not total else max(0, min(100, int(round(100 * done / total))))
+        if state == "done":
+            pct = 100
+        items.append({
+            "id": f"progress:{report['source']}", "kind": "progress",
+            "title": report["title"], "done": done, "total": total, "pct": pct,
+            "unit": report.get("unit"), "eta": report.get("eta"), "note": report.get("note"),
+            "state": state, "ts": report["received"],
+        })
+    return items
+
+
+def compose_attention(events, ack_events, boards, progress=None, now=None):
+    """Unacked items, newest first, at most ATTENTION_MAX. Progress rows come after the events."""
     acked = acked_ids(ack_events)
     # Events arrive oldest first; reversed, a same-second tie still reads newest first.
     items = [event_item(event) for event in reversed(events)] + board_items(boards)
     items = [item for item in items if item["id"] not in acked]
     items.sort(key=lambda item: item["ts"], reverse=True)   # stable: ties keep board order
-    return items[:ATTENTION_MAX]
+    rows = [item for item in progress_items(progress or [], now or datetime.now(timezone.utc))
+            if item["id"] not in acked]
+    rows = rows[:ATTENTION_MAX]
+    return items[:ATTENTION_MAX - len(rows)] + rows
 
 
 # ------------------------------------------------------------------ presence

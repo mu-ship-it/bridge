@@ -145,6 +145,27 @@ import Testing
         #expect(attention.roomIsCompact && !idle.roomIsCompact && !lanes.roomIsCompact)
     }
 
+    @Test func aProgressRowDecodesAndAnAreaOfOnlyProgressStillShows() throws {
+        let json = #"{"attention": [{"id": "progress:indexer", "kind": "progress", "title": "文件索引", "done": 6400,"#
+            + #" "total": 11268, "pct": 57, "eta": "04:10", "note": "images 2,100/5,632", "state": "running", "ts": "2026-10-28T12:00:00Z"}]}"#
+        let p = try JSONDecoder().decode(DeskPayload.self, from: Data(json.utf8))
+        let progress = try #require(p.attention.first?.progress)
+        #expect(progress.summary == "6,400 / 11,268 · 预计 04:10" && progress.fraction == 0.57 && !progress.isFailed)
+        #expect(!p.attention[0].isWarning)
+        let state = DeskState.make(laneCount: 0, attentionCount: p.attention.count)
+        #expect(state == .attention && state.tiles.contains(.attention))
+    }
+
+    @Test func progressAlongsideANormalItemKeepsBothAndAFailedOneIsAWarning() throws {
+        let json = #"{"attention": [{"id": "e_1", "kind": "alert", "text": "Backup failed", "level": "warn", "ts": "x"},"#
+            + #" {"id": "progress:drive", "kind": "progress", "title": "Drive", "done": 3, "state": "failed", "ts": "x"}]}"#
+        let p = try JSONDecoder().decode(DeskPayload.self, from: Data(json.utf8))
+        #expect(p.attention.map(\.id) == ["e_1", "progress:drive"] && p.attention[0].progress == nil)
+        #expect(p.attention[1].isWarning && p.attention[1].progress?.summary == "3")
+        let state = DeskState.make(laneCount: 2, attentionCount: p.attention.count)
+        #expect(state.tiles == [.room, .attention, .weather])
+    }
+
     @Test func readingsScaleWithTheTileAndTakeTheHeightTheSubLineLeaves() {
         let small = DeskMetrics.readingSize(tile: CGSize(width: 140, height: 140))
         let big = DeskMetrics.readingSize(tile: CGSize(width: 300, height: 300))

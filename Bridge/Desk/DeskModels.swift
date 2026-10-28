@@ -40,13 +40,37 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         let ts: String
         let speak: Bool
         let source: String?
+        /// Only on `kind == "progress"` rows (a long-running job posted to `/bridge/progress`).
+        let progress: Progress?
 
-        enum CodingKeys: String, CodingKey { case id, kind, title, text, level, ts, speak, source }
+        struct Progress: Decodable, Sendable, Equatable {
+            let done: Double
+            let total: Double?
+            let pct: Int?
+            let eta: String?
+            let note: String?
+            let state: String
+
+            var isFailed: Bool { state == "failed" }
+            var fraction: Double { min(1, max(0, Double(pct ?? 0) / 100)) }
+
+            /// `6,400 / 11,268 · 预计 04:10`; the total and the estimate are left out when unknown.
+            var summary: String {
+                let count = total.map { "\(Self.number(done)) / \(Self.number($0))" } ?? Self.number(done)
+                return eta.map { "\(count) · 预计 \($0)" } ?? count
+            }
+
+            private static func number(_ value: Double) -> String {
+                value.formatted(.number.grouping(.automatic).precision(.fractionLength(0...1)))
+            }
+        }
+
+        enum CodingKeys: String, CodingKey { case id, kind, title, text, level, ts, speak, source, done, total, pct, eta, note, state }
 
         init(id: String, kind: String, title: String? = nil, text: String, level: String = "info",
-             ts: String, speak: Bool = false, source: String? = nil) {
-            (self.id, self.kind, self.title, self.text, self.level, self.ts, self.speak, self.source) =
-                (id, kind, title, text, level, ts, speak, source)
+             ts: String, speak: Bool = false, source: String? = nil, progress: Progress? = nil) {
+            (self.id, self.kind, self.title, self.text, self.level, self.ts, self.speak, self.source, self.progress) =
+                (id, kind, title, text, level, ts, speak, source, progress)
         }
 
         init(from decoder: Decoder) throws {
@@ -59,9 +83,16 @@ struct DeskPayload: Decodable, Sendable, Equatable {
             ts = try c.decodeIfPresent(String.self, forKey: .ts) ?? ""
             speak = try c.decodeIfPresent(Bool.self, forKey: .speak) ?? false
             source = try c.decodeIfPresent(String.self, forKey: .source)
+            progress = kind == "progress" ? Progress(
+                done: try c.decodeIfPresent(Double.self, forKey: .done) ?? 0,
+                total: try c.decodeIfPresent(Double.self, forKey: .total),
+                pct: try c.decodeIfPresent(Int.self, forKey: .pct),
+                eta: try c.decodeIfPresent(String.self, forKey: .eta),
+                note: try c.decodeIfPresent(String.self, forKey: .note),
+                state: try c.decodeIfPresent(String.self, forKey: .state) ?? "running") : nil
         }
 
-        var isWarning: Bool { level == "warn" || level == "critical" }
+        var isWarning: Bool { level == "warn" || level == "critical" || progress?.isFailed == true }
     }
 
     struct Presence: Decodable, Sendable, Equatable {

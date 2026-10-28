@@ -361,6 +361,14 @@ private struct AttentionRow: View {
     let acknowledge: () -> Void
 
     var body: some View {
+        if let progress = item.progress {
+            ProgressRow(title: item.title ?? "", progress: progress, acknowledge: progress.isFailed ? acknowledge : nil)
+        } else {
+            noteRow
+        }
+    }
+
+    private var noteRow: some View {
         HStack(alignment: .top, spacing: Theme.Space.s8) {
             Image(systemName: item.isWarning ? "exclamationmark.triangle.fill" : "circle.fill")
                 .font(item.isWarning ? Theme.Role.body : Theme.Role.meta)
@@ -387,6 +395,41 @@ private struct AttentionRow: View {
             if item.isWarning { Rectangle().fill(Theme.red).frame(width: Theme.Space.s4) }
         }
         .animation(.easeOut(duration: 0.3), value: highlighted)
+    }
+}
+
+/// One long-running job: title left, `6,400 / 11,268 · 预计 04:10` right, a thin bar, the note in mono.
+/// The bar is white, red when the job failed; only a failed row can be cleared by hand.
+private struct ProgressRow: View {
+    let title: String
+    let progress: DeskPayload.Item.Progress
+    let acknowledge: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s4) {
+            HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s8) {
+                Text(title).font(Theme.Role.body.bold()).lineLimit(1)
+                Spacer(minLength: 0)
+                Text(progress.summary).font(Theme.Role.meta.monospacedDigit()).lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let acknowledge {
+                    Button(action: acknowledge) { Image(systemName: "checkmark.square").font(Theme.Role.section) }
+                        .accessibilityLabel(Text("Clear"))
+                }
+            }
+            Rectangle().fill(Theme.line).frame(height: 6)
+                .overlay(alignment: .leading) {
+                    GeometryReader { box in
+                        Rectangle().fill(progress.isFailed ? Theme.red : Theme.text)
+                            .frame(width: box.size.width * progress.fraction)
+                    }
+                }
+            if let note = progress.note, !note.isEmpty {
+                Text(note).font(.system(.caption, design: .monospaced)).foregroundStyle(Theme.dim).lineLimit(1)
+            }
+        }
+        .padding(Theme.Space.s8)
+        .accessibilityElement(children: .combine)
     }
 }
 

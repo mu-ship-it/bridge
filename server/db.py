@@ -140,6 +140,22 @@ CREATE TABLE IF NOT EXISTS room (
     PRIMARY KEY (account_id, source)
 );
 
+-- Long-running jobs (a file indexer, a Drive download) report here; the desk's Attention area
+-- shows the latest row per source.
+CREATE TABLE IF NOT EXISTS progress (
+    account_id TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    title      TEXT NOT NULL,
+    done       REAL NOT NULL,
+    total      REAL,
+    unit       TEXT,
+    eta        TEXT,
+    state      TEXT NOT NULL,
+    note       TEXT,
+    received   TEXT NOT NULL,
+    PRIMARY KEY (account_id, source)
+);
+
 -- Append-only: rows may be written and (only by purge_device) erased, never rewritten.
 CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit
 BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -595,6 +611,29 @@ def list_room(conn, account_id):
     ).fetchall()
     return [{"source": row["source"], "temp_c": row["temp_c"], "humidity": row["humidity"],
              "received": row["received"]} for row in rows]
+
+
+# ---------------------------------------------------------------- progress
+
+def put_progress(conn, account_id, source, title, done, total, unit, eta, state, note, received=None):
+    conn.execute(
+        "INSERT INTO progress (account_id, source, title, done, total, unit, eta, state, note, received)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        " ON CONFLICT (account_id, source) DO UPDATE SET title = excluded.title, done = excluded.done,"
+        " total = excluded.total, unit = excluded.unit, eta = excluded.eta, state = excluded.state,"
+        " note = excluded.note, received = excluded.received",
+        (account_id, source, title, done, total, unit, eta, state, note, received or now_iso()),
+    )
+
+
+def list_progress(conn, account_id):
+    """[{source, title, done, total, unit, eta, state, note, received}], freshest first."""
+    rows = conn.execute(
+        "SELECT source, title, done, total, unit, eta, state, note, received FROM progress"
+        " WHERE account_id = ? ORDER BY received DESC, source",
+        (account_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 # ---------------------------------------------------------------- events

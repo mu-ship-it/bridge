@@ -25,6 +25,23 @@ def now_iso():
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def desk_fixture():
+    """The desk payload for screenshots: a note and a running indexer job (state C with progress)."""
+    now = now_iso()
+    return {
+        "time": {"now": now, "tz": "America/Los_Angeles", "utc_offset_s": -25200},
+        "weather": None,
+        "room": {"temp_c": 23.4, "humidity": 47.0, "source": "study", "age_s": 20, "stale": False},
+        "attention": [
+            {"id": "e_1", "kind": "alert", "title": "lab box", "text": "Backup failed", "level": "warn",
+             "ts": now, "speak": False, "source": None},
+            {"id": "progress:indexer", "kind": "progress", "title": "文件索引", "done": 6400, "total": 11268,
+             "pct": 57, "unit": "files", "eta": "04:10", "note": "images 2,100/5,632", "state": "running", "ts": now},
+        ],
+        "presence": None, "seats": [], "activity": None,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     token = "devtoken"
 
@@ -68,6 +85,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/bridge/events":
             if self._authed(True):
                 self._send(200, {"events": EVENTS[-100:]})
+        elif path == "/bridge/board/desk":
+            if self._authed(True):
+                self._send(200, desk_fixture())
         elif path == "/bridge/jobs":
             if not self._authed(True):
                 return

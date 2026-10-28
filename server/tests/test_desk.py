@@ -296,3 +296,59 @@ def test_desk_payload_carries_seats_and_activity(client, account, monkeypatch, t
     body = client.get("/bridge/board/desk", headers=bearer(account)).json()
     assert [(s["name"], s["pct"]) for s in body["seats"]] == [("Max", 26), ("Team", 4)]
     assert body["activity"]["steps"] == 871 and body["activity"]["move_pct"] is None
+
+
+# ------------------------------------------------------------------ progress
+
+NOW = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
+
+
+def report(state="running", age_s=0, **over):
+    received = desk.iso(NOW - timedelta(seconds=age_s))
+    return {"source": "indexer", "title": "文件索引", "done": 6400.0, "total": 11268.0, "unit": "files",
+            "eta": "04:10", "state": state, "note": "images 2,100/5,632", "received": received, **over}
+
+
+def test_a_running_progress_row_follows_the_events():
+    events = [event("e_1", "notify", "hi")]
+    items = desk.compose_attention(events, [], [], [report()], NOW)
+    assert items[0]["kind"] != "progress"
+    row = items[-1]
+    assert row["kind"] == "progress" and row["id"] == "progress:indexer" and row["pct"] == 57
+    assert (row["title"], row["done"], row["total"], row["eta"], row["state"]) == ("文件索引", 6400.0, 11268.0, "04:10", "running")
+    assert row["note"] == "images 2,100/5,632" and len(items) == 2
+
+
+def test_a_done_progress_row_expires_and_a_stale_running_one_drops():
+    assert desk.compose_attention([], [], [], [report("done", age_s=300, done=11268.0)], NOW)[0]["pct"] == 100
+    assert desk.compose_attention([], [], [], [report("done", age_s=601)], NOW) == []
+    assert desk.compose_attention([], [], [], [report(age_s=29 * 60)], NOW) != []
+    assert desk.compose_attention([], [], [], [report(age_s=31 * 60)], NOW) == []
+
+
+def test_a_failed_progress_row_stays_until_acked():
+    failed = report("failed", age_s=3 * 3600)
+    assert len(desk.compose_attention([], [], [], [failed], NOW)) == 1
+    ack = event("e_9", "attention.ack", payload={"ids": ["progress:indexer"]})
+    assert desk.compose_attention([], [ack], [], [failed], NOW) == []
+
+
+def test_progress_is_posted_and_served_on_the_desk(client, account):
+    body = {"source": "indexer", "title": "文件索引", "done": 6400, "total": 11268, "unit": "files",
+            "eta": "04:10", "state": "running", "note": "images 2,100/5,632"}
+    assert client.post("/bridge/progress", headers=bearer(account), json=body).status_code == 200
+    client.post("/bridge/progress", headers=bearer(account), json={**body, "done": 7000})
+    rows = [i for i in client.get("/bridge/board/desk", headers=bearer(account)).json()["attention"] if i["kind"] == "progress"]
+    assert len(rows) == 1 and rows[0]["done"] == 7000 and rows[0]["pct"] == 62
+
+
+@pytest.mark.parametrize("body", [
+    {}, {"source": "Bad", "title": "x", "done": 1}, {"source": "a", "done": 1}, {"source": "a", "title": "x", "done": -1},
+    {"source": "a", "title": "x", "done": 1, "state": "paused"}, {"source": "a", "title": "x", "done": True},
+])
+def test_bad_progress_is_a_400(client, account, body):
+    assert client.post("/bridge/progress", headers=bearer(account), json=body).status_code == 400
+
+
+def test_progress_needs_a_token(client):
+    assert client.post("/bridge/progress", json={"source": "a", "title": "x", "done": 1}).status_code == 401

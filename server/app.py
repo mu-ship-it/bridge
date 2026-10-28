@@ -666,6 +666,53 @@ async def post_room(request: Request):
     return {"ok": True, "source": source}
 
 
+PROGRESS_STATES = ("running", "done", "failed")
+
+
+@app.post("/bridge/progress")
+async def post_progress(request: Request):
+    """A long-running job reports. Body {source, title, done, total, unit, eta, state, note};
+    the latest report per source is kept and shown in the desk's Attention area."""
+    endpoint = "POST /bridge/progress"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        try:
+            source = body.get("source")
+            if not isinstance(source, str) or not PRESENCE_SOURCE.match(source):
+                raise BadRequest("source must match [a-z0-9][a-z0-9._-]{0,31}")
+            title = body.get("title")
+            if not isinstance(title, str) or not title.strip():
+                raise BadRequest("title must be a non-empty string")
+            state = body.get("state", "running")
+            if state not in PROGRESS_STATES:
+                raise BadRequest("state must be running, done or failed")
+            numbers = {}
+            for key in ("done", "total"):
+                value = body.get(key)
+                if value is None and (key == "total" or state != "running"):
+                    numbers[key] = None if key == "total" else 0.0
+                    continue
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                    raise BadRequest(f"{key} must be a number >= 0")
+                numbers[key] = float(value)
+            texts = {}
+            for key, limit in (("unit", 16), ("eta", 32), ("note", 120)):
+                value = body.get(key)
+                if value is not None and not isinstance(value, str):
+                    raise BadRequest(f"{key} must be a string or null")
+                texts[key] = value[:limit] if value else None
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:progress")
+            raise
+        with conn:
+            db.put_progress(conn, account["id"], source, title.strip()[:60],
+                            numbers["done"], numbers["total"], texts["unit"], texts["eta"], state, texts["note"])
+            db.audit(conn, account["id"], device_id, endpoint, f"stored:{source}")
+    return {"ok": True, "source": source}
+
+
 @app.get("/bridge/board/desk")
 def get_desk(request: Request):
     """For the desk display: {time, weather, room, attention[], presence, seats[], activity}, composed per request
@@ -681,7 +728,7 @@ def get_desk(request: Request):
         acks = [db.event_dict(row) for row in db.events_of_types_since(
             conn, account["id"], (desk.ACK_TYPE,), ack_since, limit=1000)]
         boards = [b for b in db.list_boards(conn, account["id"]) if b[0] != DESK_BOARD]
-        attention = desk.compose_attention(events, acks, boards)
+        attention = desk.compose_attention(events, acks, boards, db.list_progress(conn, account["id"]), now)
         seats = desk.compose_seats(db.list_boards(conn, account["id"]))
         presence = desk.summarize_presence(db.list_presence(conn, account["id"]), now)
         room = desk.summarize_room(db.list_room(conn, account["id"]), now)
