@@ -147,4 +147,29 @@ import Testing
         }
         #expect(seen.count > 50)
     }
+
+    @Test func comfortFollowsTheAshraeZone() {
+        #expect(ComfortPolicy.assess(tempC: 20, humidity: 30) == .comfortable)
+        #expect(ComfortPolicy.assess(tempC: 26, humidity: 60) == .comfortable)
+        #expect(ComfortPolicy.assess(tempC: 19.9, humidity: 45) == .chilly)
+        #expect(ComfortPolicy.assess(tempC: 26.1, humidity: 45) == .warm)
+        #expect(ComfortPolicy.assess(tempC: 22, humidity: 29) == .dry)
+        #expect(ComfortPolicy.assess(tempC: 22, humidity: 61) == .humid)
+        #expect(ComfortPolicy.assess(tempC: 18, humidity: 80) == .chilly)
+        #expect(ComfortPolicy.assess(tempC: 30, humidity: 10) == .warm)
+        #expect(ComfortPolicy.assess(tempC: nil, humidity: 40) == .unknown)
+        #expect(ComfortPolicy.assess(tempC: 22, humidity: nil) == .unknown)
+    }
+
+    @Test func apparentTemperatureMatchesKnownValues() {
+        #expect(abs(ComfortPolicy.apparentTemperature(tempC: 25, humidity: 50) - 26.2) < 0.1)
+        #expect(abs(ComfortPolicy.apparentTemperature(tempC: 30, humidity: 70) - 35.8) < 0.1)
+    }
+
+    @Test func feelsLikeShowsOnlyWhenItDiffersByADegree() {
+        #expect(ComfortPolicy.feelsLike(tempC: 22, humidity: 40) == nil)
+        #expect(ComfortPolicy.feelsLike(tempC: 25, humidity: 50) == 26)
+        #expect(ComfortPolicy.feelsLike(tempC: 30, humidity: 70) == 36)
+        #expect(ComfortPolicy.feelsLike(tempC: nil, humidity: 70) == nil)
+    }
 }

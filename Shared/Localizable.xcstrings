@@ -1343,6 +1343,72 @@
         }
       }
     },
+    "Comfortable": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "舒适"
+          }
+        }
+      }
+    },
+    "Chilly": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏冷"
+          }
+        }
+      }
+    },
+    "Warm": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏热"
+          }
+        }
+      }
+    },
+    "Dry": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太干"
+          }
+        }
+      }
+    },
+    "Humid": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "太湿"
+          }
+        }
+      }
+    },
+    "feels %lld°": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "体感 %lld°"
+          }
+        }
+      }
+    },
     "Room": {
       "extractionState": "manual",
       "localizations": {

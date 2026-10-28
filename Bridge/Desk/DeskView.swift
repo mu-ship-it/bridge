@@ -117,8 +117,31 @@ struct DeskView: View {
                 Image(systemName: "humidity.fill")
             }
             .accessibilityLabel(Text("Humidity \(climate.humidity)"))
+            comfortLine(climate)
             Text(climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
                 .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(3)
+        }
+    }
+
+    @ViewBuilder private func comfortLine(_ climate: ClimateTile) -> some View {
+        let comfort = ComfortPolicy.assess(tempC: climate.celsius, humidity: climate.humidityPercent)
+        if let word = comfort.word {
+            HStack(spacing: Theme.Space.s8) {
+                Text(LocalizedStringKey(word)).font(Theme.Role.section.bold())
+                    .foregroundStyle(Self.comfortColor(comfort))
+                if let feels = ComfortPolicy.feelsLike(tempC: climate.celsius, humidity: climate.humidityPercent) {
+                    Text("feels \(feels)°").font(Theme.Role.data).foregroundStyle(Theme.dim)
+                }
+            }
+            .lineLimit(1).minimumScaleFactor(0.8)
+        }
+    }
+
+    private static func comfortColor(_ comfort: Comfort) -> Color {
+        switch comfort {
+        case .chilly, .dry: Color(hex: 0xffb020)
+        case .warm, .humid: Color(hex: 0xff5a1f)
+        case .comfortable, .unknown: Theme.dim
         }
     }
 

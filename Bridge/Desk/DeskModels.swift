@@ -137,11 +137,60 @@ struct ClimateTile: Equatable, Sendable {
     let temperature: String
     let humidity: String
     let sensor: String?
+    /// The raw readings, kept so the comfort word is computed from numbers, not parsed text.
+    let celsius: Double?
+    let humidityPercent: Double?
 
     init(celsius: Double?, humidity: Double?, sensor: String?) {
+        self.celsius = celsius
+        humidityPercent = humidity
         temperature = celsius.map { String(format: "%.1f°", $0) } ?? DeskText.missing
         self.humidity = humidity.map { "\(Int($0.rounded()))%" } ?? DeskText.missing
         self.sensor = sensor
+    }
+}
+
+/// One-word verdict on a room reading, against the ASHRAE 55 comfort zone.
+enum Comfort: Equatable, Sendable {
+    case comfortable, chilly, warm, dry, humid, unknown
+
+    /// English catalog key (shown localized); nil when there is nothing to say.
+    var word: String? {
+        switch self {
+        case .comfortable: "Comfortable"
+        case .chilly: "Chilly"
+        case .warm: "Warm"
+        case .dry: "Dry"
+        case .humid: "Humid"
+        case .unknown: nil
+        }
+    }
+}
+
+/// Pure: comfort verdict and apparent temperature for the Room tile.
+enum ComfortPolicy {
+    /// 20…26 °C and 30…60 % RH is comfortable. Temperature outranks humidity.
+    static func assess(tempC: Double?, humidity: Double?) -> Comfort {
+        guard let tempC, let humidity else { return .unknown }
+        if tempC < 20 { return .chilly }
+        if tempC > 26 { return .warm }
+        if humidity < 30 { return .dry }
+        if humidity > 60 { return .humid }
+        return .comfortable
+    }
+
+    /// Steadman / Australian BoM apparent temperature, no wind:
+    /// AT = T + 0.33·e − 4.0, e = (RH/100)·6.105·exp(17.27·T/(237.7+T)).
+    static func apparentTemperature(tempC: Double, humidity: Double) -> Double {
+        let e = (humidity / 100) * 6.105 * exp(17.27 * tempC / (237.7 + tempC))
+        return tempC + 0.33 * e - 4.0
+    }
+
+    /// The rounded "feels" value, only when it differs from the air temperature by ≥ 1 °C.
+    static func feelsLike(tempC: Double?, humidity: Double?) -> Int? {
+        guard let tempC, let humidity else { return nil }
+        let at = apparentTemperature(tempC: tempC, humidity: humidity)
+        return abs(at - tempC) >= 1 ? Int(at.rounded()) : nil
     }
 }
 
