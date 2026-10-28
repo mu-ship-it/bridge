@@ -53,6 +53,9 @@ final class DeskStation {
         DutyStation.shared.deskShowing = showing
     }
 
+    /// What the Room tile shows: the box's sensor reading, else HomeKit's.
+    var roomClimate: ClimateTile { ClimateSourcePolicy.choose(server: payload?.room, homeKit: climate) }
+
     var attention: [DeskPayload.Item] { payload?.attention ?? [] }
 
     /// The screen level the desk wants right now (BrightnessPolicy).

@@ -27,6 +27,35 @@ import Testing
         #expect(p.presence?.present == true && p.presence?.ageS == 12 && p.presence?.staleAfterS == 90)
     }
 
+    @Test func theRoomTilePrefersAFreshBoxReading() {
+        let homeKit = ClimateTile(celsius: 20, humidity: 40, sensor: "HomePod mini")
+        let fresh = DeskPayload.Room(tempC: 23.4, humidity: 47, source: "study", ageS: 30)
+        let tile = ClimateSourcePolicy.choose(server: fresh, homeKit: homeKit)
+        #expect(tile.temperature == "23.4°" && tile.humidity == "47%" && tile.sensor == "study · HA")
+    }
+
+    @Test func theRoomTileFallsBackToHomeKitWhenTheBoxHasNoneOrIsStale() {
+        let homeKit = ClimateTile(celsius: 20, humidity: 40, sensor: "HomePod mini")
+        let stale = DeskPayload.Room(tempC: 23.4, humidity: 47, source: "study", ageS: 1_200, stale: true)
+        #expect(ClimateSourcePolicy.choose(server: nil, homeKit: homeKit) == homeKit)
+        #expect(ClimateSourcePolicy.choose(server: DeskPayload.Room(), homeKit: homeKit) == homeKit)
+        #expect(ClimateSourcePolicy.choose(server: stale, homeKit: homeKit) == homeKit)
+    }
+
+    @Test func aStaleBoxReadingBeatsNothing() {
+        let none = ClimateTile(celsius: nil, humidity: nil, sensor: nil)
+        let stale = DeskPayload.Room(tempC: 23.4, humidity: nil, source: "study", ageS: 1_200, stale: true)
+        let tile = ClimateSourcePolicy.choose(server: stale, homeKit: none)
+        #expect(tile.temperature == "23.4°" && tile.humidity == "—" && tile.sensor == "study · HA · 20m")
+        #expect(ClimateSourcePolicy.choose(server: nil, homeKit: none) == none)
+    }
+
+    @Test func decodesTheRoomObject() throws {
+        let json = #"{"room": {"temp_c": 23.4, "humidity": null, "source": "study", "age_s": 12, "stale": false}}"#
+        let p = try JSONDecoder().decode(DeskPayload.self, from: Data(json.utf8))
+        #expect(p.room?.tempC == 23.4 && p.room?.humidity == nil && p.room?.source == "study")
+    }
+
     @Test func decodesAThinPayload() throws {
         let p = try JSONDecoder().decode(DeskPayload.self, from: Data(#"{"weather": null, "attention": [{"id": "x", "kind": "notify"}]}"#.utf8))
         #expect(p.weather == nil && p.time == nil && p.presence == nil)

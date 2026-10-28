@@ -109,14 +109,15 @@ struct DeskView: View {
 
     private var roomTile: some View {
         DeskTile(label: "Room") {
-            Text(desk.climate.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
+            let climate = desk.roomClimate
+            Text(climate.temperature).font(Theme.Role.reading).lineLimit(1).minimumScaleFactor(0.4)
             Label {
-                Text(desk.climate.humidity).font(Theme.Role.section.bold()).monospacedDigit()
+                Text(climate.humidity).font(Theme.Role.section.bold()).monospacedDigit()
             } icon: {
                 Image(systemName: "humidity.fill")
             }
-            .accessibilityLabel(Text("Humidity \(desk.climate.humidity)"))
-            Text(desk.climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
+            .accessibilityLabel(Text("Humidity \(climate.humidity)"))
+            Text(climate.sensor ?? desk.climateError ?? String(localized: "No sensor"))
                 .font(Theme.Role.data).foregroundStyle(Theme.dim).lineLimit(3)
         }
     }

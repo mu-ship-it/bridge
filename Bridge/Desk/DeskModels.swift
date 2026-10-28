@@ -76,21 +76,49 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         }
     }
 
+    /// The latest reading a room sensor posted to the box (Home Assistant); null fields when none yet.
+    struct Room: Decodable, Sendable, Equatable {
+        let tempC: Double?
+        let humidity: Double?
+        let source: String?
+        let ageS: Int?
+        let stale: Bool
+
+        enum CodingKeys: String, CodingKey { case tempC = "temp_c", humidity, source, ageS = "age_s", stale }
+
+        init(tempC: Double? = nil, humidity: Double? = nil, source: String? = nil, ageS: Int? = nil, stale: Bool = false) {
+            (self.tempC, self.humidity, self.source, self.ageS, self.stale) = (tempC, humidity, source, ageS, stale)
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            tempC = try c.decodeIfPresent(Double.self, forKey: .tempC)
+            humidity = try c.decodeIfPresent(Double.self, forKey: .humidity)
+            source = try c.decodeIfPresent(String.self, forKey: .source)
+            ageS = try c.decodeIfPresent(Int.self, forKey: .ageS)
+            stale = try c.decodeIfPresent(Bool.self, forKey: .stale) ?? false
+        }
+
+        var hasValue: Bool { tempC != nil || humidity != nil }
+    }
+
     let time: Time?
     let weather: Weather?
+    let room: Room?
     let attention: [Item]
     let presence: Presence?
 
-    enum CodingKeys: String, CodingKey { case time, weather, attention, presence }
+    enum CodingKeys: String, CodingKey { case time, weather, room, attention, presence }
 
-    init(time: Time? = nil, weather: Weather? = nil, attention: [Item] = [], presence: Presence? = nil) {
-        (self.time, self.weather, self.attention, self.presence) = (time, weather, attention, presence)
+    init(time: Time? = nil, weather: Weather? = nil, room: Room? = nil, attention: [Item] = [], presence: Presence? = nil) {
+        (self.time, self.weather, self.room, self.attention, self.presence) = (time, weather, room, attention, presence)
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         time = try c.decodeIfPresent(Time.self, forKey: .time)
         weather = try c.decodeIfPresent(Weather.self, forKey: .weather)
+        room = try c.decodeIfPresent(Room.self, forKey: .room)
         attention = try c.decodeIfPresent([Item].self, forKey: .attention) ?? []
         presence = try c.decodeIfPresent(Presence.self, forKey: .presence)
     }
@@ -103,7 +131,8 @@ enum DeskText {
     static let missing = "—"
 }
 
-/// Tile 2: the room's temperature and humidity, read from HomeKit on this phone.
+/// Tile 2: the room's temperature and humidity, from the box (a Home Assistant sensor) or,
+/// failing that, from HomeKit on this phone.
 struct ClimateTile: Equatable, Sendable {
     let temperature: String
     let humidity: String
@@ -113,6 +142,33 @@ struct ClimateTile: Equatable, Sendable {
         temperature = celsius.map { String(format: "%.1f°", $0) } ?? DeskText.missing
         self.humidity = humidity.map { "\(Int($0.rounded()))%" } ?? DeskText.missing
         self.sensor = sensor
+    }
+}
+
+/// Which reading the Room tile shows. Pure, so the policy is tested.
+enum ClimateSourcePolicy {
+    /// The box's reading when it has one and it is fresh; else HomeKit's when it has a value;
+    /// else the box's stale reading (captioned with its age) rather than nothing; else empty.
+    static func choose(server: DeskPayload.Room?, homeKit: ClimateTile) -> ClimateTile {
+        if let server, server.hasValue, !server.stale {
+            return tile(server, caption: caption(server))
+        }
+        if homeKit.temperature != DeskText.missing || homeKit.humidity != DeskText.missing {
+            return homeKit
+        }
+        if let server, server.hasValue {
+            let minutes = (server.ageS ?? 0) / 60
+            return tile(server, caption: "\(caption(server)) · \(minutes)m")
+        }
+        return homeKit
+    }
+
+    private static func caption(_ room: DeskPayload.Room) -> String {
+        "\(room.source ?? "box") · HA"
+    }
+
+    private static func tile(_ room: DeskPayload.Room, caption: String) -> ClimateTile {
+        ClimateTile(celsius: room.tempC, humidity: room.humidity, sensor: caption)
     }
 }
 
