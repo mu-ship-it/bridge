@@ -114,5 +114,5 @@ struct FaceTests {
 }
 
 extension Mood: CaseIterable {
-    public static var allCases: [Mood] { [.calm, .blink, .busy, .alarmed, .stern, .asleep, .sideEye] }
+    public static var allCases: [Mood] { [.calm, .blink, .busy, .alarmed, .stern, .asleep, .sideEye, .perky] }
 }

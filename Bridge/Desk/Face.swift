@@ -3,7 +3,7 @@ import Foundation
 /// The desk's face: five to nine ASCII characters whose mood is a pure function of what the desk
 /// shows. `Face.rules` is the one table; the first rule that holds wins, so its order is the precedence.
 enum Mood: Equatable, Sendable {
-    case calm, blink, busy, alarmed, stern, asleep, sideEye
+    case calm, blink, busy, alarmed, stern, asleep, sideEye, perky
 
     /// The face itself.
     var face: String {
@@ -15,6 +15,7 @@ enum Mood: Equatable, Sendable {
         case .stern: "(ಠ_ಠ)"
         case .asleep: "(-_-)"
         case .sideEye: "(¬_¬)"
+        case .perky: "(^‿^)"
         }
     }
 
@@ -35,6 +36,8 @@ struct FaceInput: Equatable, Sendable {
     var awayFor: TimeInterval = 0
     /// Inside the 5 s night glance (it already requires Mu to be present).
     var glance = false
+    /// The desk camera sees him looking at the screen (CamPresence).
+    var looking = false
     /// The 120 ms blink, switched by the view's own timer.
     var blink = false
 }
@@ -42,13 +45,14 @@ struct FaceInput: Equatable, Sendable {
 enum Face {
     static let awayAfter: TimeInterval = 120
 
-    /// Precedence, top to bottom: failed/seat > attention > lanes > away > night glance > idle.
+    /// Precedence, top to bottom: failed/seat > attention > lanes > away > night glance > looking > idle.
     static let rules: [(mood: @Sendable (FaceInput) -> Mood, when: @Sendable (FaceInput) -> Bool)] = [
         ({ _ in .stern }, { $0.failed || $0.topSeat >= SeatsLine.redFrom }),
         ({ _ in .alarmed }, { $0.attention > 0 }),
         ({ _ in .busy }, { $0.lanes > 0 }),
         ({ _ in .asleep }, { $0.awayFor >= awayAfter }),
         ({ _ in .sideEye }, { $0.glance }),
+        ({ _ in .perky }, { $0.looking }),
         ({ $0.blink ? .blink : .calm }, { _ in true }),
     ]
 

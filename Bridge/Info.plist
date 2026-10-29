@@ -50,7 +50,7 @@
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Bridge lists your upcoming calendar events when your server asks, and sends them only to the server URL you configure.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Bridge opens the camera on screen when your server asks for a photo or a barcode scan. You see what the camera sees the whole time, and you take photos yourself.</string>
+	<string>Bridge opens the camera on screen when your server asks for a photo or a barcode scan. You see what the camera sees the whole time, and you take photos yourself. On the Desk screen, the front camera checks whether you are at the desk and looking at it; frames are analysed on the phone and never stored or sent, only that state is.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Bridge looks up a contact's name, phone numbers and emails when your server asks, and sends at most 20 matches to the server URL you configure.</string>
 	<key>NSHealthShareUsageDescription</key>

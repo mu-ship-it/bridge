@@ -56,6 +56,12 @@ final class DeskStation {
     /// When the newest item arrived (phase 3: forces the screen bright for a while).
     private(set) var lastArrival: Date?
     @ObservationIgnored private var seen: Set<String>?
+    /// The front camera's view of Mu (CamPresence); `unknown` while it is off.
+    private(set) var cam = CamDetector()
+    /// Critical heat stopped the camera: the Attention list says so (never silent).
+    private(set) var camPausedForHeat = false
+    @ObservationIgnored private let camera = DeskCamera()
+    @ObservationIgnored private var cameraRunning = false
 
     private init() {
         let defaults = UserDefaults.standard
@@ -68,7 +74,7 @@ final class DeskStation {
     /// What the Room tile shows: the box's sensor reading, else HomeKit's.
     var roomClimate: ClimateTile { ClimateSourcePolicy.choose(server: payload?.room, homeKit: climate) }
 
-    var attention: [DeskPayload.Item] { payload?.attention ?? [] }
+    var attention: [DeskPayload.Item] { (camPausedForHeat ? [CamHeat.item] : []) + (payload?.attention ?? []) }
 
     /// What the Lanes tile draws: the board's lanes, then any that just finished.
     var shownLanes: [MusterTile.Lane] { muster.lanes + departing }
@@ -78,8 +84,9 @@ final class DeskStation {
         lightsOutSince = BurnIn.lightsOut(at: now, manualSince: lightsOutSince) ? nil : now
     }
 
+    /// The camera's own opinion when it has one, else the box's presence.
     func isPresent(now: Date = Date()) -> Bool {
-        BrightnessPolicy.isPresent(payload?.presence, fetchedAt: fetchedAt, now: now)
+        BrightnessPolicy.isPresent(camera: cam.state(now: now), payload?.presence, fetchedAt: fetchedAt, now: now)
     }
 
     /// Called once a second by the desk screen.
@@ -89,14 +96,17 @@ final class DeskStation {
         var input = Face.input(attention: attention, seats: payload?.seats ?? [], lanes: muster.lanes.count)
         input.awayFor = awayTracker.awayFor(now: now)
         input.glance = NightGlance.isActive(now: now, present: isPresent(now: now))
+        input.looking = cam.state(now: now) == .looking
         input.blink = blink
         return input
     }
 
     /// The screen level the desk wants right now (BrightnessPolicy).
     func brightness(now: Date = Date()) -> CGFloat {
-        BrightnessPolicy.level(present: BrightnessPolicy.isPresent(payload?.presence, fetchedAt: fetchedAt, now: now),
-                               lastArrival: lastArrival, now: now)
+        let state = cam.state(now: now)
+        return BrightnessPolicy.level(present: isPresent(now: now), lastArrival: lastArrival, now: now,
+                                      looking: state.isPresent ? state == .looking : nil,
+                                      light: state == .unknown ? nil : cam.light)
     }
 
     /// The desk may turn sideways; the tabs may not (AppDelegate). Leaving the desk on its side
@@ -127,6 +137,40 @@ final class DeskStation {
             await refreshClimate()
             try? await Task.sleep(for: Self.climateInterval)
         }
+    }
+
+    /// The front camera (CamPresence): on only while the desk is up on duty (the app in front), the
+    /// room is not known to be empty, and the phone is not critically hot. Frames stay in DeskCamera.
+    func runCamera() async {
+        while !Task.isCancelled {
+            let now = Date()
+            let thermal = ProcessInfo.processInfo.thermalState
+            camPausedForHeat = thermal == .critical
+            let gateOpen = CamGate.open(payload?.presence?.roomSensor, fetchedAt: fetchedAt, now: now)
+            let want = DutyStation.shared.isOnDuty && cam.wantsCamera(gateOpen: gateOpen, thermal: thermal)
+            if want, !cameraRunning {
+                if await DeskCamera.authorize() { cameraRunning = await camera.start() }
+                if !cameraRunning { cam.interrupted(now: Date()) }
+            } else if !want, cameraRunning {
+                await stopCamera()
+            }
+            if cameraRunning {
+                if let frame = await camera.frame(orientation: DeskCamera.orientation, timeout: CamPresence.frameTimeout) {
+                    cam.observe(frame, now: Date())
+                } else {
+                    await stopCamera()   // interrupted: the next pass tries again
+                }
+            }
+            try? await Task.sleep(for: .seconds(cam.interval(now: Date(), thermal: thermal, cameraOn: cameraRunning)))
+        }
+        await stopCamera()
+    }
+
+    /// Camera off now (the desk left the screen, the app went to the background): no opinion until it is back.
+    func stopCamera() async {
+        cameraRunning = false
+        await camera.stop()
+        if cam.phase != .unknown { cam.interrupted(now: Date()) }
     }
 
     func refreshPayload(now: Date = Date()) async {
@@ -234,6 +278,7 @@ final class DeskStation {
 
     /// Mu cleared an item: drop it here at once and tell the box (it leaves the list there too).
     func acknowledge(_ item: DeskPayload.Item) async {
+        guard !CamHeat.isLocal(item) else { return }
         if let current = payload {
             withAnimation(DeskMotion.itemOut) {
                 payload = DeskPayload(time: current.time, weather: current.weather, room: current.room,

@@ -3,11 +3,15 @@ import UIKit
 
 /// How bright the desk display should be. Pure, so the rules are pinned by tests:
 /// Mu at the desk → 0.85 (0.5 between 23:00 and 07:00), away → 0.10, never 0. A new attention
-/// item lights the screen for 30 s even when he is away. Presence comes from the box's desk
-/// payload; a report older than 90 s (its age at fetch plus the time since) counts as away.
+/// item lights the screen for 30 s even when he is away. Presence comes from the desk camera
+/// when it has an opinion (CamPresence), else from the box's desk payload; a report older than
+/// 90 s (its age at fetch plus the time since) counts as away. With the camera on, he must be
+/// looking at the screen for the bright level (else `notLooking`), and a dim room (camera
+/// exposure under `CamPresence.dimRoomEV`) caps it at the night level.
 enum BrightnessPolicy {
     static let present: CGFloat = 0.85
     static let presentAtNight: CGFloat = 0.5
+    static let notLooking: CGFloat = 0.3
     static let away: CGFloat = 0.10
     static let arrivalHold: TimeInterval = 30
     static let presenceStale: TimeInterval = 90
@@ -21,15 +25,24 @@ enum BrightnessPolicy {
         return TimeInterval(ageS) + now.timeIntervalSince(fetchedAt) <= stale
     }
 
+    /// The camera's decisive state wins; `dark` / `unknown` fall back to the box.
+    static func isPresent(camera: CamState, _ presence: DeskPayload.Presence?, fetchedAt: Date?, now: Date) -> Bool {
+        camera.isDecisive ? camera.isPresent : isPresent(presence, fetchedAt: fetchedAt, now: now)
+    }
+
     static func isNight(_ now: Date, calendar: Calendar = .current) -> Bool {
         let hour = calendar.component(.hour, from: now)
         return hour >= nightStarts || hour < nightEnds
     }
 
-    static func level(present: Bool, lastArrival: Date?, now: Date, calendar: Calendar = .current) -> CGFloat {
+    /// `looking`: nil without a camera opinion; `light`: the room's EV100 from the camera, nil when unknown.
+    static func level(present: Bool, lastArrival: Date?, now: Date, calendar: Calendar = .current,
+                      looking: Bool? = nil, light: Double? = nil) -> CGFloat {
         let lit: Bool = if let lastArrival { now >= lastArrival && now.timeIntervalSince(lastArrival) < arrivalHold } else { false }
         guard present || lit else { return away }
-        return isNight(now, calendar: calendar) ? presentAtNight : Self.present
+        let dim = isNight(now, calendar: calendar) || (light.map { $0 < CamPresence.dimRoomEV } ?? false)
+        let bright = dim ? presentAtNight : Self.present
+        return !lit && looking == false ? min(notLooking, bright) : bright
     }
 }
 

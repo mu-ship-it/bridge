@@ -50,6 +50,8 @@ struct DeskView: View {
         .persistentSystemOverlays(.hidden)
         .task { await desk.runPayload() }
         .task { await desk.runClimate() }
+        // The front camera's presence check (CamPresence): only while this screen is up and in front.
+        .task { await desk.runCamera() }
         // Bright when Mu is at the desk, dim when not; re-checked every second so a stale
         // presence report or a new item's 30 s takes effect on time.
         .task {
@@ -65,7 +67,10 @@ struct DeskView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { brightness.end() } else if phase == .active { brightness.begin() }
+            if phase == .background {
+                brightness.end()
+                Task { await desk.stopCamera() }
+            } else if phase == .active { brightness.begin() }
         }
         .onDisappear { brightness.end() }
     }
@@ -489,10 +494,13 @@ private struct AttentionRow: View {
                 }
             }
             Spacer(minLength: 0)
-            Button(action: acknowledge) {
-                Image(systemName: "checkmark.square").font(Theme.Role.section)
+            // The phone's own rows (CamHeat) clear themselves; nothing to tap.
+            if !CamHeat.isLocal(item) {
+                Button(action: acknowledge) {
+                    Image(systemName: "checkmark.square").font(Theme.Role.section)
+                }
+                .accessibilityLabel(Text("Clear"))
             }
-            .accessibilityLabel(Text("Clear"))
         }
         .padding(Theme.Space.s8)
         .foregroundStyle(highlighted ? Theme.background : Theme.text)

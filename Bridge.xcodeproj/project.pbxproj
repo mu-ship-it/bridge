@@ -57,7 +57,9 @@
 		4A161381183A3F22186B42F3 /* ForegroundPollerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC6671EBB2D58C4AE42CF6B /* ForegroundPollerTests.swift */; };
 		4B089FA21C258175981C1059 /* AppStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */; };
 		4BDA7869FF7A00CD8DAD8390 /* BoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD569E2609284052A144FD01 /* BoardIntent.swift */; };
+		4EBB30BA9DA7AA0FF411F468 /* CamPresenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F65FC9DB05739F95FF4CCC /* CamPresenceTests.swift */; };
 		4FC1BA76AF2E7DD4CF4F4439 /* BoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD569E2609284052A144FD01 /* BoardIntent.swift */; };
+		4FDCE7C5387BB80F398362A5 /* CamPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6106ADF3FFD9AB1DC5BCE591 /* CamPresence.swift */; };
 		50C65E0A46C6ECB65D4D256C /* DeviceControlCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D79E3F638FFF95C67348E55 /* DeviceControlCapabilities.swift */; };
 		519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */; };
 		547713C27C51D28169F50C37 /* HealthIngestMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F2900BC96091AEC7AD7BB90 /* HealthIngestMapper.swift */; };
@@ -123,6 +125,7 @@
 		DC21CB6FF8FA3E792C604BA5 /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F10FD442F1D74014CF8EF04 /* Face.swift */; };
 		E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */; };
 		E367534174DBFF869614DEB3 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
+		E4AA6744D0C28E4D23D79BB5 /* DeskCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D288819B0BBE1DE4265494 /* DeskCamera.swift */; };
 		E57056E3E4E693AD7056A996 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		E60FB766BA4C28B46DBD6ABD /* BackgroundTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FB9F40B1D13F013E945CB5 /* BackgroundTime.swift */; };
 		E74AEF6DEC31864E63926713 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80007E7BD78CA3752376854 /* Localization.swift */; };
@@ -213,6 +216,7 @@
 		0F10FD442F1D74014CF8EF04 /* Face.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Face.swift; sourceTree = "<group>"; };
 		14C04D72B8F5DB53F59B4B49 /* ClipboardCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardCapabilities.swift; sourceTree = "<group>"; };
 		151B9555351CFD8BB1CD407C /* BridgeMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeMacApp.swift; sourceTree = "<group>"; };
+		17F65FC9DB05739F95FF4CCC /* CamPresenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CamPresenceTests.swift; sourceTree = "<group>"; };
 		1D35F189A98B879024C07A7D /* BridgeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1FB61BEA021F7FD593DE6B27 /* MacWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacWidgetBundle.swift; sourceTree = "<group>"; };
 		224EE254B054882F46D07E26 /* BridgeMacWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BridgeMacWidget.entitlements; sourceTree = "<group>"; };
@@ -241,6 +245,7 @@
 		57FC8D535C8CBFA3CB0B4136 /* ForegroundPoller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundPoller.swift; sourceTree = "<group>"; };
 		5860DB83D9AFCAB3C0A8EF73 /* BridgeRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeRuntime.swift; sourceTree = "<group>"; };
 		58E003C57BDD9F417908C0C4 /* Bridge.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6106ADF3FFD9AB1DC5BCE591 /* CamPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CamPresence.swift; sourceTree = "<group>"; };
 		6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskBrightnessTests.swift; sourceTree = "<group>"; };
 		62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthQueryCapability.swift; sourceTree = "<group>"; };
 		654D641B24FE0874A4024A66 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
@@ -248,6 +253,7 @@
 		6B78E0DDC5887D6439A86D76 /* BridgeMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BridgeMac.entitlements; sourceTree = "<group>"; };
 		6E87FD5E1B83D9815E538800 /* HealthSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSync.swift; sourceTree = "<group>"; };
 		7270EB759CEF8D4BB0698FAC /* PermissionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionState.swift; sourceTree = "<group>"; };
+		72D288819B0BBE1DE4265494 /* DeskCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskCamera.swift; sourceTree = "<group>"; };
 		7485F55BA6A1D49E41A285CD /* JobLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobLoop.swift; sourceTree = "<group>"; };
 		7A4C74205E6AEDC2C0502808 /* NFCReadCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCReadCapability.swift; sourceTree = "<group>"; };
 		827B2D8CBE7222BD011DDCDC /* SmallFixesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallFixesTests.swift; sourceTree = "<group>"; };
@@ -373,7 +379,9 @@
 		537272E553962E8A61EA713C /* Desk */ = {
 			isa = PBXGroup;
 			children = (
+				6106ADF3FFD9AB1DC5BCE591 /* CamPresence.swift */,
 				0385F5B6333C919B38409E20 /* DeskBrightness.swift */,
+				72D288819B0BBE1DE4265494 /* DeskCamera.swift */,
 				E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */,
 				CD3BE5A2330577E45A0DCAD0 /* DeskModels.swift */,
 				0316A8767AF4342DEF21F449 /* DeskMotion.swift */,
@@ -398,6 +406,7 @@
 			children = (
 				B91226ABD6E3A93D60A0C974 /* BoardTests.swift */,
 				0CDE9331803FB49785C11FB1 /* BridgeIntentsTests.swift */,
+				17F65FC9DB05739F95FF4CCC /* CamPresenceTests.swift */,
 				43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */,
 				6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */,
 				97153D42C2746170DAE92342 /* DeskTests.swift */,
@@ -886,6 +895,7 @@
 			files = (
 				85707894DF82DC682F896516 /* BoardTests.swift in Sources */,
 				373ED0BED8EECD1B7749A771 /* BridgeIntentsTests.swift in Sources */,
+				4EBB30BA9DA7AA0FF411F468 /* CamPresenceTests.swift in Sources */,
 				7321248E84BADEC08C5F70B5 /* CapabilityParamsTests.swift in Sources */,
 				AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */,
 				FB39450EE5736A89A333389B /* DeskTests.swift in Sources */,
@@ -959,6 +969,7 @@
 				F1C480385EF1FF16E6607970 /* BridgeApp.swift in Sources */,
 				474FAE2974B9C2610DE161DC /* BridgeIntents.swift in Sources */,
 				4310ACFB3206F250B0E981DC /* BridgeRuntime.swift in Sources */,
+				4FDCE7C5387BB80F398362A5 /* CamPresence.swift in Sources */,
 				87B089ADBA1D36CEE343A8DA /* CameraCaptureCapability.swift in Sources */,
 				15935896375547D61ED571AD /* Capability.swift in Sources */,
 				05593C0F240B04BA53CFFF1A /* CapabilityRegistry.swift in Sources */,
@@ -967,6 +978,7 @@
 				EFF95A40664F1054C5422A85 /* ContactsSearchCapability.swift in Sources */,
 				EA1FB3823AE29E84760452AD /* ContentView.swift in Sources */,
 				C9B9FD9F7F5A9711C4EE8962 /* DeskBrightness.swift in Sources */,
+				E4AA6744D0C28E4D23D79BB5 /* DeskCamera.swift in Sources */,
 				C5E72B990F6896E1B635BBAD /* DeskLayout.swift in Sources */,
 				519365A01C4E6FF06D8A5712 /* DeskModels.swift in Sources */,
 				A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */,
