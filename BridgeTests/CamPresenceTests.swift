@@ -133,14 +133,60 @@ import Testing
         let present = Self.fed([Self.hit, Self.hit])
         #expect(present.interval(now: Self.t0 + 1, thermal: .serious) == CamPresence.presentInterval * 2)
         #expect(present.interval(now: Self.t0 + 1, thermal: .fair) == CamPresence.presentInterval)
-        #expect(present.wantsCamera(gateOpen: true, thermal: .serious))
-        #expect(!present.wantsCamera(gateOpen: true, thermal: .critical))
+        #expect(present.wantsCamera(thermal: .serious))
+        #expect(!present.wantsCamera(thermal: .critical))
     }
 
-    @Test func gateDecidesOnlyWhileHeIsNotSeen() {
-        #expect(!CamDetector().wantsCamera(gateOpen: false, thermal: .nominal))
-        #expect(CamDetector().wantsCamera(gateOpen: true, thermal: .nominal))
-        #expect(Self.fed([Self.hit, Self.hit]).wantsCamera(gateOpen: false, thermal: .nominal))
+    @Test func aClosedGateNeverTurnsTheCameraOff_itProbesOnceAMinute() {
+        let normal = ProcessInfo.ThermalState.nominal
+        let idle = CamDetector()
+        #expect(idle.wantsCamera(thermal: normal))
+        #expect(idle.probing(gateOpen: false) && !idle.probing(gateOpen: true))
+        #expect(idle.interval(now: Self.t0, thermal: normal, gateOpen: false) == CamPresence.probeInterval)
+        #expect(idle.interval(now: Self.t0, thermal: .serious, gateOpen: false) == CamPresence.probeInterval * 2)
+        #expect(idle.interval(now: Self.t0, thermal: normal, gateOpen: true) == CamPresence.searchInterval)
+        // Camera off for another reason: the off beat, not the probe.
+        #expect(idle.interval(now: Self.t0, thermal: normal, cameraOn: false, gateOpen: false) == CamPresence.gateInterval)
+    }
+
+    @Test func aProbeMissIsNoOpinion_soTheRoomSensorDecides() {
+        var d = CamDetector()
+        d.observe(Self.miss, now: Self.t0, probe: true)
+        #expect(d.state(now: Self.t0) == .unknown)
+        #expect(d.probing(gateOpen: false))
+        // The same miss outside a probe is a real "absent".
+        d.observe(Self.miss, now: Self.t0 + 1)
+        #expect(d.state(now: Self.t0 + 1) == .absent)
+    }
+
+    /// The 米家 sensor offline, Home Assistant still posting its cached "nobody": the gate is closed,
+    /// yet a probe that sees Mu brings the camera back to its normal rate and he arrives.
+    @Test func aProbeHitOverridesAStuckNobody() {
+        let normal = ProcessInfo.ThermalState.nominal
+        var d = CamDetector()
+        d.observe(Self.miss, now: Self.t0, probe: d.probing(gateOpen: false))
+        #expect(d.interval(now: Self.t0, thermal: normal, gateOpen: false) == CamPresence.probeInterval)
+        let probeAt = Self.t0 + CamPresence.probeInterval
+        d.observe(Self.hit, now: probeAt, probe: d.probing(gateOpen: false))
+        #expect(!d.probing(gateOpen: false))
+        #expect(d.interval(now: probeAt, thermal: normal, gateOpen: false) == CamPresence.confirmInterval)
+        d.observe(Self.hit, now: probeAt + 1, probe: d.probing(gateOpen: false))
+        #expect(d.state(now: probeAt + 1) == .present)
+        // Present: the closed gate changes nothing; he leaves only after 90 s unseen.
+        #expect(d.interval(now: probeAt + 1, thermal: normal, gateOpen: false) == CamPresence.presentInterval)
+        #expect(BrightnessPolicy.isPresent(camera: d.state(now: probeAt + 1), nil, fetchedAt: nil, now: probeAt + 1))
+        for s in 2...91 { d.observe(Self.miss, now: probeAt + TimeInterval(s), probe: d.probing(gateOpen: false)) }
+        #expect(d.state(now: probeAt + 91) == .absent)
+        #expect(d.interval(now: probeAt + 91, thermal: normal, gateOpen: false) == CamPresence.probeInterval)
+    }
+
+    /// A probe hit followed by a miss is not an arrival; back to probing.
+    @Test func aLoneProbeHitFallsBackToProbing() {
+        var d = CamDetector()
+        d.observe(Self.hit, now: Self.t0, probe: true)
+        d.observe(Self.miss, now: Self.t0 + 1, probe: d.probing(gateOpen: false))
+        #expect(d.state(now: Self.t0 + 1) != .present)
+        #expect(d.interval(now: Self.t0 + 1, thermal: .nominal, gateOpen: false) == CamPresence.probeInterval)
     }
 
     // MARK: Gate

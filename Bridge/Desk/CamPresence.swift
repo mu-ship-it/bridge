@@ -18,8 +18,11 @@ enum CamPresence {
     static let confirmWindow: TimeInterval = 60
     /// Looking for him: the camera may run (the room is occupied or unknown) but he is not seen yet.
     static let searchInterval: TimeInterval = 3
-    /// Camera off because the room is empty: how often the gate is checked again.
+    /// Camera off (not on duty, no permission, heat): how often to check whether it may run again.
     static let gateInterval: TimeInterval = 5
+    /// The room sensor reads nobody: one check frame this often instead of turning the camera off,
+    /// because an offline sensor's last "nobody" can keep arriving fresh through Home Assistant.
+    static let probeInterval: TimeInterval = 60
     /// `ProcessInfo.ThermalState.serious` halves the rate.
     static let hotFactor: Double = 2
     /// A face counts as looking at the screen when |yaw| and |pitch| are under these (radians, ~20°).
@@ -94,7 +97,9 @@ struct CamDetector: Equatable, Sendable {
     private(set) var light: Double?
     private(set) var lastSample: Date?
 
-    mutating func observe(_ frame: CamFrame, now: Date) {
+    /// `probe`: a slow check frame while the room sensor reads nobody; a miss there is no opinion
+    /// (`unknown`, so the room sensor decides), a hit starts the normal two-hit arrival.
+    mutating func observe(_ frame: CamFrame, now: Date, probe: Bool = false) {
         lastSample = now
         light = frame.light
         if frame.dark {
@@ -104,7 +109,7 @@ struct CamDetector: Equatable, Sendable {
         guard frame.hit else {
             hits = 0
             lastLook = nil
-            guard phase == .present else { phase = .absent; return }
+            guard phase == .present else { phase = probe ? .unknown : .absent; return }
             if firstMiss == nil { firstMiss = now }
             if now.timeIntervalSince(lastHit ?? now) >= CamPresence.leaveAfter { reset(to: .absent) }
             return
@@ -144,18 +149,20 @@ struct CamDetector: Equatable, Sendable {
         }
     }
 
-    /// Whether the camera should be running. The room gate only decides while Mu is not seen:
-    /// once he is present the camera stays on until it sees him leave. Critical heat always stops it.
-    func wantsCamera(gateOpen: Bool, thermal: ProcessInfo.ThermalState) -> Bool {
-        guard thermal != .critical else { return false }
-        return gateOpen || phase == .present
-    }
+    /// Whether the camera should be running: always, but for critical heat. The room gate never
+    /// turns it off; a closed gate only slows it to a probe frame (`interval`).
+    func wantsCamera(thermal: ProcessInfo.ThermalState) -> Bool { thermal != .critical }
+
+    /// The room gate is closed and Mu is not being seen or confirmed: the next frame is a probe.
+    func probing(gateOpen: Bool) -> Bool { !gateOpen && phase != .present && hits == 0 }
 
     /// Seconds to the next frame (or, with the camera off, to the next gate check).
-    func interval(now: Date, thermal: ProcessInfo.ThermalState, cameraOn: Bool = true) -> TimeInterval {
+    func interval(now: Date, thermal: ProcessInfo.ThermalState, cameraOn: Bool = true, gateOpen: Bool = true) -> TimeInterval {
         let base: TimeInterval
         if !cameraOn {
             base = CamPresence.gateInterval
+        } else if probing(gateOpen: gateOpen) {
+            base = CamPresence.probeInterval
         } else if phase == .present {
             if let firstMiss, now.timeIntervalSince(firstMiss) < CamPresence.confirmWindow {
                 base = CamPresence.confirmInterval
@@ -173,8 +180,10 @@ struct CamDetector: Equatable, Sendable {
     }
 }
 
-/// Whether the room lets the camera run: off only when the box says its room sensor is fresh and
-/// reads nobody. No sensor, a stale reading, or a stale desk payload all leave the camera allowed.
+/// Whether the room lets the camera run at its normal rate: closed only when the box says its room
+/// sensor is fresh and reads nobody, and then the camera still takes a probe frame every
+/// `CamPresence.probeInterval` (the sensor may be offline with its last "nobody" cached). No
+/// sensor, a stale reading, or a stale desk payload all leave the gate open.
 enum CamGate {
     static func open(_ sensor: DeskPayload.Presence.RoomSensor?, fetchedAt: Date?, now: Date) -> Bool {
         guard let sensor, let fetchedAt, now.timeIntervalSince(fetchedAt) <= CamPresence.payloadStale else { return true }

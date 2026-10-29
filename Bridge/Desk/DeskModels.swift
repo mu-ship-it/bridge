@@ -101,8 +101,8 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         let idleS: Int?
         let ageS: Int?
         let staleAfterS: Int?
-        /// The study's presence sensor as the box last heard it; the desk camera runs only while it
-        /// reads someone, is stale, or is missing (CamGate).
+        /// The study's presence sensor as the box last heard it; while it is fresh and reads nobody
+        /// the desk camera only takes a probe frame a minute (CamGate).
         var roomSensor: RoomSensor? = nil
 
         enum CodingKeys: String, CodingKey {

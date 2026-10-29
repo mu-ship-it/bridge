@@ -141,15 +141,16 @@ final class DeskStation {
         }
     }
 
-    /// The front camera (CamPresence): on only while the desk is up on duty (the app in front), the
-    /// room is not known to be empty, and the phone is not critically hot. Frames stay in DeskCamera.
+    /// The front camera (CamPresence): on only while the desk is up on duty (the app in front) and
+    /// the phone is not critically hot; while the room sensor reads nobody it only takes a probe
+    /// frame a minute (CamGate). Frames stay in DeskCamera.
     func runCamera() async {
         while !Task.isCancelled {
             let now = Date()
             let thermal = ProcessInfo.processInfo.thermalState
             camPausedForHeat = thermal == .critical
             let gateOpen = CamGate.open(payload?.presence?.roomSensor, fetchedAt: fetchedAt, now: now)
-            let want = DutyStation.shared.isOnDuty && cam.wantsCamera(gateOpen: gateOpen, thermal: thermal)
+            let want = DutyStation.shared.isOnDuty && cam.wantsCamera(thermal: thermal)
             if want, !cameraRunning {
                 if await DeskCamera.authorize() { cameraRunning = await camera.start() }
                 if !cameraRunning { cam.interrupted(now: Date()) }
@@ -157,14 +158,15 @@ final class DeskStation {
                 await stopCamera()
             }
             if cameraRunning {
+                let probe = cam.probing(gateOpen: gateOpen)
                 if let frame = await camera.frame(orientation: DeskCamera.orientation, timeout: CamPresence.frameTimeout) {
-                    cam.observe(frame, now: Date())
+                    cam.observe(frame, now: Date(), probe: probe)
                 } else {
                     await stopCamera()   // interrupted: the next pass tries again
                 }
             }
             reportCamera()
-            try? await Task.sleep(for: .seconds(cam.interval(now: Date(), thermal: thermal, cameraOn: cameraRunning)))
+            try? await Task.sleep(for: .seconds(cam.interval(now: Date(), thermal: thermal, cameraOn: cameraRunning, gateOpen: gateOpen)))
         }
         await stopCamera()
     }
