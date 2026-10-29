@@ -78,6 +78,143 @@ def test_presence_summary_counts_only_fresh_active_sources():
     assert nobody["present"] is False and nobody["source"] is None and nobody["stale_after_s"] == 90
 
 
+# ------------------------------------------------------------------ camera + fusion
+
+ROOM = frozenset({"study"})
+FUSED_AT = datetime(2026, 10, 27, 9, 0, 0, tzinfo=timezone.utc)   # NOW is rebound further down
+
+
+def ago(seconds):
+    return desk.iso(FUSED_AT - timedelta(seconds=seconds))
+
+
+def cam(state, age=5, light=8.0, observed_age=None):
+    return {"state": state, "light": light, "received": ago(age),
+            "observed": ago(age if observed_age is None else observed_age)}
+
+
+def pc(active, age=10):
+    return {"source": "pc", "active": active, "idle_s": 2 if active else 600, "received": ago(age)}
+
+
+def study(occupied, age=20):
+    return {"source": "study", "active": occupied, "idle_s": 0, "received": ago(age)}
+
+
+# (case, presence reports, camera report, expected present, expected by)
+FUSION = [
+    ("nothing at all", [], None, False, None),
+    ("pc only, active", [pc(True)], None, True, "pc"),
+    ("pc only, idle", [pc(False)], None, False, "pc"),
+    ("pc only, stale", [pc(True, age=200)], None, False, None),
+    ("camera present beats idle pc", [pc(False)], cam("present"), True, "camera"),
+    ("camera looking", [], cam("looking"), True, "camera"),
+    ("camera absent beats active pc", [pc(True)], cam("absent"), False, "camera"),
+    ("camera absent beats occupied room", [study(True)], cam("absent"), False, "camera"),
+    ("camera dark -> room sensor", [study(True), pc(False)], cam("dark", light=-3), True, "room"),
+    ("camera unknown -> room sensor", [study(False), pc(True)], cam("unknown", light=None), False, "room"),
+    ("camera stale -> room sensor", [study(True)], cam("absent", age=61), True, "room"),
+    ("camera at the stale limit still counts", [study(True)], cam("absent", age=60), False, "camera"),
+    ("camera clock ahead does not freshen it", [study(True)], cam("absent", age=5, observed_age=-30), False, "camera"),
+    ("camera observed long ago, received now", [study(True)], cam("absent", age=1, observed_age=120), True, "room"),
+    ("room occupied beats idle pc", [study(True), pc(False)], None, True, "room"),
+    ("room empty beats active pc", [study(False), pc(True)], None, False, "room"),
+    ("room stuck on someone (stale) -> pc idle", [study(True, age=181), pc(False)], None, False, "pc"),
+    ("room stuck on nobody (stale) -> pc active", [study(False, age=181), pc(True)], None, True, "pc"),
+    ("room stuck on someone, nothing else", [study(True, age=3600)], None, False, None),
+    ("room stuck on nobody, camera dark, pc active", [study(False, age=600), pc(True)], cam("dark"), True, "pc"),
+    ("everything stale", [study(True, age=600), pc(True, age=600)], cam("present", age=600), False, None),
+]
+
+
+@pytest.mark.parametrize("case,reports,camera,present,by", FUSION, ids=[row[0] for row in FUSION])
+def test_fusion_table(case, reports, camera, present, by):
+    fused = desk.fuse_presence(reports, camera, FUSED_AT, room_sources=ROOM)
+    assert fused["present"] is present and fused["by"] == by
+
+
+def test_fusion_ages_by_the_deciding_input():
+    by_cam = desk.fuse_presence([pc(True)], cam("present", age=7), FUSED_AT, room_sources=ROOM)
+    assert by_cam["source"] == "camera" and by_cam["age_s"] == 7 and by_cam["stale_after_s"] == desk.CAMERA_STALE_SECONDS
+    by_room = desk.fuse_presence([study(True, age=30)], None, FUSED_AT, room_sources=ROOM)
+    assert by_room["source"] == "study" and by_room["age_s"] == 30
+    assert by_room["stale_after_s"] == desk.ROOM_SENSOR_STALE_SECONDS
+    by_pc = desk.fuse_presence([pc(True, age=12)], None, FUSED_AT, room_sources=ROOM)
+    assert by_pc["source"] == "pc" and by_pc["idle_s"] == 2 and by_pc["stale_after_s"] == desk.PRESENCE_STALE_SECONDS
+
+
+def test_room_sensor_is_exposed_for_the_phones_camera_gate():
+    empty = desk.fuse_presence([study(False)], None, FUSED_AT, room_sources=ROOM)["room_sensor"]
+    assert empty == {"source": "study", "occupied": False, "age_s": 20, "fresh": True,
+                     "stale_after_s": desk.ROOM_SENSOR_STALE_SECONDS}
+    stuck = desk.fuse_presence([study(False, age=181)], None, FUSED_AT, room_sources=ROOM)["room_sensor"]
+    assert stuck["fresh"] is False and stuck["occupied"] is False
+    assert desk.fuse_presence([pc(True)], None, FUSED_AT, room_sources=ROOM)["room_sensor"] is None
+    # The room sensor is not a PC: alone, stale, it never makes Mu present through the PC path.
+    assert desk.fuse_presence([study(True, age=100)], None, FUSED_AT, room_sources=ROOM)["present"] is True
+    assert desk.fuse_presence([study(True, age=100)], None, FUSED_AT, room_sources=frozenset())["by"] is None
+
+
+def test_camera_is_passed_through():
+    fused = desk.fuse_presence([], cam("dark", light=-2.5), FUSED_AT, room_sources=ROOM)
+    assert fused["camera"] == {"state": "dark", "light": -2.5, "age_s": 5, "fresh": True,
+                               "stale_after_s": desk.CAMERA_STALE_SECONDS}
+    assert desk.fuse_presence([], None, FUSED_AT, room_sources=ROOM)["camera"] is None
+
+
+def test_room_sources_come_from_config(monkeypatch):
+    monkeypatch.setenv("BRIDGE_ROOM_PRESENCE_SOURCES", " study , den,")
+    assert desk.room_presence_sources() == {"study", "den"}
+
+
+def test_camera_keeps_the_latest_report(client, conn, account):
+    for state in ("present", "looking"):
+        response = client.post("/bridge/presence/camera", headers=bearer(account),
+                               json={"state": state, "ts": "2026-10-27T17:00:00+08:00", "light": 7.25})
+        assert response.status_code == 200 and response.json() == {"ok": True, "state": state}
+    stored = store.get_camera(conn, account["id"])
+    assert stored["state"] == "looking" and stored["light"] == 7.25 and stored["observed"] == "2026-10-27T09:00:00Z"
+    client.post("/bridge/presence/camera", headers=bearer(account), json={"state": "unknown", "ts": "2026-10-27T09:01:00Z"})
+    assert store.get_camera(conn, account["id"])["light"] is None
+
+
+@pytest.mark.parametrize("body", [
+    {"ts": "2026-10-27T09:00:00Z"},
+    {"state": "sleeping", "ts": "2026-10-27T09:00:00Z"},
+    {"state": "present"},
+    {"state": "present", "ts": "2026-10-27T09:00:00"},
+    {"state": "present", "ts": "yesterday"},
+    {"state": "present", "ts": 1800000000},
+    {"state": "present", "ts": "2026-10-27T09:00:00Z", "light": "bright"},
+    {"state": "present", "ts": "2026-10-27T09:00:00Z", "light": True},
+    {"state": "present", "ts": "2026-10-27T09:00:00Z", "light": 99},
+])
+def test_bad_camera_report_is_a_400(client, account, body):
+    assert client.post("/bridge/presence/camera", headers=bearer(account), json=body).status_code == 400
+
+
+def test_camera_report_needs_a_token(client):
+    assert client.post("/bridge/presence/camera", json={"state": "present", "ts": "2026-10-27T09:00:00Z"}).status_code == 401
+
+
+def test_desk_fuses_camera_room_and_pc(client, conn, account, other_account, monkeypatch):
+    monkeypatch.setenv("BRIDGE_ROOM_PRESENCE_SOURCES", "study")
+    client.post("/bridge/presence", headers=bearer(account), json={"source": "pc", "active": True, "idle_s": 1})
+    client.post("/bridge/presence", headers=bearer(account), json={"source": "study", "active": False})
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]
+    assert body["present"] is False and body["by"] == "room"
+    assert body["room_sensor"]["occupied"] is False and body["room_sensor"]["fresh"] is True
+    now = desk.iso(datetime.now(timezone.utc))
+    client.post("/bridge/presence/camera", headers=bearer(account), json={"state": "looking", "ts": now, "light": 6})
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]
+    assert body["present"] is True and body["by"] == "camera" and body["camera"]["state"] == "looking"
+    client.post("/bridge/presence/camera", headers=bearer(account), json={"state": "dark", "ts": now, "light": -4})
+    assert client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]["by"] == "room"
+    # Another account's camera is not ours.
+    theirs = client.get("/bridge/board/desk", headers=bearer(other_account)).json()["presence"]
+    assert theirs["camera"] is None and theirs["room_sensor"] is None
+
+
 # ------------------------------------------------------------------ weather
 
 def test_weather_is_parsed_and_cached_for_15_minutes():

@@ -193,3 +193,29 @@ enum CamHeat {
 
     static func isLocal(_ item: DeskPayload.Item) -> Bool { item.id == id }
 }
+
+/// What the phone tells the box (`POST /bridge/presence/camera`): only the state, when it was
+/// seen and the room light — never a frame. Sent on every change and again every `every` seconds
+/// while the state is worth keeping fresh (the box stops trusting it after 60 s); `unknown` is
+/// sent once, since silence reads the same on the box.
+struct CamReport: Encodable, Equatable, Sendable {
+    static let every: TimeInterval = 30
+
+    let device: String
+    let state: String
+    let ts: String
+    let light: Double?
+
+    init(device: String, state: CamState, light: Double?, now: Date) {
+        self.device = device
+        self.state = state.rawValue
+        ts = ISO.string(now)
+        // One decimal, inside the box's accepted range.
+        self.light = light.map { (min(max($0, -20), 30) * 10).rounded() / 10 }
+    }
+
+    static func due(_ state: CamState, last: (state: CamState, at: Date)?, now: Date) -> Bool {
+        guard let last, last.state == state else { return true }
+        return state != .unknown && now.timeIntervalSince(last.at) >= every
+    }
+}

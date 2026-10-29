@@ -101,6 +101,15 @@ struct BoxClient: Sendable {
         return r
     }
 
+    /// The desk camera's state (CamReport): never a frame.
+    func postCamera(_ report: CamReport) async throws {
+        _ = try await send(cameraRequest(report))
+    }
+
+    func cameraRequest(_ report: CamReport) throws -> URLRequest {
+        request("bridge/presence/camera", method: "POST", bearer: true, body: try JSONEncoder().encode(report))
+    }
+
     /// Existing Health-Auto-Export-compatible endpoint. Note: raw token, no `Bearer` prefix.
     func ingest(_ body: Data) async throws {
         _ = try await send(request("hk/ingest", method: "POST", bearer: false, body: body))

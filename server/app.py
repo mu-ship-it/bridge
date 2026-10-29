@@ -609,6 +609,7 @@ def board_name(conn, account, device_id, endpoint, name):
 DESK_BOARD = "desk"   # served composite (below), never stored: GET /bridge/board/desk is the desk display
 PRESENCE_SOURCE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,31}$")
 PRESENCE_IDLE_MAX = 7 * 86_400
+CAMERA_LIGHT_MIN, CAMERA_LIGHT_MAX = -20, 30   # EV100: moonlight to sunlight, with room to spare
 
 
 @app.post("/bridge/presence")
@@ -635,6 +636,44 @@ async def post_presence(request: Request):
             db.put_presence(conn, account["id"], source, active, int(idle))
             db.audit(conn, account["id"], device_id, endpoint, f"stored:{source}")
     return {"ok": True, "source": source}
+
+
+@app.post("/bridge/presence/camera")
+async def post_camera(request: Request):
+    """The desk phone's front camera says what it sees, decided on the phone (no frame ever leaves it).
+    Body {state, ts, light}: state one of desk.CAMERA_STATES, ts when it was observed (ISO-8601 with
+    a timezone), light a rough EV100 or null. The latest report per account is kept."""
+    endpoint = "POST /bridge/presence/camera"
+    body = await json_body(request)
+    with closing(db.connect()) as conn:
+        account, device_id = authenticate(conn, request, endpoint, body)
+        try:
+            state, ts, light = body.get("state"), body.get("ts"), body.get("light")
+            if state not in desk.CAMERA_STATES:
+                raise BadRequest("state must be one of " + ", ".join(desk.CAMERA_STATES))
+            observed = camera_time(ts)
+            if light is not None and (isinstance(light, bool) or not isinstance(light, (int, float))
+                                      or not CAMERA_LIGHT_MIN <= light <= CAMERA_LIGHT_MAX):
+                raise BadRequest(f"light must be null or a number, {CAMERA_LIGHT_MIN}..{CAMERA_LIGHT_MAX}")
+        except BadRequest:
+            with conn:
+                db.audit(conn, account["id"], device_id, endpoint, "bad_request:camera")
+            raise
+        with conn:
+            db.put_camera(conn, account["id"], state, None if light is None else float(light), observed)
+            db.audit(conn, account["id"], device_id, endpoint, f"stored:{state}")
+    return {"ok": True, "state": state}
+
+
+def camera_time(ts):
+    """An ISO-8601 time with a timezone -> the same instant as UTC ISO; BadRequest otherwise."""
+    try:
+        moment = datetime.fromisoformat(ts.replace("Z", "+00:00")) if isinstance(ts, str) else None
+    except ValueError:
+        moment = None
+    if moment is None or moment.tzinfo is None:
+        raise BadRequest("ts must be an ISO-8601 time with a timezone")
+    return desk.iso(moment)
 
 
 @app.post("/bridge/room")
@@ -730,7 +769,7 @@ def get_desk(request: Request):
         boards = [b for b in db.list_boards(conn, account["id"]) if b[0] != DESK_BOARD]
         attention = desk.compose_attention(events, acks, boards, db.list_progress(conn, account["id"]), now)
         seats = desk.compose_seats(db.list_boards(conn, account["id"]))
-        presence = desk.summarize_presence(db.list_presence(conn, account["id"]), now)
+        presence = desk.fuse_presence(db.list_presence(conn, account["id"]), db.get_camera(conn, account["id"]), now)
         room = desk.summarize_room(db.list_room(conn, account["id"]), now)
         with conn:
             if device_id:

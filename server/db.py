@@ -129,6 +129,17 @@ CREATE TABLE IF NOT EXISTS presence (
     PRIMARY KEY (account_id, source)
 );
 
+-- The desk phone's own front camera (v0.7): its latest presence state (present / looking /
+-- absent / dark / unknown), when it observed it, and a rough room light (EV100). One row per
+-- account; frames never leave the phone, only this.
+CREATE TABLE IF NOT EXISTS camera (
+    account_id TEXT NOT NULL PRIMARY KEY,
+    state      TEXT NOT NULL,
+    light      REAL,
+    observed   TEXT NOT NULL,
+    received   TEXT NOT NULL
+);
+
 -- The desk's Room tile: the latest temperature / humidity reading per source (a Home
 -- Assistant sensor, say). Either value may be NULL.
 CREATE TABLE IF NOT EXISTS room (
@@ -589,6 +600,25 @@ def list_presence(conn, account_id):
     ).fetchall()
     return [{"source": row["source"], "active": bool(row["active"]), "idle_s": row["idle_s"],
              "received": row["received"]} for row in rows]
+
+
+# ---------------------------------------------------------------- camera
+
+def put_camera(conn, account_id, state, light, observed, received=None):
+    conn.execute(
+        "INSERT INTO camera (account_id, state, light, observed, received) VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT (account_id)"
+        " DO UPDATE SET state = excluded.state, light = excluded.light, observed = excluded.observed,"
+        " received = excluded.received",
+        (account_id, state, light, observed, received or now_iso()),
+    )
+
+
+def get_camera(conn, account_id):
+    """{state, light, observed, received} or None when the phone never reported."""
+    row = conn.execute("SELECT state, light, observed, received FROM camera WHERE account_id = ?",
+                       (account_id,)).fetchone()
+    return dict(row) if row else None
 
 
 # ---------------------------------------------------------------- room

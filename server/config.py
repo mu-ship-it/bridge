@@ -34,6 +34,9 @@ DEFAULTS = {
     "BRIDGE_WEATHER_PLACE": "Shenyang",
     # Where Health Auto Export drops its JSON; the desk's activity rings read the newest file.
     "BRIDGE_HEALTH_DIR": "/home/agentops/health/raw",
+    # `/bridge/presence` sources that are room presence sensors (comma-separated), not PCs: the
+    # desk fuses them as "someone is in the study" (desk.fuse_presence).
+    "BRIDGE_ROOM_PRESENCE_SOURCES": "study",
 }
 
 _file_env = None

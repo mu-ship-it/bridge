@@ -62,6 +62,8 @@ final class DeskStation {
     private(set) var camPausedForHeat = false
     @ObservationIgnored private let camera = DeskCamera()
     @ObservationIgnored private var cameraRunning = false
+    /// The last camera state sent to the box, and when (CamReport).
+    @ObservationIgnored private var lastReport: (state: CamState, at: Date)?
 
     private init() {
         let defaults = UserDefaults.standard
@@ -161,6 +163,7 @@ final class DeskStation {
                     await stopCamera()   // interrupted: the next pass tries again
                 }
             }
+            reportCamera()
             try? await Task.sleep(for: .seconds(cam.interval(now: Date(), thermal: thermal, cameraOn: cameraRunning)))
         }
         await stopCamera()
@@ -171,6 +174,23 @@ final class DeskStation {
         cameraRunning = false
         await camera.stop()
         if cam.phase != .unknown { cam.interrupted(now: Date()) }
+        reportCamera()
+    }
+
+    /// Tells the box the camera's state when it changed or is due again; outside the caller's
+    /// cancellation, so the last `unknown` still goes out as the app leaves the screen.
+    private func reportCamera(now: Date = Date()) {
+        let state = cam.state(now: now)
+        guard CamReport.due(state, last: lastReport, now: now), let config = ConfigStore.load() else { return }
+        lastReport = (state, now)
+        let report = CamReport(device: config.deviceId, state: state, light: state == .unknown ? nil : cam.light, now: now)
+        Task {
+            do {
+                try await BackgroundTime.run("desk camera state") { try await BoxClient(config: config).postCamera(report) }
+            } catch {
+                self.lastReport = nil   // try again on the next pass
+            }
+        }
     }
 
     func refreshPayload(now: Date = Date()) async {

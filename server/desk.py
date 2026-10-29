@@ -11,8 +11,13 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
   the phone acknowledged with an `attention.ack` event (payload `{"ids": [...]}`).
 * Room is the latest temperature / humidity report (`POST /bridge/room`, from Home Assistant);
   older than 15 minutes it is marked stale.
-* Presence is the latest report per source (`POST /bridge/presence`); a report older than
-  90 s counts as away.
+* Presence is fused (`fuse_presence`) from three kinds of source, first trusted one wins:
+  the desk phone's front camera (`POST /bridge/presence/camera`) while fresh and not
+  `dark` / `unknown`; else the study's presence sensor (a `POST /bridge/presence` source named
+  in BRIDGE_ROOM_PRESENCE_SOURCES, from Home Assistant) while fresh; else the PCs' idle reports
+  (every other `/bridge/presence` source). Anything older than its stale limit is ignored, never
+  trusted: a sensor that dropped offline keeps its last state, so a stuck "someone" or "nobody"
+  must not decide.
 """
 import hashlib
 import json
@@ -41,7 +46,11 @@ ATTENTION_TITLE_WIDTH = 8
 log = logging.getLogger("bridge.desk")
 BOARD_ATTENTION_STATES = ("over", "stalled")
 
-PRESENCE_STALE_SECONDS = 90
+PRESENCE_STALE_SECONDS = 90           # a PC's idle report
+CAMERA_STALE_SECONDS = 60             # the phone re-reports every 30 s while it has an opinion
+ROOM_SENSOR_STALE_SECONDS = 3 * 60    # Home Assistant must re-post the sensor's state within this
+CAMERA_STATES = ("present", "looking", "absent", "dark", "unknown")
+CAMERA_DECISIVE = ("present", "looking", "absent")
 ROOM_STALE_SECONDS = 15 * 60
 PROGRESS_STALE_SECONDS = 30 * 60      # a running job that stopped reporting
 PROGRESS_DONE_SECONDS = 10 * 60       # a finished job's row lingers this long
@@ -282,6 +291,58 @@ def summarize_presence(reports, now):
         "stale_after_s": PRESENCE_STALE_SECONDS,
         "sources": sources,
     }
+
+
+def room_presence_sources():
+    """The `/bridge/presence` sources that are room sensors (someone in the study), not PCs."""
+    raw = config.get("BRIDGE_ROOM_PRESENCE_SOURCES") or ""
+    return frozenset(name.strip() for name in raw.split(",") if name.strip())
+
+
+def summarize_camera(report, now):
+    """The phone's latest camera report -> {state, light, age_s, fresh, stale_after_s}, or None.
+    Its age is the older of "since it was observed" and "since the box received it", so a phone
+    clock that runs ahead cannot make a report look fresher than it is."""
+    if not report:
+        return None
+    age = max(_age(report["received"], now), _age(report["observed"], now))
+    return {"state": report["state"], "light": report["light"], "age_s": age,
+            "fresh": age <= CAMERA_STALE_SECONDS, "stale_after_s": CAMERA_STALE_SECONDS}
+
+
+def summarize_room_sensor(reports, now, sources):
+    """The freshest report from a room-sensor source -> {source, occupied, age_s, fresh,
+    stale_after_s}; None when no such source ever reported."""
+    mine = [r for r in reports if r["source"] in sources]
+    if not mine:
+        return None
+    latest = min(mine, key=lambda r: _age(r["received"], now))
+    age = _age(latest["received"], now)
+    return {"source": latest["source"], "occupied": latest["active"], "age_s": age,
+            "fresh": age <= ROOM_SENSOR_STALE_SECONDS, "stale_after_s": ROOM_SENSOR_STALE_SECONDS}
+
+
+def fuse_presence(reports, camera, now, room_sources=None):
+    """Latest-per-source presence reports + the phone's camera report -> the desk's `presence`.
+
+    `present` / `by` / `source` / `age_s` / `stale_after_s` come from the first trusted input:
+    camera (fresh, decisive) > room sensor (fresh) > PC idle (summarize_presence) > away.
+    `camera` and `room_sensor` are passed through for the phone, which keeps its camera off
+    while the room sensor is fresh and reads nobody."""
+    room_sources = room_presence_sources() if room_sources is None else room_sources
+    pcs = summarize_presence([r for r in reports if r["source"] not in room_sources], now)
+    cam = summarize_camera(camera, now)
+    sensor = summarize_room_sensor(reports, now, room_sources)
+    fused = {**pcs, "by": "pc" if any(p["fresh"] for p in pcs["sources"]) else None,
+             "sources": summarize_presence(reports, now)["sources"], "camera": cam, "room_sensor": sensor}
+    if cam and cam["fresh"] and cam["state"] in CAMERA_DECISIVE:
+        here = cam["state"] != "absent"
+        fused.update(present=here, by="camera", source="camera", active=here, idle_s=None,
+                     age_s=cam["age_s"], stale_after_s=CAMERA_STALE_SECONDS)
+    elif sensor and sensor["fresh"]:
+        fused.update(present=sensor["occupied"], by="room", source=sensor["source"], active=sensor["occupied"],
+                     idle_s=None, age_s=sensor["age_s"], stale_after_s=ROOM_SENSOR_STALE_SECONDS)
+    return fused
 
 
 # ------------------------------------------------------------------ room

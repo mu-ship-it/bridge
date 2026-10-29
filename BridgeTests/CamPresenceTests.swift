@@ -209,4 +209,31 @@ import Testing
         #expect(CamHeat.isLocal(CamHeat.item) && CamHeat.item.isWarning)
         #expect(CamHeat.item.text == "cam paused: heat")
     }
+
+    // MARK: Telling the box
+
+    @Test func reportsOnChange_andKeepsADecisiveStateFresh() {
+        let t = Self.t0
+        #expect(CamReport.due(.unknown, last: nil, now: t))
+        #expect(CamReport.due(.present, last: (.unknown, t), now: t + 1))
+        #expect(!CamReport.due(.present, last: (.present, t), now: t + CamReport.every - 1))
+        #expect(CamReport.due(.present, last: (.present, t), now: t + CamReport.every))
+        #expect(CamReport.due(.dark, last: (.dark, t), now: t + CamReport.every))
+        // Unknown goes out once: silence reads the same on the box.
+        #expect(!CamReport.due(.unknown, last: (.unknown, t), now: t + 3600))
+        #expect(CamReport.every * 2 <= 60)   // the box's CAMERA_STALE_SECONDS
+    }
+
+    @Test func theReportCarriesOnlyTheState() throws {
+        let report = CamReport(device: "desk-mini", state: .looking, light: 7.26, now: Self.t0)
+        let config = BridgeConfig(baseURL: URL(string: "https://box.example")!, token: "t", deviceId: "desk-mini")
+        let r = try BoxClient(config: config).cameraRequest(report)
+        #expect(r.url?.path() == "/bridge/presence/camera" && r.httpMethod == "POST")
+        #expect(r.value(forHTTPHeaderField: "Authorization") == "Bearer t")
+        let body = try JSONSerialization.jsonObject(with: r.httpBody ?? Data()) as? [String: Any]
+        #expect(Set(body?.keys.map { $0 } ?? []) == ["device", "state", "ts", "light"])
+        #expect(body?["state"] as? String == "looking" && body?["light"] as? Double == 7.3)
+        #expect((body?["ts"] as? String)?.hasSuffix("Z") == true)
+        #expect(CamReport(device: "d", state: .dark, light: -99, now: Self.t0).light == -20)
+    }
 }
