@@ -86,6 +86,21 @@ import Testing
         #expect(PhotosRecentParams.fitted(CGSize(width: 300, height: 200), maxPx: 512) == CGSize(width: 300, height: 200))
     }
 
+    @Test func activityTodayMapping() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        let rings = ActivitySummaryValues(moveKcal: 312.6, moveGoal: 600, exerciseMin: 18.4, exerciseGoal: 30, standHours: 7, standGoal: nil)
+        let json = ActivityTodayCapability.json(rings, date: now, calendar: cal)
+        #expect(json["date"]?.stringValue == "2026-10-16")
+        #expect(json["move_kcal"]?.doubleValue == 313)
+        #expect(json["move_goal"]?.doubleValue == 600)
+        #expect(json["exercise_min"]?.doubleValue == 18)
+        #expect(json["stand_hours"]?.doubleValue == 7)
+        #expect(json["stand_goal"] == .null)
+        #expect(json["steps"] == .null)
+        #expect(ActivityTodayCapability.json(ActivitySummaryValues(), date: now, calendar: cal)["move_kcal"] == .null)
+    }
+
     @Test func motionStartOfDay() {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = TimeZone(identifier: "Asia/Shanghai")!

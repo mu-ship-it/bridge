@@ -3,6 +3,7 @@
 enum CapabilityRegistry {
     static let all: [any Capability] = [
         HealthQueryCapability(),
+        ActivityTodayCapability(),
         LocationNowCapability(),
         DeviceInfoCapability(),
         ClipboardGetCapability(),

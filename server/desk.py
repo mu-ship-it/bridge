@@ -372,10 +372,40 @@ def parse_activity(export):
             "steps": None if steps is None else int(round(steps))}
 
 
+def _live_pct(value, goal, fallback):
+    """round(value/goal*100) with Mu's own goal; ACTIVITY_GOALS fallback when the goal is null/0."""
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    if not isinstance(goal, (int, float)) or isinstance(goal, bool) or goal <= 0:
+        goal = fallback
+    return int(round(value / goal * 100))
+
+
+def apply_live_activity(parsed, live):
+    """Overlay ring percentages from desk-live.json's `activity` object onto a parsed export;
+    steps stay as parsed. Returns `parsed` unchanged when there is no usable `activity` object."""
+    act = (live or {}).get("activity")
+    if not isinstance(act, dict):
+        return parsed
+    return {**parsed,
+            "move_pct": _live_pct(act.get("move_kcal"), act.get("move_goal"), ACTIVITY_GOALS["move"]),
+            "exercise_pct": _live_pct(act.get("exercise_min"), act.get("exercise_goal"), ACTIVITY_GOALS["exercise"]),
+            "stand_pct": _live_pct(act.get("stand_hours"), act.get("stand_goal"), ACTIVITY_GOALS["stand"])}
+
+
 def read_activity(directory=None):
-    """The newest file in the health directory, parsed; all-None when missing or unreadable."""
+    """The newest file in the health directory, parsed; all-None when missing or unreadable.
+    A desk-live.json carrying an `activity` object supplies the rings."""
     try:
         folder = Path(directory or config.get("BRIDGE_HEALTH_DIR"))
+        live_file = folder / "desk-live.json"
+        if live_file.is_file():
+            try:
+                live = json.loads(live_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                live = None
+            if isinstance(live, dict) and isinstance(live.get("activity"), dict):
+                return apply_live_activity(parse_activity(live), live)
         newest = max((f for f in folder.iterdir() if f.is_file() and f.suffix == ".json"),
                      key=lambda f: f.stat().st_mtime)
         return parse_activity(json.loads(newest.read_text(encoding="utf-8")))

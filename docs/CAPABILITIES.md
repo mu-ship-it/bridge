@@ -67,6 +67,7 @@ xcodegen generate   # new files must be added to the Xcode project
 | `reminders.list`, `reminders.add` | `EventKitCapabilities.swift` | Reminders (full access) |
 | `contacts.search` | `ContactsSearchCapability.swift` | Contacts |
 | `photos.recent` | `PhotosRecentCapability.swift` | Photos |
+| `activity.today` | `ActivityTodayCapability.swift` | Health (read) |
 | `motion.today` | `MotionTodayCapability.swift` | Motion & Fitness |
 | `agent.say` | `AgentSayCapability.swift` | Notifications, only with `notify: true` |
 | `camera.capture` | `CameraCaptureCapability.swift` | Camera · on screen |

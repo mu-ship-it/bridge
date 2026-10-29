@@ -37,7 +37,7 @@ extension HealthMetric {
 /// Read-only HealthKit access. Never writes, never shares outside BoxClient.
 final class HealthService: @unchecked Sendable {
     static let shared = HealthService()
-    private let store = HKHealthStore()
+    let store = HKHealthStore()
 
     var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
 
@@ -45,6 +45,7 @@ final class HealthService: @unchecked Sendable {
         var types: Set<HKObjectType> = Set(HealthMetric.allCases.map(\.quantityType))
         types.insert(HKCategoryType(.sleepAnalysis))
         types.insert(HKObjectType.workoutType())
+        types.insert(HKObjectType.activitySummaryType())
         types.insert(HKQuantityType(.activeEnergyBurned))
         types.insert(HKQuantityType(.distanceWalkingRunning))
         types.insert(HKQuantityType(.distanceCycling))

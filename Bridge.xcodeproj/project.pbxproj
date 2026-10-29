@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		005CA2B4757704900ED244D4 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB632E949450C76C78043988 /* JSONValue.swift */; };
+		0523EA8CD48B9ECEF89D6F39 /* ActivityTodayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5100BC264194A6B35AAE261 /* ActivityTodayCapability.swift */; };
 		05593C0F240B04BA53CFFF1A /* CapabilityRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9C518902706C4C94B00988B /* CapabilityRegistry.swift */; };
 		062CB24FCB47016385193F6D /* DutyBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0F0F1F807AFDCED584EFD30 /* DutyBanner.swift */; };
 		09A38D9AA20BD60B481FD549 /* ShareCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866A636D51506F10A9AF17E2 /* ShareCapability.swift */; };
@@ -302,6 +303,7 @@
 		E1C51D6132CCFBA02B50D8B3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		E26E64C15486EFD6A38F7C4E /* HomeCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCapabilities.swift; sourceTree = "<group>"; };
 		E2FAAE0B5ABB99A6A448EC17 /* DeskLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskLayout.swift; sourceTree = "<group>"; };
+		E5100BC264194A6B35AAE261 /* ActivityTodayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityTodayCapability.swift; sourceTree = "<group>"; };
 		E5B2FD4194A7691C01952713 /* HomeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStore.swift; sourceTree = "<group>"; };
 		E80007E7BD78CA3752376854 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
@@ -508,6 +510,7 @@
 		DFD10356C59015C52975756D /* Capabilities */ = {
 			isa = PBXGroup;
 			children = (
+				E5100BC264194A6B35AAE261 /* ActivityTodayCapability.swift */,
 				2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */,
 				FCB4AB261B06D1C475E959D8 /* BarcodeScanCapability.swift */,
 				B6358983CA865BE5715FE0FA /* CameraCaptureCapability.swift */,
@@ -942,6 +945,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7C58C5532C9EABEEB984BDCF /* Activity.swift in Sources */,
+				0523EA8CD48B9ECEF89D6F39 /* ActivityTodayCapability.swift in Sources */,
 				0FE0D827AFADCCA16B9BC292 /* AgentSayCapability.swift in Sources */,
 				4B089FA21C258175981C1059 /* AppStatus.swift in Sources */,
 				FC37A0C933D85227950982E1 /* BackgroundTasks.swift in Sources */,

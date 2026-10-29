@@ -370,3 +370,40 @@ def test_progress_and_event_titles_reach_the_desk_clipped(client, account):
     assert r.status_code == 200
     items = client.get("/bridge/board/desk", headers=bearer(account)).json()["attention"]
     assert [i["title"] for i in items if i["kind"] == "progress"] == ["Google D"]
+
+
+# ------------------------------------------------------------------ live activity rings
+
+def _live(tmp_path, activity=None, steps=4210):
+    import json
+    doc = {"data": {"metrics": [{"name": "step_count", "units": "count",
+                                 "data": [{"date": "2026-10-27 08:00:00 +0800", "qty": steps}]}]}}
+    if activity is not None:
+        doc["activity"] = activity
+    (tmp_path / "desk-live.json").write_text(json.dumps(doc))
+
+
+def test_live_rings_use_mus_goals_and_keep_steps(tmp_path):
+    _live(tmp_path, {"date": "2026-10-27", "move_kcal": 300, "move_goal": 600, "exercise_min": 15,
+                     "exercise_goal": 30, "stand_hours": 9, "stand_goal": 12, "steps": None})
+    assert desk.read_activity(tmp_path) == {"move_pct": 50, "exercise_pct": 50, "stand_pct": 75, "steps": 4210}
+
+
+def test_live_rings_goal_fallback(tmp_path):
+    _live(tmp_path, {"move_kcal": 250, "move_goal": None, "exercise_min": 15, "exercise_goal": 0,
+                     "stand_hours": 6, "stand_goal": 12})
+    got = desk.read_activity(tmp_path)
+    assert (got["move_pct"], got["exercise_pct"], got["stand_pct"]) == (50, 50, 50)
+
+
+def test_live_rings_null_values(tmp_path):
+    _live(tmp_path, {"move_kcal": None, "move_goal": 600, "exercise_min": 30, "exercise_goal": 30,
+                     "stand_hours": None, "stand_goal": None})
+    got = desk.read_activity(tmp_path)
+    assert (got["move_pct"], got["exercise_pct"], got["stand_pct"]) == (None, 100, None)
+    assert got["steps"] == 4210
+
+
+def test_live_file_without_activity_is_unchanged(tmp_path):
+    _live(tmp_path)
+    assert desk.read_activity(tmp_path) == {"move_pct": None, "exercise_pct": None, "stand_pct": None, "steps": 4210}

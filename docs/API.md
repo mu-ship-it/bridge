@@ -329,6 +329,12 @@ No params. CMPedometer totals since local midnight. `unavailable` on devices wit
 { "from": "2026-10-15T16:00:00Z", "to": "2026-10-16T02:00:00Z", "steps": 4210, "distance_m": 3120.5, "floors_up": 3, "floors_down": 2 }
 ```
 
+### `activity.today`
+No params. Today's Apple activity rings from HealthKit's activity summary (device calendar), with Mu's own goals. Numbers are rounded; anything HealthKit lacks is `null`; `steps` is always `null` (use `health.query`). Needs Health read access (the same prompt as `health.query`).
+```json
+{ "date": "2026-10-16", "move_kcal": 313, "move_goal": 600, "exercise_min": 18, "exercise_goal": 30, "stand_hours": 7, "stand_goal": 12, "steps": null }
+```
+
 ### `agent.say`
 params: `text` (required, max 2000 chars), `notify` (bool, default false). Adds `text` to the app's activity feed: the job's own row shows it. This is how the agent narrates when nothing needs running. With `notify: true` it is also shown as a local notification titled with the app's display name. Result `{"ok": true, "notified": true}`. If the notification could not be shown, `notified` is false and `notify_error` holds the code (e.g. `permission_denied`), and the job still succeeds.
 
