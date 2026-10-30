@@ -104,10 +104,14 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         /// The study's presence sensor as the box last heard it; while it is fresh and reads nobody
         /// the desk camera only takes a probe frame a minute (CamGate).
         var roomSensor: RoomSensor? = nil
+        /// How long the fused answer has read away (null while present), and after how long the
+        /// desk goes black (BrightnessPolicy.isLightsOut).
+        var awayS: Int? = nil
+        var awayAfterS: Int? = nil
 
         enum CodingKeys: String, CodingKey {
             case present, source, idleS = "idle_s", ageS = "age_s", staleAfterS = "stale_after_s"
-            case roomSensor = "room_sensor"
+            case roomSensor = "room_sensor", awayS = "away_s", awayAfterS = "away_after_s"
         }
 
         struct RoomSensor: Decodable, Sendable, Equatable {

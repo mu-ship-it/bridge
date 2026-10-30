@@ -2,8 +2,9 @@ import SwiftUI
 import UIKit
 
 /// How bright the desk display should be. Pure, so the rules are pinned by tests:
-/// Mu at the desk → 0.85 (0.5 between 23:00 and 07:00), away → 0.10, never 0. A new attention
-/// item lights the screen for 30 s even when he is away. Presence comes from the desk camera
+/// Mu at the desk → 0.85 (0.5 between 23:00 and 07:00), away → 0.10. A new attention
+/// item lights the screen for 30 s even when he is away. Once the box says he has been away for
+/// `away_after_s` (10 min), the desk goes fully black (0) until the camera or the box sees him again. Presence comes from the desk camera
 /// when it has an opinion (CamPresence), else from the box's desk payload; a report older than
 /// 90 s (its age at fetch plus the time since) counts as away. With the camera on, he must be
 /// looking at the screen for the bright level (else `notLooking`), and a dim room (camera
@@ -13,6 +14,7 @@ enum BrightnessPolicy {
     static let presentAtNight: CGFloat = 0.5
     static let notLooking: CGFloat = 0.3
     static let away: CGFloat = 0.10
+    static let lightsOut: CGFloat = 0
     static let arrivalHold: TimeInterval = 30
     static let presenceStale: TimeInterval = 90
     /// Night is [nightStarts, nightEnds) in local hours, across midnight.
@@ -30,6 +32,18 @@ enum BrightnessPolicy {
         camera.isDecisive ? camera.isPresent : isPresent(presence, fetchedAt: fetchedAt, now: now)
     }
 
+    /// The box's fused away has lasted `away_after_s` (its `away_s` at fetch plus the time since).
+    static func isLightsOut(_ presence: DeskPayload.Presence?, fetchedAt: Date?, now: Date) -> Bool {
+        guard let presence, !presence.present, let awayS = presence.awayS, let after = presence.awayAfterS,
+              let fetchedAt else { return false }
+        return TimeInterval(awayS) + now.timeIntervalSince(fetchedAt) >= TimeInterval(after)
+    }
+
+    /// The camera seeing Mu ends lights-out at once, before the box hears of it.
+    static func isLightsOut(camera: CamState, _ presence: DeskPayload.Presence?, fetchedAt: Date?, now: Date) -> Bool {
+        !(camera.isDecisive && camera.isPresent) && isLightsOut(presence, fetchedAt: fetchedAt, now: now)
+    }
+
     static func isNight(_ now: Date, calendar: Calendar = .current) -> Bool {
         let hour = calendar.component(.hour, from: now)
         return hour >= nightStarts || hour < nightEnds
@@ -37,7 +51,8 @@ enum BrightnessPolicy {
 
     /// `looking`: nil without a camera opinion; `light`: the room's EV100 from the camera, nil when unknown.
     static func level(present: Bool, lastArrival: Date?, now: Date, calendar: Calendar = .current,
-                      looking: Bool? = nil, light: Double? = nil) -> CGFloat {
+                      looking: Bool? = nil, light: Double? = nil, lightsOut: Bool = false) -> CGFloat {
+        if lightsOut { return Self.lightsOut }
         let lit: Bool = if let lastArrival { now >= lastArrival && now.timeIntervalSince(lastArrival) < arrivalHold } else { false }
         guard present || lit else { return away }
         let dim = isNight(now, calendar: calendar) || (light.map { $0 < CamPresence.dimRoomEV } ?? false)

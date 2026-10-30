@@ -18,6 +18,9 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
   (every other `/bridge/presence` source). Anything older than its stale limit is ignored, never
   trusted: a sensor that dropped offline keeps its last state, so a stuck "someone" or "nobody"
   must not decide.
+* `away_s` / `away_since` say how long the fused answer has read "away" (kept per account in
+  `presence_state`, flipped whenever a composed desk sees it change); once it reaches
+  `away_after_s` the phone goes fully black until Mu is back.
 """
 import hashlib
 import json
@@ -49,6 +52,7 @@ BOARD_ATTENTION_STATES = ("over", "stalled")
 PRESENCE_STALE_SECONDS = 90           # a PC's idle report
 CAMERA_STALE_SECONDS = 60             # the phone re-reports every 30 s while it has an opinion
 ROOM_SENSOR_STALE_SECONDS = 3 * 60    # Home Assistant must re-post the sensor's state within this
+AWAY_AFTER_SECONDS = 10 * 60          # fused away this long: the desk goes black (HA's room_follow uses the same 10 min)
 CAMERA_STATES = ("present", "looking", "absent", "dark", "unknown")
 CAMERA_DECISIVE = ("present", "looking", "absent")
 ROOM_STALE_SECONDS = 15 * 60
@@ -343,6 +347,19 @@ def fuse_presence(reports, camera, now, room_sources=None):
         fused.update(present=sensor["occupied"], by="room", source=sensor["source"], active=sensor["occupied"],
                      idle_s=None, age_s=sensor["age_s"], stale_after_s=ROOM_SENSOR_STALE_SECONDS)
     return fused
+
+
+def track_away(present, held, now):
+    """The fused `present` + the stored {present, since} (None at first) -> (what to store, the
+    presence fields {away_since, away_s, away_after_s}). `since` moves only when `present` flips,
+    so the away clock starts at the first composed desk that read away; a first-ever read starts
+    it now (never "away for ages")."""
+    if held is None or bool(held["present"]) != bool(present):
+        held = {"present": bool(present), "since": iso(now)}
+    away = not held["present"]
+    return held, {"away_since": held["since"] if away else None,
+                  "away_s": _age(held["since"], now) if away else None,
+                  "away_after_s": AWAY_AFTER_SECONDS}
 
 
 # ------------------------------------------------------------------ room

@@ -770,8 +770,13 @@ def get_desk(request: Request):
         attention = desk.compose_attention(events, acks, boards, db.list_progress(conn, account["id"]), now)
         seats = desk.compose_seats(db.list_boards(conn, account["id"]))
         presence = desk.fuse_presence(db.list_presence(conn, account["id"]), db.get_camera(conn, account["id"]), now)
+        held = db.get_presence_state(conn, account["id"])
+        state, away = desk.track_away(presence["present"], held, now)
+        presence.update(away)
         room = desk.summarize_room(db.list_room(conn, account["id"]), now)
         with conn:
+            if state != held:
+                db.put_presence_state(conn, account["id"], state["present"], state["since"])
             if device_id:
                 db.touch_device(conn, account["id"], device_id)
             db.audit(conn, account["id"], device_id, endpoint, f"read:attention={len(attention)}")

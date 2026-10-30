@@ -15,7 +15,7 @@ import UIKit
                    {"id": "b_muster_abc", "kind": "board.stalled", "title": "Lanes · teal", "text": "no output",
                     "level": "info", "ts": "2026-10-27T08:45:00Z", "speak": false, "source": "board:muster"}],
      "presence": {"present": true, "source": "pc", "active": true, "idle_s": 4, "age_s": 12,
-                  "stale_after_s": 90, "sources": []}}
+                  "stale_after_s": 90, "sources": [], "away_since": null, "away_s": null, "away_after_s": 600}}
     """
 
     @Test func decodesTheFullPayload() throws {
@@ -26,6 +26,7 @@ import UIKit
         #expect(p.attention[0].speak && p.attention[0].isWarning && p.attention[0].title == nil)
         #expect(!p.attention[1].isWarning && p.attention[1].title == "Lanes · teal")
         #expect(p.presence?.present == true && p.presence?.ageS == 12 && p.presence?.staleAfterS == 90)
+        #expect(p.presence?.awayS == nil && p.presence?.awayAfterS == 600)
     }
 
     @Test func theRoomTilePrefersAFreshBoxReading() {

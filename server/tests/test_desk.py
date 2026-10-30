@@ -197,6 +197,37 @@ def test_camera_report_needs_a_token(client):
     assert client.post("/bridge/presence/camera", json={"state": "present", "ts": "2026-10-27T09:00:00Z"}).status_code == 401
 
 
+def test_away_clock_starts_at_the_first_away_read_and_stops_on_return():
+    held, away = desk.track_away(False, None, FUSED_AT)
+    assert held == {"present": False, "since": desk.iso(FUSED_AT)}
+    assert away == {"away_since": desk.iso(FUSED_AT), "away_s": 0, "away_after_s": desk.AWAY_AFTER_SECONDS}
+    later = FUSED_AT + timedelta(seconds=601)
+    still, away = desk.track_away(False, held, later)
+    assert still == held and away["away_s"] == 601 and away["away_s"] >= away["away_after_s"]
+    back, away = desk.track_away(True, still, later)
+    assert back == {"present": True, "since": desk.iso(later)}
+    assert away["away_since"] is None and away["away_s"] is None
+    gone, away = desk.track_away(False, back, later + timedelta(seconds=5))
+    assert gone["since"] == desk.iso(later + timedelta(seconds=5)) and away["away_s"] == 0
+
+
+def test_desk_reports_how_long_mu_has_been_away(client, conn, account, monkeypatch):
+    monkeypatch.setenv("BRIDGE_ROOM_PRESENCE_SOURCES", "study")
+    client.post("/bridge/presence", headers=bearer(account), json={"source": "study", "active": False})
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]
+    assert body["present"] is False and body["away_s"] == 0 and body["away_after_s"] == 600
+    # Pretend that first away read was 11 minutes ago.
+    since = desk.iso(datetime.now(timezone.utc) - timedelta(minutes=11))
+    with conn:
+        store.put_presence_state(conn, account["id"], False, since)
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]
+    assert body["away_since"] == since and body["away_s"] >= 660
+    client.post("/bridge/presence", headers=bearer(account), json={"source": "study", "active": True})
+    body = client.get("/bridge/board/desk", headers=bearer(account)).json()["presence"]
+    assert body["present"] is True and body["away_s"] is None and body["away_since"] is None
+    assert store.get_presence_state(conn, account["id"])["present"] is True
+
+
 def test_desk_fuses_camera_room_and_pc(client, conn, account, other_account, monkeypatch):
     monkeypatch.setenv("BRIDGE_ROOM_PRESENCE_SOURCES", "study")
     client.post("/bridge/presence", headers=bearer(account), json={"source": "pc", "active": True, "idle_s": 1})

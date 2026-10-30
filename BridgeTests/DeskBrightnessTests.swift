@@ -46,6 +46,34 @@ import Testing
         #expect(BrightnessPolicy.away > 0)
     }
 
+    static func away(_ awayS: Int?) -> DeskPayload.Presence {
+        DeskPayload.Presence(present: false, source: "study", idleS: nil, ageS: 5, staleAfterS: 180,
+                             awayS: awayS, awayAfterS: 600)
+    }
+
+    @Test func awayTenMinutesGoesFullyBlack() {
+        let fetched = Self.at(10)
+        #expect(!BrightnessPolicy.isLightsOut(Self.away(0), fetchedAt: fetched, now: fetched))
+        #expect(!BrightnessPolicy.isLightsOut(Self.away(590), fetchedAt: fetched, now: fetched + 9.9))
+        // The box's away_s at fetch plus the time since reaches away_after_s.
+        #expect(BrightnessPolicy.isLightsOut(Self.away(590), fetchedAt: fetched, now: fetched + 10))
+        #expect(BrightnessPolicy.isLightsOut(Self.away(900), fetchedAt: fetched, now: fetched))
+        // Present, an old box without away_s, or no fetch yet: never black.
+        #expect(!BrightnessPolicy.isLightsOut(Self.presence(true, age: 1), fetchedAt: fetched, now: fetched + 3600))
+        #expect(!BrightnessPolicy.isLightsOut(Self.away(nil), fetchedAt: fetched, now: fetched + 3600))
+        #expect(!BrightnessPolicy.isLightsOut(Self.away(900), fetchedAt: nil, now: fetched))
+        // The camera seeing him ends it at once; absent / dark / unknown leave it to the box.
+        #expect(!BrightnessPolicy.isLightsOut(camera: .looking, Self.away(900), fetchedAt: fetched, now: fetched))
+        #expect(!BrightnessPolicy.isLightsOut(camera: .present, Self.away(900), fetchedAt: fetched, now: fetched))
+        #expect(BrightnessPolicy.isLightsOut(camera: .absent, Self.away(900), fetchedAt: fetched, now: fetched))
+        #expect(BrightnessPolicy.isLightsOut(camera: .dark, Self.away(900), fetchedAt: fetched, now: fetched))
+        // Lights-out beats everything, even a new item's 30 s and Mu at the desk at noon.
+        let noon = Self.at(12)
+        #expect(BrightnessPolicy.level(present: false, lastArrival: noon, now: noon + 1, calendar: Self.shanghai,
+                                       lightsOut: true) == 0)
+        #expect(BrightnessPolicy.lightsOut == 0)
+    }
+
     @Test func aNewItemLightsTheScreenFor30sEvenWhenAway() {
         let arrived = Self.at(15)
         func level(_ after: TimeInterval) -> CGFloat {

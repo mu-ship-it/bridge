@@ -13,6 +13,8 @@ struct DeskView: View {
     @State private var shatterTick = 0
     @State private var shatter = ShatterDirector()
     @State private var lightsOut = false
+    /// Away 10 min (BrightnessPolicy.isLightsOut): fully black, face and all; the camera keeps watching.
+    @State private var awayBlack = false
 
     var body: some View {
         GeometryReader { geo in
@@ -39,6 +41,8 @@ struct DeskView: View {
             .animation(.easeInOut(duration: 0.4), value: state)
             .animation(DeskMotion.lightsOut, value: lightsOut)
             .overlay { if let run = shatter.run { ShatterOverlay(run: run) } }
+            .overlay { Color.black.ignoresSafeArea().opacity(awayBlack ? 1 : 0).allowsHitTesting(false) }
+            .animation(DeskMotion.lightsOut, value: awayBlack)
             .modifier(ShakeEffect(progress: shatter.shake))
             .onChange(of: shatterTick) { runShatter(size: geo.size) }
             .background(FingerTap(touches: 2) { desk.toggleLightsOut() })
@@ -63,6 +67,7 @@ struct DeskView: View {
                 let hour = BurnIn.sweepHour(at: now)
                 if hour != sweepHour { sweepHour = hour; shatterTick += 1 }
                 lightsOut = BurnIn.lightsOut(at: now, manualSince: desk.lightsOutSince)
+                awayBlack = desk.isLightsOut(now: now)
                 try? await Task.sleep(for: .seconds(1))
             }
         }

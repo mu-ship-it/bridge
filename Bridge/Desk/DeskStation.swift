@@ -91,6 +91,11 @@ final class DeskStation {
         BrightnessPolicy.isPresent(camera: cam.state(now: now), payload?.presence, fetchedAt: fetchedAt, now: now)
     }
 
+    /// Away long enough that the desk goes black (BrightnessPolicy.isLightsOut).
+    func isLightsOut(now: Date = Date()) -> Bool {
+        BrightnessPolicy.isLightsOut(camera: cam.state(now: now), payload?.presence, fetchedAt: fetchedAt, now: now)
+    }
+
     /// Called once a second by the desk screen.
     func trackPresence(now: Date = Date()) { awayTracker.update(present: isPresent(now: now), now: now) }
 
@@ -108,7 +113,7 @@ final class DeskStation {
         let state = cam.state(now: now)
         return BrightnessPolicy.level(present: isPresent(now: now), lastArrival: lastArrival, now: now,
                                       looking: state.isPresent ? state == .looking : nil,
-                                      light: state == .unknown ? nil : cam.light)
+                                      light: state == .unknown ? nil : cam.light, lightsOut: isLightsOut(now: now))
     }
 
     /// The desk may turn sideways; the tabs may not (AppDelegate). Leaving the desk on its side

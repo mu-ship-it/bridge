@@ -140,6 +140,14 @@ CREATE TABLE IF NOT EXISTS camera (
     received   TEXT NOT NULL
 );
 
+-- When the desk's fused presence last flipped (present <-> away), so the desk can tell how long
+-- Mu has been away. One row per account, written while composing GET /bridge/board/desk.
+CREATE TABLE IF NOT EXISTS presence_state (
+    account_id TEXT NOT NULL PRIMARY KEY,
+    present    INTEGER NOT NULL,
+    since      TEXT NOT NULL
+);
+
 -- The desk's Room tile: the latest temperature / humidity reading per source (a Home
 -- Assistant sensor, say). Either value may be NULL.
 CREATE TABLE IF NOT EXISTS room (
@@ -619,6 +627,22 @@ def get_camera(conn, account_id):
     row = conn.execute("SELECT state, light, observed, received FROM camera WHERE account_id = ?",
                        (account_id,)).fetchone()
     return dict(row) if row else None
+
+
+# ---------------------------------------------------------------- presence state
+
+def get_presence_state(conn, account_id):
+    """{present, since} or None before the first composed desk."""
+    row = conn.execute("SELECT present, since FROM presence_state WHERE account_id = ?", (account_id,)).fetchone()
+    return {"present": bool(row["present"]), "since": row["since"]} if row else None
+
+
+def put_presence_state(conn, account_id, present, since):
+    conn.execute(
+        "INSERT INTO presence_state (account_id, present, since) VALUES (?, ?, ?)"
+        " ON CONFLICT (account_id) DO UPDATE SET present = excluded.present, since = excluded.since",
+        (account_id, int(bool(present)), since),
+    )
 
 
 # ---------------------------------------------------------------- room
