@@ -63,6 +63,15 @@ struct CamFrame: Equatable, Sendable {
     var light: Double?
     /// Too dark for Vision to be trusted.
     var dark = false
+    /// The largest face's (else upper body's) centre, as a fraction of the frame (SeatTracker).
+    var center: (x: Double, y: Double)? = nil
+    /// The largest face, embedded, when it was readable (FaceID.isReadable); never an image.
+    var face: FaceRead? = nil
+
+    static func == (l: CamFrame, r: CamFrame) -> Bool {
+        l.hit == r.hit && l.looking == r.looking && l.light == r.light && l.dark == r.dark
+            && l.center?.x == r.center?.x && l.center?.y == r.center?.y && l.face == r.face
+    }
 
     /// Frontal enough to count as a glance at the screen. Missing angles count as not looking.
     static func isLooking(yaw: Double?, pitch: Double?) -> Bool {
@@ -154,10 +163,15 @@ struct CamDetector: Equatable, Sendable {
     func wantsCamera(thermal: ProcessInfo.ThermalState) -> Bool { thermal != .critical }
 
     /// The room gate is closed and Mu is not being seen or confirmed: the next frame is a probe.
-    func probing(gateOpen: Bool) -> Bool { !gateOpen && phase != .present && hits == 0 }
+    func probing(gateOpen: Bool, identifying: Bool = false) -> Bool {
+        !gateOpen && phase != .present && hits == 0 && !identifying
+    }
 
     /// Seconds to the next frame (or, with the camera off, to the next gate check).
-    func interval(now: Date, thermal: ProcessInfo.ThermalState, cameraOn: Bool = true, gateOpen: Bool = true) -> TimeInterval {
+    /// `identifying` (CamIdentity.identifying): someone there, not yet seated or recognised; a
+    /// present detector then keeps the confirm rate instead of its slow one.
+    func interval(now: Date, thermal: ProcessInfo.ThermalState, cameraOn: Bool = true, gateOpen: Bool = true,
+                  identifying: Bool = false) -> TimeInterval {
         let base: TimeInterval
         if !cameraOn {
             base = CamPresence.gateInterval
@@ -168,6 +182,8 @@ struct CamDetector: Equatable, Sendable {
                 base = CamPresence.confirmInterval
             } else if firstMiss != nil {
                 base = CamPresence.searchInterval
+            } else if identifying {
+                base = CamPresence.confirmInterval
             } else {
                 base = CamPresence.presentInterval
             }
@@ -204,9 +220,9 @@ enum CamHeat {
 }
 
 /// What the phone tells the box (`POST /bridge/presence/camera`): only the state, when it was
-/// seen and the room light — never a frame. Sent on every change and again every `every` seconds
-/// while the state is worth keeping fresh (the box stops trusting it after 60 s); `unknown` is
-/// sent once, since silence reads the same on the box.
+/// seen, the room light, and who it is — never a frame, never an embedding. Sent on every change
+/// and again every `every` seconds while the state is worth keeping fresh (the box stops trusting
+/// it after 60 s); `unknown` is sent once, since silence reads the same on the box.
 struct CamReport: Encodable, Equatable, Sendable {
     static let every: TimeInterval = 30
 
@@ -214,17 +230,34 @@ struct CamReport: Encodable, Equatable, Sendable {
     let state: String
     let ts: String
     let light: Double?
+    /// mu / other / unknown (FaceID): `unknown` whenever the model is not confident.
+    let who: String
+    /// The latest cosine similarity to Mu's template, 3 decimals; null before enrollment or without a readable face.
+    let score: Double?
+    /// Face or upper body seen, steady, for FaceID.seatedAfter.
+    let seated: Bool
 
-    init(device: String, state: CamState, light: Double?, now: Date) {
+    /// What makes a report differ from the last one sent.
+    struct Key: Equatable, Sendable {
+        var state: CamState
+        var who: Who = .unknown
+        var seated = false
+    }
+
+    init(device: String, state: CamState, light: Double?, now: Date,
+         who: Who = .unknown, score: Double? = nil, seated: Bool = false) {
         self.device = device
         self.state = state.rawValue
         ts = ISO.string(now)
         // One decimal, inside the box's accepted range.
         self.light = light.map { (min(max($0, -20), 30) * 10).rounded() / 10 }
+        self.who = who.rawValue
+        self.score = score.map { (min(max($0, -1), 1) * 1000).rounded() / 1000 }
+        self.seated = seated
     }
 
-    static func due(_ state: CamState, last: (state: CamState, at: Date)?, now: Date) -> Bool {
-        guard let last, last.state == state else { return true }
-        return state != .unknown && now.timeIntervalSince(last.at) >= every
+    static func due(_ key: Key, last: (key: Key, at: Date)?, now: Date) -> Bool {
+        guard let last, last.key == key else { return true }
+        return key.state != .unknown && now.timeIntervalSince(last.at) >= every
     }
 }

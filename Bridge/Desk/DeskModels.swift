@@ -108,10 +108,23 @@ struct DeskPayload: Decodable, Sendable, Equatable {
         /// desk goes black (BrightnessPolicy.isLightsOut).
         var awayS: Int? = nil
         var awayAfterS: Int? = nil
+        /// Every presence source's latest report (the PCs and the room sensor); FaceID reads
+        /// 白加黑's (`pc`) to know when Mu is typing.
+        var sources: [Source]? = nil
 
         enum CodingKeys: String, CodingKey {
             case present, source, idleS = "idle_s", ageS = "age_s", staleAfterS = "stale_after_s"
-            case roomSensor = "room_sensor", awayS = "away_s", awayAfterS = "away_after_s"
+            case roomSensor = "room_sensor", awayS = "away_s", awayAfterS = "away_after_s", sources
+        }
+
+        struct Source: Decodable, Sendable, Equatable {
+            let source: String
+            let active: Bool?
+            let idleS: Int?
+            let ageS: Int?
+            let fresh: Bool?
+
+            enum CodingKeys: String, CodingKey { case source, active, idleS = "idle_s", ageS = "age_s", fresh }
         }
 
         struct RoomSensor: Decodable, Sendable, Equatable {

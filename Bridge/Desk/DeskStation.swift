@@ -62,8 +62,12 @@ final class DeskStation {
     private(set) var camPausedForHeat = false
     @ObservationIgnored private let camera = DeskCamera()
     @ObservationIgnored private var cameraRunning = false
-    /// The last camera state sent to the box, and when (CamReport).
-    @ObservationIgnored private var lastReport: (state: CamState, at: Date)?
+    /// Who the camera sees and whether they sat down (FaceID).
+    private(set) var identity = CamIdentity()
+    /// Mu's enrolled face (embeddings only, FaceStore); loaded with the first camera pass.
+    @ObservationIgnored private var enrollment: FaceEnrollment?
+    /// The last camera report sent to the box, and when (CamReport).
+    @ObservationIgnored private var lastReport: (key: CamReport.Key, at: Date)?
 
     private init() {
         let defaults = UserDefaults.standard
@@ -163,15 +167,19 @@ final class DeskStation {
                 await stopCamera()
             }
             if cameraRunning {
-                let probe = cam.probing(gateOpen: gateOpen)
+                let probe = cam.probing(gateOpen: gateOpen, identifying: identity.identifying(now: now))
                 if let frame = await camera.frame(orientation: DeskCamera.orientation, timeout: CamPresence.frameTimeout) {
-                    cam.observe(frame, now: Date(), probe: probe)
+                    let seen = Date()
+                    cam.observe(frame, now: seen, probe: probe)
+                    identify(frame, now: seen)
                 } else {
                     await stopCamera()   // interrupted: the next pass tries again
                 }
             }
             reportCamera()
-            try? await Task.sleep(for: .seconds(cam.interval(now: Date(), thermal: thermal, cameraOn: cameraRunning, gateOpen: gateOpen)))
+            let later = Date()
+            try? await Task.sleep(for: .seconds(cam.interval(now: later, thermal: thermal, cameraOn: cameraRunning, gateOpen: gateOpen,
+                                                             identifying: identity.identifying(now: later))))
         }
         await stopCamera()
     }
@@ -181,16 +189,44 @@ final class DeskStation {
         cameraRunning = false
         await camera.stop()
         if cam.phase != .unknown { cam.interrupted(now: Date()) }
+        identity.reset()
         reportCamera()
+    }
+
+    /// One analysed frame's identity half: offer the face to Mu's enrollment (only while 白加黑 is
+    /// being typed on, or during the long-press burst), then compare it with the template. A face
+    /// that is not taken is dropped here.
+    private func identify(_ frame: CamFrame, now: Date) {
+        var enrolled = enrollment ?? FaceStore.load()
+        var similarity: Double?
+        if let face = frame.face {
+            let pcActive = FaceID.pcActive(payload?.presence, fetchedAt: fetchedAt, now: now)
+            similarity = enrolled.similarity(face.embedding)
+            if enrolled.offer(face, pcActive: pcActive, now: now) { FaceStore.save(enrolled) }
+        }
+        enrollment = enrolled
+        identity.observe(frame, similarity: similarity, now: now)
+    }
+
+    /// The hidden long-press on the desk: the next readable faces are Mu's (only he sits here).
+    func enrollNow(now: Date = Date()) {
+        var enrolled = enrollment ?? FaceStore.load()
+        enrolled.startManual(now: now)
+        enrollment = enrolled
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     /// Tells the box the camera's state when it changed or is due again; outside the caller's
     /// cancellation, so the last `unknown` still goes out as the app leaves the screen.
     private func reportCamera(now: Date = Date()) {
         let state = cam.state(now: now)
-        guard CamReport.due(state, last: lastReport, now: now), let config = ConfigStore.load() else { return }
-        lastReport = (state, now)
-        let report = CamReport(device: config.deviceId, state: state, light: state == .unknown ? nil : cam.light, now: now)
+        let opinion = state.isDecisive
+        let key = CamReport.Key(state: state, who: opinion ? identity.who.who(now: now) : .unknown,
+                                seated: opinion && identity.seat.seated)
+        guard CamReport.due(key, last: lastReport, now: now), let config = ConfigStore.load() else { return }
+        lastReport = (key, now)
+        let report = CamReport(device: config.deviceId, state: state, light: state == .unknown ? nil : cam.light, now: now,
+                               who: key.who, score: opinion ? identity.who.score : nil, seated: key.seated)
         Task {
             do {
                 try await BackgroundTime.run("desk camera state") { try await BoxClient(config: config).postCamera(report) }

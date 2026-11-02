@@ -47,6 +47,8 @@ struct DeskView: View {
             .onChange(of: shatterTick) { runShatter(size: geo.size) }
             .background(FingerTap(touches: 2) { desk.toggleLightsOut() })
             .background(FingerTap(touches: 3) { runShatter(size: geo.size) })
+            // Hidden: a 3 s one-finger hold enrolls Mu's face now (FaceID; only he sits here).
+            .background(FingerTap(touches: 1, hold: FaceID.enrollHold) { desk.enrollNow() })
         }
         .preferredColorScheme(.dark)
         .foregroundStyle(Theme.text)
@@ -656,11 +658,13 @@ private struct Sleeper: View {
 /// Two or three fingers tapping anywhere on the desk: a recognizer on the window, so the buttons keep working.
 private struct FingerTap: UIViewRepresentable {
     let touches: Int
+    /// A long press of this many seconds instead of a tap.
+    var hold: TimeInterval? = nil
     let action: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(action) }
 
-    func makeUIView(context: Context) -> UIView { Anchor(coordinator: context.coordinator, touches: touches) }
+    func makeUIView(context: Context) -> UIView { Anchor(coordinator: context.coordinator, touches: touches, hold: hold) }
 
     func updateUIView(_ view: UIView, context: Context) { context.coordinator.action = action }
 
@@ -668,21 +672,31 @@ private struct FingerTap: UIViewRepresentable {
         var action: () -> Void
         init(_ action: @escaping () -> Void) { self.action = action }
         @objc func tapped() { action() }
+        @objc func held(_ recognizer: UILongPressGestureRecognizer) { if recognizer.state == .began { action() } }
     }
 
     private final class Anchor: UIView {
         let coordinator: Coordinator
         let touches: Int
-        private lazy var recognizer: UITapGestureRecognizer = {
+        let hold: TimeInterval?
+        private lazy var recognizer: UIGestureRecognizer = {
+            if let hold {
+                let r = UILongPressGestureRecognizer(target: coordinator, action: #selector(Coordinator.held(_:)))
+                r.numberOfTouchesRequired = touches
+                r.minimumPressDuration = hold
+                r.cancelsTouchesInView = false
+                return r
+            }
             let r = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped))
             r.numberOfTouchesRequired = touches
             r.cancelsTouchesInView = false
             return r
         }()
 
-        init(coordinator: Coordinator, touches: Int) {
+        init(coordinator: Coordinator, touches: Int, hold: TimeInterval?) {
             self.coordinator = coordinator
             self.touches = touches
+            self.hold = hold
             super.init(frame: .zero)
             isUserInteractionEnabled = false
         }

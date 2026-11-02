@@ -14,6 +14,7 @@
 		09A38D9AA20BD60B481FD549 /* ShareCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866A636D51506F10A9AF17E2 /* ShareCapability.swift */; };
 		0A7E11EA4C51CE7864C58D9D /* HealthQueryCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62A0AC39D02D91D1B5487B58 /* HealthQueryCapability.swift */; };
 		0E9CA1157F426BC4D3FC226C /* JobDispatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 902F797A0DD8BC4D39817DDA /* JobDispatcherTests.swift */; };
+		0EAD56815B887E789CC3C6E2 /* FaceEmbedder.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = C0BCA42778919C9611FE6AE1 /* FaceEmbedder.mlmodel */; };
 		0FE0D827AFADCCA16B9BC292 /* AgentSayCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */; };
 		1105B7239AB56FF8FADA1CF6 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B038AABA09207670B61959C0 /* WidgetSnapshot.swift */; };
 		1525960468809E2EBC5BD96A /* DutyModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BDA1FF357095C2C0D238679 /* DutyModeTests.swift */; };
@@ -99,6 +100,7 @@
 		9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
 		A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0316A8767AF4342DEF21F449 /* DeskMotion.swift */; };
 		A97E24934FCC62291F707943 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
+		ABAC8490F1B4D9EAFCB42DC2 /* FaceID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224DFB64BBE6BE5C7EEA738F /* FaceID.swift */; };
 		AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */; };
 		AD02F222665998A7FEC7F39C /* BridgeMacWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8D2EB7002E6C084273E511E4 /* BridgeMacWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AD4BC4797BD3D5478767F3B6 /* MacKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3DC519585B0DB4742B2EBA1 /* MacKeychain.swift */; };
@@ -125,6 +127,7 @@
 		DC21CB6FF8FA3E792C604BA5 /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F10FD442F1D74014CF8EF04 /* Face.swift */; };
 		E03F9FCEC73346A9F1D1A930 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */; };
 		E367534174DBFF869614DEB3 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
+		E4493136299738E987846127 /* FaceIDTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D97881962B869E84F2E3682E /* FaceIDTests.swift */; };
 		E4AA6744D0C28E4D23D79BB5 /* DeskCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D288819B0BBE1DE4265494 /* DeskCamera.swift */; };
 		E57056E3E4E693AD7056A996 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		E60FB766BA4C28B46DBD6ABD /* BackgroundTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FB9F40B1D13F013E945CB5 /* BackgroundTime.swift */; };
@@ -219,6 +222,7 @@
 		17F65FC9DB05739F95FF4CCC /* CamPresenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CamPresenceTests.swift; sourceTree = "<group>"; };
 		1D35F189A98B879024C07A7D /* BridgeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1FB61BEA021F7FD593DE6B27 /* MacWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacWidgetBundle.swift; sourceTree = "<group>"; };
+		224DFB64BBE6BE5C7EEA738F /* FaceID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceID.swift; sourceTree = "<group>"; };
 		224EE254B054882F46D07E26 /* BridgeMacWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BridgeMacWidget.entitlements; sourceTree = "<group>"; };
 		232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatus.swift; sourceTree = "<group>"; };
 		2456F94C6D2BAB144BCCFF64 /* HostCommandLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostCommandLine.swift; sourceTree = "<group>"; };
@@ -290,6 +294,7 @@
 		BE34C6110E80A93BC818C325 /* Suggestions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Suggestions.swift; sourceTree = "<group>"; };
 		BE564049727EC1D5C987B2F0 /* StatusFeedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusFeedTests.swift; sourceTree = "<group>"; };
 		C0333DF45761722F4473262B /* WidgetShotsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetShotsUITests.swift; sourceTree = "<group>"; };
+		C0BCA42778919C9611FE6AE1 /* FaceEmbedder.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = FaceEmbedder.mlmodel; sourceTree = "<group>"; };
 		C22551BA5B08D73060159529 /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
 		C9E93F5ED33DAC11EB613628 /* BoardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardViews.swift; sourceTree = "<group>"; };
 		CBECDC5515CDBDFE3100F2C5 /* FilesCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesCapabilities.swift; sourceTree = "<group>"; };
@@ -302,6 +307,7 @@
 		D3DC519585B0DB4742B2EBA1 /* MacKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacKeychain.swift; sourceTree = "<group>"; };
 		D44EF151FAB81550F0636F71 /* HomeCapabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCapabilityTests.swift; sourceTree = "<group>"; };
 		D837F755056487658E6977A8 /* BridgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeApp.swift; sourceTree = "<group>"; };
+		D97881962B869E84F2E3682E /* FaceIDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDTests.swift; sourceTree = "<group>"; };
 		D9C518902706C4C94B00988B /* CapabilityRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityRegistry.swift; sourceTree = "<group>"; };
 		DC6CF829A228D0E7AA2A168C /* OpenCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCapabilities.swift; sourceTree = "<group>"; };
 		DEA7B2DB5558491517438CE7 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -389,6 +395,8 @@
 				287EA21E6F2474B7C3F99947 /* DeskStation.swift */,
 				E08C2256F53E1604D2E2B393 /* DeskView.swift */,
 				0F10FD442F1D74014CF8EF04 /* Face.swift */,
+				C0BCA42778919C9611FE6AE1 /* FaceEmbedder.mlmodel */,
+				224DFB64BBE6BE5C7EEA738F /* FaceID.swift */,
 			);
 			path = Desk;
 			sourceTree = "<group>";
@@ -411,6 +419,7 @@
 				6192BE578CE5ECEB0495CC81 /* DeskBrightnessTests.swift */,
 				97153D42C2746170DAE92342 /* DeskTests.swift */,
 				2BDA1FF357095C2C0D238679 /* DutyModeTests.swift */,
+				D97881962B869E84F2E3682E /* FaceIDTests.swift */,
 				D12F5535605223D8A4D4AD2C /* FaceTests.swift */,
 				9BC6671EBB2D58C4AE42CF6B /* ForegroundPollerTests.swift */,
 				09E570871F3DB668C68A358B /* HealthIngestMapperTests.swift */,
@@ -900,6 +909,7 @@
 				AC8985E9CAA1E05B510F5A6C /* DeskBrightnessTests.swift in Sources */,
 				FB39450EE5736A89A333389B /* DeskTests.swift in Sources */,
 				1525960468809E2EBC5BD96A /* DutyModeTests.swift in Sources */,
+				E4493136299738E987846127 /* FaceIDTests.swift in Sources */,
 				2A3F19A9CEB55ECFEBC7A912 /* FaceTests.swift in Sources */,
 				4A161381183A3F22186B42F3 /* ForegroundPollerTests.swift in Sources */,
 				9801E214BFFB2E71C6F83E06 /* HealthIngestMapperTests.swift in Sources */,
@@ -991,6 +1001,8 @@
 				9A7E8F432EDBFD8C0C9F10D2 /* DutyStation.swift in Sources */,
 				FA83B3EF013547E43C6A3E49 /* EventKitCapabilities.swift in Sources */,
 				DC21CB6FF8FA3E792C604BA5 /* Face.swift in Sources */,
+				0EAD56815B887E789CC3C6E2 /* FaceEmbedder.mlmodel in Sources */,
+				ABAC8490F1B4D9EAFCB42DC2 /* FaceID.swift in Sources */,
 				2A90E0ABEC18D3FCF9150C0C /* FilesCapabilities.swift in Sources */,
 				923FDAA7C8C67EAFCBC881D8 /* ForegroundPoller.swift in Sources */,
 				FB6844C98C285A86CB1CDCE8 /* ForegroundSession.swift in Sources */,
