@@ -50,6 +50,7 @@
 		43690CB0CCAB369FCB08CB1A /* NotifyShowCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = F446851E4D4315C73584E542 /* NotifyShowCapability.swift */; };
 		43E62EE8B9032E5354830394 /* BoxClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B562D310116C75DDACAEC73A /* BoxClient.swift */; };
 		45BDFA3A668E8558681EFCEC /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
+		461B8B41E0AFC945D76B3FA9 /* GlassBenchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC366A676A4E9F865C21BCD3 /* GlassBenchApp.swift */; };
 		46E40B641ABD98B34AFABBFB /* Suggestions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE34C6110E80A93BC818C325 /* Suggestions.swift */; };
 		474FAE2974B9C2610DE161DC /* BridgeIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C629E0C27FAF57113A4BA35 /* BridgeIntents.swift */; };
 		486DB8AA2383F0A7F9D41969 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1AD9FB291B68DC84D825868 /* Board.swift */; };
@@ -88,6 +89,7 @@
 		87145E3A7DE3FD42CBBD6D60 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B038AABA09207670B61959C0 /* WidgetSnapshot.swift */; };
 		87B089ADBA1D36CEE343A8DA /* CameraCaptureCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6358983CA865BE5715FE0FA /* CameraCaptureCapability.swift */; };
 		8B3CF358265717DA9F871730 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
+		8C9BF48131C204018BFE7F3B /* Bench.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F4274510EF80A61E5D37AE /* Bench.swift */; };
 		8F25D732899879483F91ABEE /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AAD43B48BC1F7A4509002A3 /* LocationService.swift */; };
 		923FDAA7C8C67EAFCBC881D8 /* ForegroundPoller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57FC8D535C8CBFA3CB0B4136 /* ForegroundPoller.swift */; };
 		94955EAD6B594BB7FE86E5AB /* MicRecordCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5437041D395797569CAD4A10 /* MicRecordCapability.swift */; };
@@ -98,6 +100,7 @@
 		9A7E8F432EDBFD8C0C9F10D2 /* DutyStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1AF5861890AC1F4D1A6F03 /* DutyStation.swift */; };
 		9AC9545E3E2245AC3B14012A /* SensorsSampleCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0175F22BB9BC0FA9ABE424 /* SensorsSampleCapability.swift */; };
 		9BF520F840D035228D8EF846 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */; };
+		A317BA0031295F12CC949E74 /* BenchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD0B27DDBD711038C5BCB73 /* BenchViews.swift */; };
 		A3FF6D16D186675C8EE0CDDE /* DeskMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0316A8767AF4342DEF21F449 /* DeskMotion.swift */; };
 		A97E24934FCC62291F707943 /* BoardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E93F5ED33DAC11EB613628 /* BoardViews.swift */; };
 		ABAC8490F1B4D9EAFCB42DC2 /* FaceID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 224DFB64BBE6BE5C7EEA738F /* FaceID.swift */; };
@@ -227,6 +230,7 @@
 		232B08C4EB19C6CDCD3AAF24 /* AppStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatus.swift; sourceTree = "<group>"; };
 		2456F94C6D2BAB144BCCFF64 /* HostCommandLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostCommandLine.swift; sourceTree = "<group>"; };
 		287EA21E6F2474B7C3F99947 /* DeskStation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskStation.swift; sourceTree = "<group>"; };
+		2AD0B27DDBD711038C5BCB73 /* BenchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchViews.swift; sourceTree = "<group>"; };
 		2BDA1FF357095C2C0D238679 /* DutyModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyModeTests.swift; sourceTree = "<group>"; };
 		2C656B21D11FBCD40D250B99 /* AgentSayCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSayCapability.swift; sourceTree = "<group>"; };
 		2EBA9446753DB8F5EF177141 /* Bridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Bridge.entitlements; sourceTree = "<group>"; };
@@ -237,6 +241,7 @@
 		3BFF44BFCFAEFE4A2B3C5F9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E591B70D4409ED514CB981A /* PhoneCapabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCapabilityTests.swift; sourceTree = "<group>"; };
 		3F2900BC96091AEC7AD7BB90 /* HealthIngestMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthIngestMapper.swift; sourceTree = "<group>"; };
+		42F4274510EF80A61E5D37AE /* Bench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bench.swift; sourceTree = "<group>"; };
 		43AA75AA227B2D861F40FD4F /* CapabilityParamsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityParamsTests.swift; sourceTree = "<group>"; };
 		451BC1991A84D299FD004A7F /* BridgeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeWidget.swift; sourceTree = "<group>"; };
 		4D79E3F638FFF95C67348E55 /* DeviceControlCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceControlCapabilities.swift; sourceTree = "<group>"; };
@@ -281,6 +286,7 @@
 		A8AED2681AAD26919F249FE4 /* BoardWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardWatcher.swift; sourceTree = "<group>"; };
 		A928F340A9E006F0AD2DDB82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		A9A6E0CD6609C828EDDF20F1 /* WidgetPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetPublisher.swift; sourceTree = "<group>"; };
+		AC366A676A4E9F865C21BCD3 /* GlassBenchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassBenchApp.swift; sourceTree = "<group>"; };
 		B038AABA09207670B61959C0 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		B27C8FE08E8F325ED2D2ACDF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B441B68347C8860B43DCC4CC /* DeviceInfoCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoCapability.swift; sourceTree = "<group>"; };
@@ -321,6 +327,7 @@
 		E95F4EA8731DBBFD51EB76E9 /* HealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
 		E96DB1B3EAAE4D42DD7D3197 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		EDE03B14B0F50428EA16F213 /* Bridge.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Bridge.xcconfig; sourceTree = "<group>"; };
+		EE28BD2E8D571E6DDF0BD8CA /* GlassBench.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = GlassBench.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0AD0F500BAE9F131FAE550A /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		F0F0F1F807AFDCED584EFD30 /* DutyBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DutyBanner.swift; sourceTree = "<group>"; };
 		F1AD9FB291B68DC84D825868 /* Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Board.swift; sourceTree = "<group>"; };
@@ -491,6 +498,16 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		B0AC08EA44E7F66F8CCC170D /* GlassBench */ = {
+			isa = PBXGroup;
+			children = (
+				42F4274510EF80A61E5D37AE /* Bench.swift */,
+				2AD0B27DDBD711038C5BCB73 /* BenchViews.swift */,
+				AC366A676A4E9F865C21BCD3 /* GlassBenchApp.swift */,
+			);
+			path = GlassBench;
+			sourceTree = "<group>";
+		};
 		B1032852101FEFE64DF8E037 /* UI */ = {
 			isa = PBXGroup;
 			children = (
@@ -510,6 +527,7 @@
 				877BF11412914D0D6223A875 /* BridgeUITests */,
 				FB7DC7D37E995D900A29E4B7 /* BridgeWidget */,
 				360F26E12BDD3747CF4F976B /* Config */,
+				B0AC08EA44E7F66F8CCC170D /* GlassBench */,
 				518FF399A5EAF16CC64C3163 /* Mac */,
 				05858AE3245AC2B6DC7181C3 /* MacWidget */,
 				ACCA212D3594924FFC266D4B /* Shared */,
@@ -566,6 +584,7 @@
 				1D35F189A98B879024C07A7D /* BridgeTests.xctest */,
 				691F9B70EE9533A9EDB1B134 /* BridgeUITests.xctest */,
 				BA13F5BFAD15D3827FA8245A /* BridgeWidget.appex */,
+				EE28BD2E8D571E6DDF0BD8CA /* GlassBench.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -674,6 +693,23 @@
 			productReference = 691F9B70EE9533A9EDB1B134 /* BridgeUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		AFB7E3FDAED74A8C7538A58E /* GlassBench */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1401B2AD1E7AA4A6602377E /* Build configuration list for PBXNativeTarget "GlassBench" */;
+			buildPhases = (
+				66F5B30CB188A10EF66229AF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GlassBench;
+			packageProductDependencies = (
+			);
+			productName = GlassBench;
+			productReference = EE28BD2E8D571E6DDF0BD8CA /* GlassBench.app */;
+			productType = "com.apple.product-type.application";
+		};
 		BDD1059C9A02490D288AA9C7 /* BridgeMac */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 15544CD5814A63948A6E8C4B /* Build configuration list for PBXNativeTarget "BridgeMac" */;
@@ -740,6 +776,10 @@
 						ProvisioningStyle = Automatic;
 						TestTargetID = 01BD799B74B4F20209F01FFF;
 					};
+					AFB7E3FDAED74A8C7538A58E = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 					BDD1059C9A02490D288AA9C7 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -766,6 +806,7 @@
 			projectRoot = "";
 			targets = (
 				01BD799B74B4F20209F01FFF /* Bridge */,
+				AFB7E3FDAED74A8C7538A58E /* GlassBench */,
 				C6C2B53D952D41773C00547C /* BridgeWidget */,
 				3C16B18BF23EC2B58107A1CE /* BridgeTests */,
 				BDD1059C9A02490D288AA9C7 /* BridgeMac */,
@@ -921,6 +962,16 @@
 				AE8485502F0EFDB931C31D95 /* StatusFeedTests.swift in Sources */,
 				555B710BAF7180B9BA39DA3A /* SuggestRouteTests.swift in Sources */,
 				1CE04C669E419CF4CF821EB4 /* WidgetSnapshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		66F5B30CB188A10EF66229AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8C9BF48131C204018BFE7F3B /* Bench.swift in Sources */,
+				A317BA0031295F12CC949E74 /* BenchViews.swift in Sources */,
+				461B8B41E0AFC945D76B3FA9 /* GlassBenchApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1135,6 +1186,29 @@
 			};
 			name = Debug;
 		};
+		39677B1B62337CF43BC0EADB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GlassBench;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BRIDGE_BUNDLE_ID).glassbench";
+				PRODUCT_NAME = GlassBench;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 		5CB95F48DC84DCCC189D1404 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1334,6 +1408,29 @@
 			};
 			name = Release;
 		};
+		E93DDB2DB72A40CA20DA1BB4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GlassBench;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BRIDGE_BUNDLE_ID).glassbench";
+				PRODUCT_NAME = GlassBench;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		F0F7F6F628FC005496A35134 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1488,6 +1585,15 @@
 			buildConfigurations = (
 				5CB95F48DC84DCCC189D1404 /* Debug */,
 				842499E428E34263A0302E9D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B1401B2AD1E7AA4A6602377E /* Build configuration list for PBXNativeTarget "GlassBench" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				39677B1B62337CF43BC0EADB /* Debug */,
+				E93DDB2DB72A40CA20DA1BB4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
