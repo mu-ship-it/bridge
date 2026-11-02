@@ -234,7 +234,7 @@ import UIKit
         return (c.date(from: DateComponents(year: 2026, month: 10, day: day, hour: h, minute: m, second: sec))!, c)
     }
 
-    @MainActor @Test func aShatterStepsTheLayoutExactlyOnceAndTheOverlayIsGoneAfterTwoAndAHalfSeconds() async throws {
+    @MainActor @Test func aShatterStepsTheLayoutExactlyOnceAndTheOverlayIsGoneAfterFourAndAHalfSeconds() async throws {
         let director = ShatterDirector()
         let size = CGSize(width: 375, height: 812)
         var steps = 0
@@ -246,7 +246,7 @@ import UIKit
         // A second trigger mid-shatter steps the layout but keeps the one overlay.
         director.trigger(size: size, reduce: false, snapshot: { image }, step: { steps += 1 })
         #expect(steps == 2 && director.run != nil)
-        try await Task.sleep(for: .seconds(2.5))
+        try await Task.sleep(for: .seconds(4.5))
         #expect(director.run == nil && director.shake == 0)
     }
 
@@ -255,34 +255,42 @@ import UIKit
         #expect(Shatter.grid(for: CGSize(width: 375, height: 812)) == (11, 24))
         var rng = SystemRandomNumberGenerator()
         let tiles = Shatter.tiles(cols: 24, rows: 11, using: &rng)
-        #expect(tiles.allSatisfy { $0.delay >= 0 && $0.delay <= 0.5 && abs($0.tilt) <= 12 })
+        #expect(tiles.allSatisfy { $0.delay >= 0 && $0.delay <= 1.2 && abs($0.tilt) <= 7 })
         let loose = tiles.filter { !$0.straggler }
-        #expect(loose.allSatisfy { Shatter.fall($0, at: 1.2) == 1 })
+        #expect(loose.allSatisfy { Shatter.fall($0, at: 2.8) == 1 })
         let hung = tiles.filter(\.straggler)
-        #expect(hung.allSatisfy { Shatter.fall($0, at: 1.45) == 0 && Shatter.fall($0, at: 1.8) == 1 })
+        #expect(hung.allSatisfy { Shatter.fall($0, at: 3.2) == 0 && Shatter.fall($0, at: 4.15) == 1 })
         #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 1) == 0)
-        #expect(Shatter.total < 2)
+        #expect(Shatter.total >= 4 && Shatter.total <= 4.5)
+        #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 0.75) == 0.5)
+        #expect(Shatter.offsetY(fall: 0.5, height: 100) == 75)
     }
 
-    @Test func theLayoutStepsExactlyOncePerHourAndNeverBetween() {
-        // Across a whole day the offset is the same at every minute of an hour and different the next hour.
+    @Test func theLayoutStepsExactlyOncePerQuarterHourAndNeverBetween() {
+        // Across a whole day the offset is the same within a quarter hour and different at the next one.
         for h in 0..<24 {
-            let (start, cal) = local(h, 0)
-            let here = BurnIn.offset(at: start, calendar: cal)
-            for m in [1, 20, 59] {
-                #expect(BurnIn.offset(at: local(h, m, 59).0, calendar: cal) == here)
-                #expect(BurnIn.sweepHour(at: local(h, m).0, calendar: cal) == h)
+            for q in 0..<4 {
+                let (start, cal) = local(h, q * 15)
+                let here = BurnIn.offset(at: start, calendar: cal)
+                for m in [q * 15 + 1, q * 15 + 7, q * 15 + 14] {
+                    #expect(BurnIn.offset(at: local(h, m, 59).0, calendar: cal) == here)
+                    #expect(BurnIn.slot(at: local(h, m).0, calendar: cal) == h * 4 + q)
+                }
+                let nextMinute = (q + 1) * 15
+                let (next, _) = nextMinute == 60
+                    ? local((h + 1) % 24, 0, 0, day: h == 23 ? 29 : 28)
+                    : local(h, nextMinute)
+                #expect(BurnIn.offset(at: next, calendar: cal) != here, "slot \(h):\(q * 15)")
+                #expect(BurnIn.slot(at: next, calendar: cal) != h * 4 + q)
             }
-            let (next, _) = local((h + 1) % 24, 0, 0, day: h == 23 ? 29 : 28)
-            #expect(BurnIn.offset(at: next, calendar: cal) != here, "hour \(h)")
-            #expect(BurnIn.sweepHour(at: next, calendar: cal) != h)
         }
-        // Eight distinct points, all on the ±4 grid, never the centre, and the walk repeats every eight hours.
+        // Eight distinct points, all on the ±4 grid, never the centre, and the walk repeats every eight slots.
         let (_, cal) = local(0, 0)
-        let walk = (0..<8).map { BurnIn.offset(at: local($0, 0).0, calendar: cal) }
+        let walk = (0..<8).map { BurnIn.offset(at: local($0 / 4, ($0 % 4) * 15).0, calendar: cal) }
         #expect(Set(walk.map { "\($0.x),\($0.y)" }).count == 8)
         #expect(walk.allSatisfy { abs($0.x) <= BurnIn.reach && abs($0.y) <= BurnIn.reach && ($0.x, $0.y) != (0, 0) })
-        #expect(BurnIn.offset(at: local(9, 0).0, calendar: cal) == walk[1])
+        #expect(BurnIn.offset(at: local(2, 15).0, calendar: cal) == walk[1])
+        #expect(BurnIn.slot(at: local(23, 45).0, calendar: cal) == 95)
         #expect(CGFloat(BurnIn.reach) <= DeskMetrics.make(size: CGSize(width: 375, height: 812)).margin)
     }
 

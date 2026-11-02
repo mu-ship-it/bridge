@@ -3,8 +3,8 @@ import CoreGraphics
 import SwiftUI
 
 /// OLED burn-in protection, all of it visible and none of it random:
-///  - Hourly shatter: at every :00 the old frame breaks into squares that fall away (DeskShatter), and under it
-///    the whole layout has already stepped to its next offset (one step per hour round the 8 points of a ±4 pt
+///  - Quarter-hourly shatter: at every :00 :15 :30 :45 the old frame breaks into squares that fall away (DeskShatter), and under it
+///    the whole layout has already stepped to its next offset (one step per quarter hour round the 8 points of a ±4 pt
 ///    grid). The layout never moves at any other time, and content never changes place.
 ///  - Dim when away (BrightnessPolicy) and a nightly lights-out: 03:00–03:01 (or 60 s from a two-finger tap; a three-finger tap runs the shatter on demand)
 ///    the screen is black but for the sleeping face.
@@ -13,18 +13,19 @@ enum BurnIn {
     static let lightsOutLength: TimeInterval = 60
     static let reach = 4
 
-    /// The eight non-centre points of the ±4 grid, in the order the hours walk them.
+    /// The eight non-centre points of the ±4 grid, in the order the quarter hours walk them.
     static let ring: [(x: Int, y: Int)] = [(4, 0), (4, 4), (0, 4), (-4, 4), (-4, 0), (-4, -4), (0, -4), (4, -4)]
 
-    /// Constant within an hour (24 is a multiple of 8, so the walk also continues across midnight). The view
-    /// adopts a new value only at a shatter.
+    /// Constant within a quarter hour (96 slots a day is a multiple of 8, so the walk also continues across
+    /// midnight). The view adopts a new value only at a shatter.
     static func offset(at date: Date, calendar: Calendar = .current) -> (x: Int, y: Int) {
-        ring[calendar.component(.hour, from: date) % ring.count]
+        ring[slot(at: date, calendar: calendar) % ring.count]
     }
 
-    /// The hour the shatter belongs to: it changes at :00 and nowhere else.
-    static func sweepHour(at date: Date, calendar: Calendar = .current) -> Int {
-        calendar.component(.hour, from: date)
+    /// The quarter-hour slot of the day, hour * 4 + minute / 15 (0...95): it changes at :00 :15 :30 :45 and nowhere else.
+    static func slot(at date: Date, calendar: Calendar = .current) -> Int {
+        let c = calendar.dateComponents([.hour, .minute], from: date)
+        return (c.hour ?? 0) * 4 + (c.minute ?? 0) / 15
     }
 
     /// `manualSince`: when a two-finger tap started it by hand.

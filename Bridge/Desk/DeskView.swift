@@ -9,7 +9,7 @@ struct DeskView: View {
     /// Burn-in protection (BurnIn): the layout steps to its next offset only at the hourly shatter;
     /// lights-out blanks it but for the face.
     @State private var shift = BurnIn.offset(at: Date())
-    @State private var sweepHour = BurnIn.sweepHour(at: Date())
+    @State private var sweepSlot = BurnIn.slot(at: Date())
     @State private var shatterTick = 0
     @State private var shatter = ShatterDirector()
     @State private var lightsOut = false
@@ -64,8 +64,8 @@ struct DeskView: View {
                 brightness.apply(desk.brightness())
                 desk.trackPresence()
                 let now = Date()
-                let hour = BurnIn.sweepHour(at: now)
-                if hour != sweepHour { sweepHour = hour; shatterTick += 1 }
+                let slot = BurnIn.slot(at: now)
+                if slot != sweepSlot { sweepSlot = slot; shatterTick += 1 }
                 lightsOut = BurnIn.lightsOut(at: now, manualSince: desk.lightsOutSince)
                 awayBlack = desk.isLightsOut(now: now)
                 try? await Task.sleep(for: .seconds(1))

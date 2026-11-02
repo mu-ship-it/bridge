@@ -1,22 +1,22 @@
 import SwiftUI
 import UIKit
 
-/// The hourly ceremony's picture: a snapshot of the old desk breaks into squares (the exit button's motif) that
+/// The quarter-hourly ceremony's picture: a snapshot of the old desk breaks into squares (the exit button's motif) that
 /// fall away and show the fresh frame underneath. Pure timing here, so it is tested without a screen.
 enum Shatter {
     static let tileSize: CGFloat = 34
-    static let maxDelay: TimeInterval = 0.5
-    static let fallDuration: TimeInterval = 0.7        // 0.5 s of delay + 0.7 s = the tiles are down at 1.2 s
-    static let shakeAt: TimeInterval = 1.2
-    static let shakeDuration: TimeInterval = 0.25
-    static let shakeReach: CGFloat = 6
-    static let shakeSwings = 3.0
+    static let maxDelay: TimeInterval = 1.2
+    static let fallDuration: TimeInterval = 1.6        // 1.2 s of delay + 1.6 s = the tiles are down at 2.8 s
+    static let shakeAt: TimeInterval = maxDelay + fallDuration
+    static let shakeDuration: TimeInterval = 0.5
+    static let shakeReach: CGFloat = 3
+    static let shakeSwings = 2.0
     static let stragglerShare = 0.08
-    static let stragglerFall: TimeInterval = 0.3
+    static let stragglerFall: TimeInterval = 0.8
     static let stragglerAt: TimeInterval = shakeAt + shakeDuration
-    static let total: TimeInterval = stragglerAt + stragglerFall + 0.05   // ≈ 1.8 s
+    static let total: TimeInterval = stragglerAt + stragglerFall + 0.05   // ≈ 4.15 s
     static let reduceDuration: TimeInterval = 0.4
-    static let maxTilt = 12.0
+    static let maxTilt = 7.0
 
     struct Tile: Equatable {
         let col: Int
@@ -52,12 +52,12 @@ enum Shatter {
         return min(1, max(0, (t - start) / length))
     }
 
-    /// Gravity: ease-in, 1.5 screen heights; faded out over the last 30 % of the fall.
-    static func offsetY(fall p: Double, height: CGFloat) -> CGFloat { CGFloat(p * p) * 1.5 * height }
-    static func opacity(fall p: Double) -> Double { p < 0.7 ? 1 : max(0, 1 - (p - 0.7) / 0.3) }
+    /// Gravity: soft ease-in-out (smoothstep), 1.5 screen heights; faded out over the last 50 % of the fall.
+    static func offsetY(fall p: Double, height: CGFloat) -> CGFloat { CGFloat(p * p * (3 - 2 * p)) * 1.5 * height }
+    static func opacity(fall p: Double) -> Double { p < 0.5 ? 1 : max(0, 1 - (p - 0.5) / 0.5) }
 }
 
-/// One x-shake of the whole screen: ±6 pt, three swings, as `progress` runs 0 → 1.
+/// One x-shake of the whole screen: ±3 pt, two swings, as `progress` runs 0 → 1.
 struct ShakeEffect: GeometryEffect {
     var progress: Double
     var animatableData: Double {
