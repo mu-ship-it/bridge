@@ -234,7 +234,7 @@ import UIKit
         return (c.date(from: DateComponents(year: 2026, month: 10, day: day, hour: h, minute: m, second: sec))!, c)
     }
 
-    @MainActor @Test func aShatterStepsTheLayoutExactlyOnceAndTheOverlayIsGoneAfterFourAndAHalfSeconds() async throws {
+    @MainActor @Test func aShatterStepsTheLayoutExactlyOnceAndTheOverlayIsGoneAfterSixSeconds() async throws {
         let director = ShatterDirector()
         let size = CGSize(width: 375, height: 812)
         var steps = 0
@@ -242,28 +242,46 @@ import UIKit
         director.trigger(size: size, reduce: false, snapshot: { image }, step: { steps += 1 })
         #expect(steps == 1)
         #expect(director.run != nil)
-        #expect(director.run?.tiles.count == 11 * 24)
+        #expect(director.run?.tiles.count == 16 * 34)
         // A second trigger mid-shatter steps the layout but keeps the one overlay.
         director.trigger(size: size, reduce: false, snapshot: { image }, step: { steps += 1 })
         #expect(steps == 2 && director.run != nil)
-        try await Task.sleep(for: .seconds(4.5))
+        try await Task.sleep(for: .seconds(6))
         #expect(director.run == nil && director.shake == 0)
     }
 
     @Test func theShatterTimingFollowsTheSpec() {
-        #expect(Shatter.grid(for: CGSize(width: 812, height: 375)) == (24, 11))
-        #expect(Shatter.grid(for: CGSize(width: 375, height: 812)) == (11, 24))
+        let land = CGSize(width: 812, height: 375)
+        #expect(Shatter.grid(for: land) == (34, 16))
+        #expect(Shatter.grid(for: CGSize(width: 375, height: 812)) == (16, 34))
         var rng = SystemRandomNumberGenerator()
-        let tiles = Shatter.tiles(cols: 24, rows: 11, using: &rng)
-        #expect(tiles.allSatisfy { $0.delay >= 0 && $0.delay <= 1.2 && abs($0.tilt) <= 7 })
+        let tiles = Shatter.tiles(cols: 34, rows: 16, size: land, using: &rng)
+        #expect(tiles.count == 34 * 16)
+        // Freeze: within 1.6 s × 1.1, and the farthest squares freeze last; fall = freeze + 0.35 hold + ≤ 0.72.
+        #expect(tiles.allSatisfy { $0.freeze >= 0 && $0.freeze <= 1.6 * 1.1 + 0.001 })
         let loose = tiles.filter { !$0.straggler }
-        #expect(loose.allSatisfy { Shatter.fall($0, at: 2.8) == 1 })
+        #expect(loose.allSatisfy { $0.fallStart >= $0.freeze + 0.35 && $0.fallStart <= $0.freeze + 0.35 + 0.72 + 0.001 })
+        #expect(tiles.allSatisfy { $0.amp >= 10 && $0.amp <= 24 && $0.freq >= 1 && $0.freq <= 2.2 && abs($0.drift) <= 20 })
+        #expect(tiles.allSatisfy { abs($0.tilt) >= 1 && abs($0.tilt) <= 15 })
+        // Frost: nothing before freeze, full 0.22 s later; squares never move while freezing.
+        let first = tiles[0]
+        #expect(Shatter.frost(first, at: first.freeze - 0.01) == 0 && Shatter.frost(first, at: first.freeze + 0.23) == 1)
+        #expect(Shatter.fall(first, at: first.freeze + 0.1) == 0)
+        // The shake starts when the last loose square has landed; stragglers wait for it to finish, fall 0.8 s.
+        let shakeAt = Shatter.shakeAt(tiles)
+        #expect(loose.allSatisfy { Shatter.fall($0, at: shakeAt + 0.001) == 1 })
         let hung = tiles.filter(\.straggler)
-        #expect(hung.allSatisfy { Shatter.fall($0, at: 3.2) == 0 && Shatter.fall($0, at: 4.15) == 1 })
-        #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 1) == 0)
-        #expect(Shatter.total >= 4 && Shatter.total <= 4.5)
-        #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 0.75) == 0.5)
-        #expect(Shatter.offsetY(fall: 0.5, height: 100) == 75)
+        #expect(hung.allSatisfy { Shatter.fall($0, at: shakeAt + 0.2) == 0 && Shatter.fall($0, at: Shatter.stragglerAt(tiles) + 0.85) == 1 })
+        #expect(Shatter.shakeDuration == 0.25 && Shatter.shakeReach == 6 && Shatter.shakeSwings == 3)
+        #expect(Shatter.total(tiles) > shakeAt && Shatter.total(tiles) < 6)
+        // Leaf: starts exactly in place, sways, drops 1.1 screen heights, fades from the half-way point.
+        #expect(Shatter.leafY(fall: 0, height: 100) == 0 && Shatter.leafX(first, fall: 0) == 0 && Shatter.leafRotation(first, fall: 0) == 0)
+        #expect(abs(Shatter.leafY(fall: 1, height: 100) - 110) < 0.001)
+        #expect(Shatter.opacity(fall: 0.5) == 1 && Shatter.opacity(fall: 0.75) == 0.5 && Shatter.opacity(fall: 1) == 0)
+        // Z-order: in place first, furthest-fallen last.
+        let t = shakeAt * 0.6
+        let order = Shatter.drawOrder(tiles, at: t).map { Shatter.fall(tiles[$0], at: t) }
+        #expect(order == order.sorted())
     }
 
     @Test func theLayoutStepsExactlyOncePerQuarterHourAndNeverBetween() {
