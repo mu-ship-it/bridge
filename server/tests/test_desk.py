@@ -158,8 +158,95 @@ def test_room_sensor_is_exposed_for_the_phones_camera_gate():
 def test_camera_is_passed_through():
     fused = desk.fuse_presence([], cam("dark", light=-2.5), FUSED_AT, room_sources=ROOM)
     assert fused["camera"] == {"state": "dark", "light": -2.5, "age_s": 5, "fresh": True,
-                               "stale_after_s": desk.CAMERA_STALE_SECONDS}
+                               "stale_after_s": desk.CAMERA_STALE_SECONDS, "who": None, "score": None, "seated": None}
     assert desk.fuse_presence([], None, FUSED_AT, room_sources=ROOM)["camera"] is None
+
+
+# ---------------------------------------------------------------- study state (room follow by identity)
+
+def mu_cam(state="present", who="mu", seated=True, score=0.62, light=8.0, age=5):
+    return {**cam(state, age=age, light=light), "who": who, "score": score, "seated": seated}
+
+
+def typing(age=5, idle=2):
+    return {"source": "pc", "active": True, "idle_s": idle, "received": ago(age)}
+
+
+# (case, presence reports, camera report, expected study state, expected needs_light)
+STUDY = [
+    ("nobody anywhere", [study(False)], mu_cam("absent", who="unknown", seated=False), "empty", False),
+    ("nothing ever reported", [], None, "empty", False),
+    ("sensor someone, camera not yet seeing", [study(True)], mu_cam("absent", who="unknown", seated=False), "someone", False),
+    ("sensor someone, camera dark -> light for the camera", [study(True)], mu_cam("dark", who="unknown", seated=False, light=-3), "someone", True),
+    ("sensor someone, camera EV under its floor", [study(True)], mu_cam("absent", who="unknown", seated=False, light=0.5), "someone", True),
+    ("sensor someone, camera bright: no light", [study(True)], mu_cam("absent", who="unknown", seated=False, light=6), "someone", False),
+    ("mu seated -> present", [study(True)], mu_cam(), "present", False),
+    ("mu not seated yet (walking in)", [study(True)], mu_cam(seated=False), "someone", False),
+    ("other seated (mom cleaning the desk)", [study(True)], mu_cam(who="other", score=0.05), "someone", False),
+    ("other at his PC typing: still not mu", [study(True), typing()], mu_cam(who="other", score=0.05), "someone", False),
+    ("unknown + sensor + pc typed on -> mu", [study(True), typing()], mu_cam(who="unknown", seated=False, score=None), "present", False),
+    ("unknown + sensor + pc idle 40 s", [study(True), typing(idle=40)], mu_cam(who="unknown", seated=False), "someone", False),
+    ("camera dark + sensor + pc typed on -> mu", [study(True), typing()], mu_cam("dark", who="unknown", seated=False, light=-3), "present", True),
+    ("phone off (camera stale) + pc typed on -> mu", [study(True), typing()], mu_cam(age=600), "present", False),
+    ("stale mu report is not mu", [study(True)], mu_cam(age=61), "someone", False),
+    ("older phone (no who): unknown, waits", [study(True)], cam("present"), "someone", False),
+    ("sensor stale on someone, camera absent", [study(True, age=600)], mu_cam("absent", who="unknown", seated=False), "empty", False),
+    ("only the mac typed on: not 白加黑", [study(True), {**typing(), "source": "mac"}], mu_cam(who="unknown", seated=False), "someone", False),
+]
+
+
+@pytest.mark.parametrize("case,reports,camera,state,needs_light", STUDY, ids=[row[0] for row in STUDY])
+def test_study_state_table(case, reports, camera, state, needs_light):
+    got = desk.fuse_presence(reports, camera, FUSED_AT, room_sources=ROOM)["study"]
+    assert got["state"] == state and got["needs_light"] is needs_light, got["why"]
+
+
+def test_study_state_carries_who_and_why_but_leaves_desk_presence_alone():
+    fused = desk.fuse_presence([study(True)], mu_cam(who="other", score=0.05), FUSED_AT, room_sources=ROOM)
+    assert fused["study"] == {"state": "someone", "why": "camera: not mu", "who": "other", "score": 0.05,
+                              "seated": True, "pc_active": False, "needs_light": False}
+    # The desk's own presence (brightness, lights-out) is unchanged: the camera still sees a person.
+    assert fused["present"] is True and fused["by"] == "camera"
+
+
+def test_pc_active_window():
+    assert desk.pc_active([typing(age=10, idle=20)], FUSED_AT)
+    assert not desk.pc_active([typing(age=11, idle=20)], FUSED_AT)
+    assert not desk.pc_active([{**typing(), "active": False}], FUSED_AT)
+    assert not desk.pc_active([], FUSED_AT)
+
+
+def test_camera_report_carries_who_score_seated(client, conn, account):
+    body = {"state": "present", "ts": "2026-10-27T09:00:00Z", "light": 6, "who": "mu", "score": 0.612, "seated": True}
+    assert client.post("/bridge/presence/camera", headers=bearer(account), json=body).status_code == 200
+    stored = store.get_camera(conn, account["id"])
+    assert stored["who"] == "mu" and stored["score"] == 0.612 and stored["seated"] is True
+    # An older phone without the fields: stored as nulls, not kept from the last report.
+    client.post("/bridge/presence/camera", headers=bearer(account), json={"state": "absent", "ts": "2026-10-27T09:01:00Z"})
+    stored = store.get_camera(conn, account["id"])
+    assert stored["who"] is None and stored["score"] is None and stored["seated"] is None
+
+
+@pytest.mark.parametrize("extra", [{"who": "mom"}, {"who": 1}, {"score": 2}, {"score": "high"}, {"score": True},
+                                   {"seated": "yes"}, {"seated": 1}])
+def test_bad_identity_fields_are_a_400(client, account, extra):
+    body = {"state": "present", "ts": "2026-10-27T09:00:00Z", **extra}
+    assert client.post("/bridge/presence/camera", headers=bearer(account), json=body).status_code == 400
+
+
+def test_an_older_database_gains_the_identity_columns(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.execute("CREATE TABLE camera (account_id TEXT NOT NULL PRIMARY KEY, state TEXT NOT NULL, light REAL,"
+                " observed TEXT NOT NULL, received TEXT NOT NULL)")
+    old.execute("INSERT INTO camera VALUES ('a', 'present', 5, '2026-10-27T09:00:00Z', '2026-10-27T09:00:00Z')")
+    old.commit()
+    old.close()
+    conn = store.connect(path)
+    assert store.get_camera(conn, "a") == {"state": "present", "light": 5.0, "observed": "2026-10-27T09:00:00Z",
+                                           "received": "2026-10-27T09:00:00Z", "who": None, "score": None, "seated": None}
+    conn.close()
 
 
 def test_room_sources_come_from_config(monkeypatch):

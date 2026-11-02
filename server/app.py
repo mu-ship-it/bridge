@@ -641,8 +641,10 @@ async def post_presence(request: Request):
 @app.post("/bridge/presence/camera")
 async def post_camera(request: Request):
     """The desk phone's front camera says what it sees, decided on the phone (no frame ever leaves it).
-    Body {state, ts, light}: state one of desk.CAMERA_STATES, ts when it was observed (ISO-8601 with
-    a timezone), light a rough EV100 or null. The latest report per account is kept."""
+    Body {state, ts, light, who, score, seated}: state one of desk.CAMERA_STATES, ts when it was
+    observed (ISO-8601 with a timezone), light a rough EV100 or null; who one of desk.CAMERA_WHO
+    (decided on the phone), score its match similarity -1..1, seated a bool. who / score / seated
+    are optional (older phones). The latest report per account is kept."""
     endpoint = "POST /bridge/presence/camera"
     body = await json_body(request)
     with closing(db.connect()) as conn:
@@ -655,12 +657,21 @@ async def post_camera(request: Request):
             if light is not None and (isinstance(light, bool) or not isinstance(light, (int, float))
                                       or not CAMERA_LIGHT_MIN <= light <= CAMERA_LIGHT_MAX):
                 raise BadRequest(f"light must be null or a number, {CAMERA_LIGHT_MIN}..{CAMERA_LIGHT_MAX}")
+            who, score, seated = body.get("who"), body.get("score"), body.get("seated")
+            if who is not None and who not in desk.CAMERA_WHO:
+                raise BadRequest("who must be null or one of " + ", ".join(desk.CAMERA_WHO))
+            if score is not None and (isinstance(score, bool) or not isinstance(score, (int, float))
+                                      or not -1 <= score <= 1):
+                raise BadRequest("score must be null or a number, -1..1")
+            if seated is not None and not isinstance(seated, bool):
+                raise BadRequest("seated must be null or a bool")
         except BadRequest:
             with conn:
                 db.audit(conn, account["id"], device_id, endpoint, "bad_request:camera")
             raise
         with conn:
-            db.put_camera(conn, account["id"], state, None if light is None else float(light), observed)
+            db.put_camera(conn, account["id"], state, None if light is None else float(light), observed,
+                          who=who, score=None if score is None else float(score), seated=seated)
             db.audit(conn, account["id"], device_id, endpoint, f"stored:{state}")
     return {"ok": True, "state": state}
 

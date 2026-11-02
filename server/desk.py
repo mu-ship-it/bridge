@@ -18,6 +18,14 @@ Kept out of app.py so every piece is a plain function a test can call with fixed
   (every other `/bridge/presence` source). Anything older than its stale limit is ignored, never
   trusted: a sensor that dropped offline keeps its last state, so a stuck "someone" or "nobody"
   must not decide.
+* `study` (v0.8, room follow by identity) says what the study as a room should do, separately from
+  `present` (which still drives the desk itself): `empty` (nobody), `someone` (the room sensor,
+  the camera or the PC sees a person, but it is not known to be Mu sitting down: light for the
+  camera at most, nothing else), or `present` (the camera says who=mu and seated, or the camera
+  is unsure (`unknown`) while 白加黑 was typed on in the last STUDY_PC_ACTIVE_SECONDS: Mu). A
+  camera `other` is never Mu, even at his PC. `needs_light`: someone is there and the camera is
+  too dark to see (state `dark` or light under CAMERA_FLOOR_EV) - Home Assistant then turns on
+  just the light the camera needs.
 * `away_s` / `away_since` say how long the fused answer has read "away" (kept per account in
   `presence_state`, flipped whenever a composed desk sees it change); once it reaches
   `away_after_s` the phone goes fully black until Mu is back.
@@ -55,6 +63,12 @@ ROOM_SENSOR_STALE_SECONDS = 3 * 60    # Home Assistant must re-post the sensor's
 AWAY_AFTER_SECONDS = 10 * 60          # fused away this long: the desk goes black (HA's room_follow uses the same 10 min)
 CAMERA_STATES = ("present", "looking", "absent", "dark", "unknown")
 CAMERA_DECISIVE = ("present", "looking", "absent")
+CAMERA_SEES = ("present", "looking")
+CAMERA_WHO = ("mu", "other", "unknown")
+CAMERA_FLOOR_EV = 1.0                 # the phone's CamPresence.darkEV: under it Vision is not trusted
+STUDY_PC_SOURCE = "pc"                # 白加黑
+STUDY_PC_ACTIVE_SECONDS = 30          # typed on this recently: the person at 白加黑 is Mu
+STUDY_STATES = ("empty", "someone", "present")
 ROOM_STALE_SECONDS = 15 * 60
 PROGRESS_STALE_SECONDS = 30 * 60      # a running job that stopped reporting
 PROGRESS_DONE_SECONDS = 10 * 60       # a finished job's row lingers this long
@@ -311,7 +325,8 @@ def summarize_camera(report, now):
         return None
     age = max(_age(report["received"], now), _age(report["observed"], now))
     return {"state": report["state"], "light": report["light"], "age_s": age,
-            "fresh": age <= CAMERA_STALE_SECONDS, "stale_after_s": CAMERA_STALE_SECONDS}
+            "fresh": age <= CAMERA_STALE_SECONDS, "stale_after_s": CAMERA_STALE_SECONDS,
+            "who": report.get("who"), "score": report.get("score"), "seated": report.get("seated")}
 
 
 def summarize_room_sensor(reports, now, sources):
@@ -338,7 +353,8 @@ def fuse_presence(reports, camera, now, room_sources=None):
     cam = summarize_camera(camera, now)
     sensor = summarize_room_sensor(reports, now, room_sources)
     fused = {**pcs, "by": "pc" if any(p["fresh"] for p in pcs["sources"]) else None,
-             "sources": summarize_presence(reports, now)["sources"], "camera": cam, "room_sensor": sensor}
+             "sources": summarize_presence(reports, now)["sources"], "camera": cam, "room_sensor": sensor,
+             "study": study_state(cam, sensor, pc_active(reports, now))}
     if cam and cam["fresh"] and cam["state"] in CAMERA_DECISIVE:
         here = cam["state"] != "absent"
         fused.update(present=here, by="camera", source="camera", active=here, idle_s=None,
@@ -347,6 +363,48 @@ def fuse_presence(reports, camera, now, room_sources=None):
         fused.update(present=sensor["occupied"], by="room", source=sensor["source"], active=sensor["occupied"],
                      idle_s=None, age_s=sensor["age_s"], stale_after_s=ROOM_SENSOR_STALE_SECONDS)
     return fused
+
+
+def pc_active(reports, now, source=STUDY_PC_SOURCE, within=STUDY_PC_ACTIVE_SECONDS):
+    """白加黑's keyboard / mouse used within `within` seconds: its latest report says active, and its
+    idle time plus the report's age is inside the window."""
+    for report in reports:
+        if report["source"] == source:
+            return bool(report["active"]) and (report["idle_s"] or 0) + _age(report["received"], now) <= within
+    return False
+
+
+def study_state(camera, sensor, pc_is_active):
+    """The summarised camera + room sensor + whether 白加黑 is being typed on -> the study's
+    `{state, why, who, score, seated, pc_active, needs_light}` (see the module doc)."""
+    cam_fresh = bool(camera and camera["fresh"])
+    sees = cam_fresh and camera["state"] in CAMERA_SEES
+    who = camera.get("who") if sees and camera.get("who") in CAMERA_WHO else "unknown"
+    seated = bool(sees and camera.get("seated"))
+    occupied = bool(sensor and sensor["fresh"] and sensor["occupied"])
+    someone = occupied or sees or pc_is_active
+    too_dark = cam_fresh and (camera["state"] == "dark"
+                              or (camera["light"] is not None and camera["light"] < CAMERA_FLOOR_EV))
+    if who == "mu" and seated:
+        state, why = "present", "camera: mu, seated"
+    elif who == "unknown" and pc_is_active and someone:
+        state, why = "present", "pc typed on, camera unsure"
+    elif someone:
+        state = "someone"
+        if who == "other":
+            why = "camera: not mu"
+        elif who == "mu":
+            why = "camera: mu, not seated yet"
+        elif too_dark:
+            why = "too dark for the camera"
+        elif sees:
+            why = "camera: someone, not recognised"
+        else:
+            why = "room sensor"
+    else:
+        state, why = "empty", "nobody"
+    return {"state": state, "why": why, "who": who, "score": camera.get("score") if sees else None,
+            "seated": seated, "pc_active": bool(pc_is_active), "needs_light": bool(someone and too_dark)}
 
 
 def track_away(present, held, now):

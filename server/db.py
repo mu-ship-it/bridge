@@ -131,13 +131,17 @@ CREATE TABLE IF NOT EXISTS presence (
 
 -- The desk phone's own front camera (v0.7): its latest presence state (present / looking /
 -- absent / dark / unknown), when it observed it, and a rough room light (EV100). One row per
--- account; frames never leave the phone, only this.
+-- account; frames never leave the phone, only this. v0.8 (identity): who it is (mu / other /
+-- unknown, decided on the phone), the match score, and whether they sat down; null from older phones.
 CREATE TABLE IF NOT EXISTS camera (
     account_id TEXT NOT NULL PRIMARY KEY,
     state      TEXT NOT NULL,
     light      REAL,
     observed   TEXT NOT NULL,
-    received   TEXT NOT NULL
+    received   TEXT NOT NULL,
+    who        TEXT,
+    score      REAL,
+    seated     INTEGER
 );
 
 -- When the desk's fused presence last flipped (present <-> away), so the desk can tell how long
@@ -250,10 +254,19 @@ def connect(path=None):
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
+    _add_columns(conn, "camera", {"who": "TEXT", "score": "REAL", "seated": "INTEGER"})
     if fresh:
         os.chmod(path, 0o600)
     _tighten(path)
     return conn
+
+
+def _add_columns(conn, table, columns):
+    """Columns added after a table first shipped: ALTER TABLE for each one an older DB lacks."""
+    have = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for name, kind in columns.items():
+        if name not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {kind}")
 
 
 def _tighten(path):
@@ -612,21 +625,27 @@ def list_presence(conn, account_id):
 
 # ---------------------------------------------------------------- camera
 
-def put_camera(conn, account_id, state, light, observed, received=None):
+def put_camera(conn, account_id, state, light, observed, received=None, who=None, score=None, seated=None):
     conn.execute(
-        "INSERT INTO camera (account_id, state, light, observed, received) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO camera (account_id, state, light, observed, received, who, score, seated)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         " ON CONFLICT (account_id)"
         " DO UPDATE SET state = excluded.state, light = excluded.light, observed = excluded.observed,"
-        " received = excluded.received",
-        (account_id, state, light, observed, received or now_iso()),
+        " received = excluded.received, who = excluded.who, score = excluded.score, seated = excluded.seated",
+        (account_id, state, light, observed, received or now_iso(), who, score,
+         None if seated is None else int(bool(seated))),
     )
 
 
 def get_camera(conn, account_id):
-    """{state, light, observed, received} or None when the phone never reported."""
-    row = conn.execute("SELECT state, light, observed, received FROM camera WHERE account_id = ?",
+    """{state, light, observed, received, who, score, seated} or None when the phone never reported."""
+    row = conn.execute("SELECT state, light, observed, received, who, score, seated FROM camera WHERE account_id = ?",
                        (account_id,)).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    out = dict(row)
+    out["seated"] = None if out["seated"] is None else bool(out["seated"])
+    return out
 
 
 # ---------------------------------------------------------------- presence state
