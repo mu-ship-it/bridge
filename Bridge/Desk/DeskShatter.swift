@@ -382,7 +382,7 @@ private struct GlassPieces: View {
 
     @ViewBuilder private func piece(_ crop: UIImage?) -> some View {
         if let crop {
-            Image(uiImage: crop).resizable().opacity(0.88)
+            Image(uiImage: crop).resizable().opacity(0.99)
                 .clipShape(.rect(cornerRadius: Shatter.glassCornerRadius))
         } else {
             Color.clear
