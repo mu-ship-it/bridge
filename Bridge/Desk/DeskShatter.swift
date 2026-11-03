@@ -369,7 +369,7 @@ private struct GlassPieces: View {
                     let p = Shatter.fall(tile, at: t)
                     piece(run.crops.indices.contains(i) ? run.crops[i] : nil)
                         .frame(width: w, height: h)
-                        .glassEffect(.clear, in: .rect(cornerRadius: Shatter.glassCornerRadius))
+                        .glassEffect(.regular, in: .rect(cornerRadius: Shatter.glassCornerRadius))
                         .rotationEffect(.degrees(Shatter.leafRotation(tile, fall: p)))
                         .position(x: (CGFloat(tile.col) + 0.5) * w + Shatter.leafX(tile, fall: p),
                                   y: (CGFloat(tile.row) + 0.5) * h + Shatter.leafY(fall: p, height: size.height))
@@ -382,7 +382,7 @@ private struct GlassPieces: View {
 
     @ViewBuilder private func piece(_ crop: UIImage?) -> some View {
         if let crop {
-            Image(uiImage: crop).resizable().opacity(0.7)
+            Image(uiImage: crop).resizable().blur(radius: 2.5).opacity(0.85)
                 .clipShape(.rect(cornerRadius: Shatter.glassCornerRadius))
         } else {
             Color.clear
