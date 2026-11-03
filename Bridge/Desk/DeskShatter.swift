@@ -4,6 +4,21 @@ import UIKit
 /// The quarter-hourly ceremony's picture: "frost, then falling leaves". A snapshot of the old desk is cut into
 /// squares; frost spreads from one or two seeds (a tint fades in and a crack line grows round each square), then
 /// the squares let go one by one and drift down like leaves. Pure timing here, so it is tested without a screen.
+///
+/// Two looks on the same timeline (ShatterStyle): `.frost` (the approved one, used by the quarter-hourly step) and
+/// `.glass`, where the freeze grows a glass rim instead of the crack and the squares in flight are real Liquid Glass.
+enum ShatterStyle: Equatable, Sendable {
+    case frost, glass
+
+    /// Liquid Glass needs iOS 26; below that `.glass` plays as `.frost`.
+    static func resolved(_ requested: ShatterStyle, glassAvailable: Bool) -> ShatterStyle {
+        requested == .glass && glassAvailable ? .glass : .frost
+    }
+    static var glassAvailable: Bool {
+        if #available(iOS 26, *) { return true } else { return false }
+    }
+}
+
 enum Shatter {
     static let tileSize: CGFloat = 24
     static let freezeSpan: TimeInterval = 1.6          // time for the frost to reach the farthest square
@@ -21,6 +36,9 @@ enum Shatter {
     static let reduceDuration: TimeInterval = 0.4
     static let secondSeedChance = 0.6
     static let frostColor = (r: 200.0 / 255, g: 230.0 / 255, b: 255.0 / 255, opacity: 0.06)
+    /// GlassBench on the 13 mini: one GlassEffectContainer holds 60 fps to ~230 moving squares; 120 leaves headroom.
+    static let glassCap = 120
+    static let glassCornerRadius: CGFloat = 3
 
     struct Tile: Equatable {
         let col: Int
@@ -107,6 +125,23 @@ enum Shatter {
     static func drawOrder(_ tiles: [Tile], at t: TimeInterval) -> [Int] {
         tiles.indices.sorted { fall(tiles[$0], at: t) < fall(tiles[$1], at: t) }
     }
+
+    /// `.glass`: which squares are real glass right now. Only squares in flight (0 < fall < 1), at most `cap`,
+    /// the oldest-started first (ties by index); the rest stay in the Canvas. Returned in draw order.
+    static func glassPieces(_ tiles: [Tile], at t: TimeInterval, cap: Int = glassCap) -> [Int] {
+        guard cap > 0 else { return [] }
+        let flying = tiles.indices.filter { let p = fall(tiles[$0], at: t); return p > 0 && p < 1 }
+        let chosen = flying.sorted { (tiles[$0].fallStart, $0) < (tiles[$1].fallStart, $1) }.prefix(cap)
+        return chosen.sorted { (fall(tiles[$0], at: t), $0) < (fall(tiles[$1], at: t), $1) }
+    }
+}
+
+/// The demo (launch with DESK_SHATTER_DEMO=1, or a three-finger tap): frost once, a pause, glass once.
+enum ShatterDemo {
+    static let launchDelay: TimeInterval = 3
+    static let pause: TimeInterval = 4
+    static let sequence: [(style: ShatterStyle, label: String)] = [(.frost, "霜"), (.glass, "玻璃")]
+    static func enabled(_ environment: [String: String]) -> Bool { environment["DESK_SHATTER_DEMO"] == "1" }
 }
 
 /// One x-shake of the whole screen: ±6 pt, three swings, as `progress` runs 0 → 1.
@@ -133,16 +168,25 @@ final class ShatterDirector {
         let reduce: Bool
         let shakeAt: TimeInterval
         let total: TimeInterval
+        var style: ShatterStyle = .frost
+        /// `.glass`: each square's own crop of the snapshot (nil where the crop failed), the content of its glass piece.
+        var crops: [UIImage?] = []
     }
 
     private(set) var run: Run?
     private(set) var shake = 0.0
+    /// The demo's corner label ("霜" / "玻璃") while its shatter plays.
+    private(set) var demoLabel: String?
+    private(set) var demoRunning = false
     private var generation = 0
 
     /// Snapshot first, then `step` (the layout moves to its next offset with no animation), then the overlay.
-    /// Mid-shatter the step still happens but the running overlay stays.
-    func trigger(size: CGSize, reduce: Bool, snapshot: () -> UIImage?, step: () -> Void) {
+    /// Mid-shatter the step still happens but the running overlay stays. `.glass` plays as `.frost` below iOS 26.
+    func trigger(size: CGSize, reduce: Bool, style: ShatterStyle = .frost,
+                 glassAvailable: Bool = ShatterStyle.glassAvailable,
+                 snapshot: () -> UIImage?, step: () -> Void) {
         guard run == nil, let image = snapshot() else { step(); return }
+        let style = ShatterStyle.resolved(style, glassAvailable: glassAvailable)
         let grid = Shatter.grid(for: size)
         var rng = SystemRandomNumberGenerator()
         var plain = Transaction(animation: nil)
@@ -151,7 +195,8 @@ final class ShatterDirector {
             step()
             let tiles = reduce ? [] : Shatter.tiles(cols: grid.cols, rows: grid.rows, size: size, using: &rng)
             run = Run(image: image, cols: grid.cols, rows: grid.rows, tiles: tiles, start: Date(), reduce: reduce,
-                      shakeAt: Shatter.shakeAt(tiles), total: Shatter.total(tiles))
+                      shakeAt: Shatter.shakeAt(tiles), total: Shatter.total(tiles), style: style,
+                      crops: style == .glass ? Self.crops(image, tiles: tiles, cols: grid.cols, rows: grid.rows, size: size) : [])
         }
         generation += 1
         let mine = generation
@@ -170,6 +215,36 @@ final class ShatterDirector {
         }
     }
 
+    /// Frost once, `ShatterDemo.pause`, glass once, each with its corner label; then back to normal.
+    /// A second call while the demo runs does nothing.
+    func demo(size: @escaping () -> CGSize, reduce: Bool, glassAvailable: Bool = ShatterStyle.glassAvailable,
+              snapshot: @escaping () -> UIImage?, step: @escaping () -> Void) async {
+        guard !demoRunning else { return }
+        demoRunning = true
+        defer { demoRunning = false; demoLabel = nil }
+        for (k, item) in ShatterDemo.sequence.enumerated() {
+            if k > 0 { try? await Task.sleep(for: .seconds(ShatterDemo.pause)) }
+            while run != nil { try? await Task.sleep(for: .milliseconds(100)) }   // a scheduled one is playing
+            trigger(size: size(), reduce: reduce, style: item.style, glassAvailable: glassAvailable,
+                    snapshot: snapshot, step: step)
+            guard run != nil else { continue }
+            demoLabel = item.label
+            while run != nil { try? await Task.sleep(for: .milliseconds(100)) }
+            demoLabel = nil
+        }
+    }
+
+    /// The square at (col, row) cut from the snapshot, in the snapshot's own pixels.
+    static func crops(_ image: UIImage, tiles: [Shatter.Tile], cols: Int, rows: Int, size: CGSize) -> [UIImage?] {
+        guard let cg = image.cgImage, size.width > 0, size.height > 0 else { return tiles.map { _ in nil } }
+        let sx = CGFloat(cg.width) / size.width, sy = CGFloat(cg.height) / size.height
+        let w = size.width / CGFloat(cols), h = size.height / CGFloat(rows)
+        return tiles.map { tile in
+            let r = CGRect(x: CGFloat(tile.col) * w * sx, y: CGFloat(tile.row) * h * sy, width: w * sx, height: h * sy).integral
+            return cg.cropping(to: r).map { UIImage(cgImage: $0, scale: image.scale, orientation: .up) }
+        }
+    }
+
     static func windowSnapshot() -> UIImage? {
         let window = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows).first(where: \.isKeyWindow)
@@ -180,7 +255,8 @@ final class ShatterDirector {
     }
 }
 
-/// The overlay: the snapshot as tiles, drawn in one Canvas. Never takes a touch.
+/// The overlay: the snapshot as tiles, drawn in one Canvas; with `.glass`, the squares in flight (up to the cap)
+/// are real Liquid Glass pieces above it, all in one GlassEffectContainer. Never takes a touch.
 struct ShatterOverlay: View {
     let run: ShatterDirector.Run
 
@@ -190,8 +266,17 @@ struct ShatterOverlay: View {
                 CrossfadeSnapshot(image: run.image)
             } else {
                 TimelineView(.animation) { timeline in
-                    Canvas { context, size in
-                        draw(&context, size: size, t: timeline.date.timeIntervalSince(run.start))
+                    let t = timeline.date.timeIntervalSince(run.start)
+                    let glass = run.style == .glass && !run.crops.isEmpty ? Shatter.glassPieces(run.tiles, at: t) : []
+                    GeometryReader { geo in
+                        ZStack(alignment: .topLeading) {
+                            Canvas { context, size in
+                                draw(&context, size: size, t: t, skip: Set(glass))
+                            }
+                            if !glass.isEmpty, #available(iOS 26, *) {
+                                GlassPieces(run: run, indices: glass, t: t, size: geo.size)
+                            }
+                        }
                     }
                 }
             }
@@ -199,35 +284,60 @@ struct ShatterOverlay: View {
         .ignoresSafeArea().allowsHitTesting(false)
     }
 
-    private func draw(_ context: inout GraphicsContext, size: CGSize, t: TimeInterval) {
+    private func draw(_ context: inout GraphicsContext, size: CGSize, t: TimeInterval, skip: Set<Int>) {
         let image = context.resolve(Image(uiImage: run.image))
         let w = size.width / CGFloat(run.cols), h = size.height / CGFloat(run.rows)
         let f = Shatter.frostColor
         let tint = Color(red: f.r, green: f.g, blue: f.b)
-        for i in Shatter.drawOrder(run.tiles, at: t) {
+        let glassy = run.style == .glass
+        for i in Shatter.drawOrder(run.tiles, at: t) where !skip.contains(i) {
             let tile = run.tiles[i]
             let p = Shatter.fall(tile, at: t)
             let opacity = Shatter.opacity(fall: p)
             if opacity <= 0 { continue }
             let frost = Shatter.frost(tile, at: t)
             let rect = CGRect(x: CGFloat(tile.col) * w, y: CGFloat(tile.row) * h, width: w, height: h)
+            let flying = p > 0
             context.drawLayer { layer in
                 layer.opacity = opacity
                 layer.translateBy(x: rect.midX + Shatter.leafX(tile, fall: p),
                                   y: rect.midY + Shatter.leafY(fall: p, height: size.height))
                 layer.rotate(by: .degrees(Shatter.leafRotation(tile, fall: p)))
                 layer.translateBy(x: -rect.midX, y: -rect.midY)
+                let shape = glassy && flying
+                    ? Path(roundedRect: rect, cornerRadius: Shatter.glassCornerRadius) : Path(rect)
                 layer.drawLayer { piece in
-                    piece.clip(to: Path(rect))
+                    piece.clip(to: shape)
                     piece.draw(image, in: CGRect(origin: .zero, size: size))
                 }
-                if frost > 0 {
+                guard frost > 0 else { return }
+                if glassy {
+                    Self.glassRim(&layer, rect: rect, corner: tile.corner, amount: frost, flying: flying)
+                } else {
                     layer.fill(Path(rect), with: .color(tint.opacity(f.opacity * frost)))
                     layer.stroke(Self.perimeter(rect, from: tile.corner).trimmedPath(from: 0, to: frost),
                                  with: .color(.white.opacity(0.95)), lineWidth: 0.8)
                 }
             }
         }
+    }
+
+    /// `.glass` in the Canvas: a sheen across the square and a bright rim growing round it from the seed's corner,
+    /// in the frost's wave. In flight (a square past the glass cap) a fuller highlight, so it reads like the real glass.
+    private static func glassRim(_ layer: inout GraphicsContext, rect: CGRect, corner: Int, amount g: Double, flying: Bool) {
+        let tl = CGPoint(x: rect.minX, y: rect.minY), br = CGPoint(x: rect.maxX, y: rect.maxY)
+        let sheen = flying ? 0.22 : 0.14
+        layer.fill(Path(roundedRect: rect, cornerRadius: Shatter.glassCornerRadius),
+                   with: .linearGradient(Gradient(stops: [.init(color: .white.opacity(sheen * g), location: 0),
+                                                          .init(color: .white.opacity(0.02 * g), location: 0.5),
+                                                          .init(color: .white.opacity(sheen * 0.5 * g), location: 1)]),
+                                         startPoint: tl, endPoint: br))
+        let rim = flying ? Path(roundedRect: rect.insetBy(dx: 0.4, dy: 0.4), cornerRadius: Shatter.glassCornerRadius)
+                         : perimeter(rect.insetBy(dx: 0.4, dy: 0.4), from: corner).trimmedPath(from: 0, to: g)
+        layer.stroke(rim, with: .linearGradient(Gradient(colors: [.white.opacity(0.9 * g), .white.opacity(0.2 * g),
+                                                                  .white.opacity(0.55 * g)]),
+                                                startPoint: tl, endPoint: br),
+                     lineWidth: 0.5 + 0.7 * g)
     }
 
     /// The square's outline, clockwise, starting at corner `c` (0 TL, 1 TR, 2 BR, 3 BL).
@@ -238,6 +348,45 @@ struct ShatterOverlay: View {
         path.move(to: pts[c])
         for k in 1...4 { path.addLine(to: pts[(c + k) % 4]) }
         return path
+    }
+}
+
+/// The real-glass squares: each its own crop as content, `.glassEffect(.regular)` in a 3 pt rounded rect, all in
+/// ONE GlassEffectContainer (GlassBench: one container holds, one effect per square stutters past ~60).
+@available(iOS 26, *)
+private struct GlassPieces: View {
+    let run: ShatterDirector.Run
+    let indices: [Int]
+    let t: TimeInterval
+    let size: CGSize
+
+    var body: some View {
+        let w = size.width / CGFloat(run.cols), h = size.height / CGFloat(run.rows)
+        GlassEffectContainer(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                ForEach(indices, id: \.self) { i in
+                    let tile = run.tiles[i]
+                    let p = Shatter.fall(tile, at: t)
+                    piece(run.crops.indices.contains(i) ? run.crops[i] : nil)
+                        .frame(width: w, height: h)
+                        .glassEffect(.regular, in: .rect(cornerRadius: Shatter.glassCornerRadius))
+                        .rotationEffect(.degrees(Shatter.leafRotation(tile, fall: p)))
+                        .position(x: (CGFloat(tile.col) + 0.5) * w + Shatter.leafX(tile, fall: p),
+                                  y: (CGFloat(tile.row) + 0.5) * h + Shatter.leafY(fall: p, height: size.height))
+                        .opacity(Shatter.opacity(fall: p))
+                }
+            }
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+        }
+    }
+
+    @ViewBuilder private func piece(_ crop: UIImage?) -> some View {
+        if let crop {
+            Image(uiImage: crop).resizable().opacity(0.88)
+                .clipShape(.rect(cornerRadius: Shatter.glassCornerRadius))
+        } else {
+            Color.clear
+        }
     }
 }
 

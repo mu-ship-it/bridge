@@ -284,6 +284,65 @@ import UIKit
         #expect(order == order.sorted())
     }
 
+    @Test func glassFallsBackToFrostWithoutLiquidGlassAndFrostStaysFrost() {
+        #expect(ShatterStyle.resolved(.glass, glassAvailable: true) == .glass)
+        #expect(ShatterStyle.resolved(.glass, glassAvailable: false) == .frost)
+        #expect(ShatterStyle.resolved(.frost, glassAvailable: true) == .frost)
+        #expect(ShatterStyle.resolved(.frost, glassAvailable: false) == .frost)
+        #expect(ShatterDemo.enabled(["DESK_SHATTER_DEMO": "1"]) && !ShatterDemo.enabled([:]) && !ShatterDemo.enabled(["DESK_SHATTER_DEMO": "0"]))
+        #expect(ShatterDemo.sequence.map(\.style) == [.frost, .glass] && ShatterDemo.sequence.map(\.label) == ["霜", "玻璃"])
+        #expect(ShatterDemo.launchDelay == 3 && ShatterDemo.pause == 4)
+    }
+
+    @MainActor @Test func theScheduledShatterIsFrostAndGlassCarriesOneCropPerSquare() {
+        let size = CGSize(width: 375, height: 812)
+        let image = UIGraphicsImageRenderer(size: size).image { $0.fill(CGRect(origin: .zero, size: size)) }
+        let plain = ShatterDirector()
+        plain.trigger(size: size, reduce: false, snapshot: { image }, step: {})
+        #expect(plain.run?.style == .frost && plain.run?.crops.isEmpty == true)
+        let glass = ShatterDirector()
+        glass.trigger(size: size, reduce: false, style: .glass, glassAvailable: true, snapshot: { image }, step: {})
+        #expect(glass.run?.style == .glass && glass.run?.crops.count == 16 * 34)
+        #expect(glass.run?.crops.allSatisfy { $0 != nil } == true)
+        let old = ShatterDirector()
+        old.trigger(size: size, reduce: false, style: .glass, glassAvailable: false, snapshot: { image }, step: {})
+        #expect(old.run?.style == .frost && old.run?.crops.isEmpty == true)
+    }
+
+    @Test func atMostOneHundredTwentyGlassPiecesOnlyInFlightOldestStartedFirst() {
+        let land = CGSize(width: 812, height: 375)
+        var rng = SystemRandomNumberGenerator()
+        let tiles = Shatter.tiles(cols: 34, rows: 16, size: land, using: &rng)
+        #expect(Shatter.glassCap == 120)
+        let end = Shatter.total(tiles)
+        var sawCap = false
+        for t in stride(from: 0.0, through: end, by: 0.05) {
+            let glass = Shatter.glassPieces(tiles, at: t)
+            let flying = tiles.indices.filter { Shatter.fall(tiles[$0], at: t) > 0 && Shatter.fall(tiles[$0], at: t) < 1 }
+            #expect(glass.count == min(120, flying.count))
+            #expect(Set(glass).count == glass.count)
+            // Only squares in flight; squares in place never become glass.
+            #expect(glass.allSatisfy { let p = Shatter.fall(tiles[$0], at: t); return p > 0 && p < 1 })
+            // Oldest-started first: every glass piece started no later than every flying square left in the Canvas.
+            let rest = Set(flying).subtracting(glass)
+            if let latest = glass.map({ tiles[$0].fallStart }).max(), let earliest = rest.map({ tiles[$0].fallStart }).min() {
+                #expect(latest <= earliest)
+                sawCap = true
+            }
+            // Returned in the same z-order as the Canvas (least fallen first).
+            let falls = glass.map { Shatter.fall(tiles[$0], at: t) }
+            #expect(falls == falls.sorted())
+        }
+        #expect(sawCap)   // 544 squares: the cap does bite mid-shatter
+        #expect(Shatter.glassPieces(tiles, at: 0).isEmpty && Shatter.glassPieces(tiles, at: end).isEmpty)
+        #expect(Shatter.glassPieces(tiles, at: end / 2, cap: 0).isEmpty && Shatter.glassPieces(tiles, at: end / 2, cap: 5).count <= 5)
+        // Ties by fallStart go by index (the stragglers all let go together).
+        let t = Shatter.stragglerAt(tiles) + 0.1
+        let hung = Shatter.glassPieces(tiles, at: t, cap: 3)
+        let firstHung = tiles.indices.filter { tiles[$0].straggler }.prefix(3)
+        #expect(hung.count == min(3, firstHung.count) && Set(hung) == Set(firstHung))
+    }
+
     @Test func theLayoutStepsExactlyOncePerQuarterHourAndNeverBetween() {
         // Across a whole day the offset is the same within a quarter hour and different at the next one.
         for h in 0..<24 {

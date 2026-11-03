@@ -41,12 +41,20 @@ struct DeskView: View {
             .animation(.easeInOut(duration: 0.4), value: state)
             .animation(DeskMotion.lightsOut, value: lightsOut)
             .overlay { if let run = shatter.run { ShatterOverlay(run: run) } }
+            .overlay(alignment: .bottomTrailing) { demoLabel }
             .overlay { Color.black.ignoresSafeArea().opacity(awayBlack ? 1 : 0).allowsHitTesting(false) }
             .animation(DeskMotion.lightsOut, value: awayBlack)
             .modifier(ShakeEffect(progress: shatter.shake))
             .onChange(of: shatterTick) { runShatter(size: geo.size) }
             .background(FingerTap(touches: 2) { desk.toggleLightsOut() })
-            .background(FingerTap(touches: 3) { runShatter(size: geo.size) })
+            // Three-finger tap: the shatter demo (frost, then Liquid Glass), so the two can be compared.
+            .background(FingerTap(touches: 3) { Task { await runDemo(size: geo.size) } })
+            // DESK_SHATTER_DEMO=1 at launch: the same demo ~3 s after the Desk appears.
+            .task {
+                guard ShatterDemo.enabled(ProcessInfo.processInfo.environment) else { return }
+                try? await Task.sleep(for: .seconds(ShatterDemo.launchDelay))
+                await runDemo(size: geo.size)
+            }
             // Hidden: a 3 s one-finger hold enrolls Mu's face now (FaceID; only he sits here).
             .background(FingerTap(touches: 1, hold: FaceID.enrollHold) { desk.enrollNow() })
         }
@@ -141,6 +149,27 @@ struct DeskView: View {
     private func runShatter(size: CGSize) {
         shatter.trigger(size: size, reduce: DeskMotion.reduce, snapshot: ShatterDirector.windowSnapshot) {
             shift = BurnIn.offset(at: Date())
+        }
+    }
+
+    /// The demo: `.frost` once, a pause, `.glass` once (frost below iOS 26); the quarter-hourly one stays `.frost`.
+    private func runDemo(size: CGSize) async {
+        await shatter.demo(size: { size }, reduce: DeskMotion.reduce, snapshot: ShatterDirector.windowSnapshot) {
+            shift = BurnIn.offset(at: Date())
+        }
+    }
+
+    /// "霜" / "玻璃" in the corner while the demo's shatter plays.
+    @ViewBuilder private var demoLabel: some View {
+        if let label = shatter.demoLabel {
+            Text(label)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Theme.dim)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.black.opacity(0.55), in: .rect(cornerRadius: 6))
+                .padding(12)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
     }
 

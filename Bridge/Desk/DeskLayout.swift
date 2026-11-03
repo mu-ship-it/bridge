@@ -6,7 +6,7 @@ import SwiftUI
 ///  - Quarter-hourly shatter: at every :00 :15 :30 :45 the old frame breaks into squares that fall away (DeskShatter), and under it
 ///    the whole layout has already stepped to its next offset (one step per quarter hour round the 8 points of a ±4 pt
 ///    grid). The layout never moves at any other time, and content never changes place.
-///  - Dim when away (BrightnessPolicy) and a nightly lights-out: 03:00–03:01 (or 60 s from a two-finger tap; a three-finger tap runs the shatter on demand)
+///  - Dim when away (BrightnessPolicy) and a nightly lights-out: 03:00–03:01 (or 60 s from a two-finger tap; a three-finger tap runs the shatter demo: frost, then Liquid Glass)
 ///    the screen is black but for the sleeping face.
 enum BurnIn {
     static let lightsOutHour = 3
