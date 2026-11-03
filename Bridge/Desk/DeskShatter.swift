@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreImage
 import UIKit
 
 /// The quarter-hourly ceremony's picture: "frost, then falling leaves". A snapshot of the old desk is cut into
@@ -286,6 +287,7 @@ struct ShatterOverlay: View {
 
     private func draw(_ context: inout GraphicsContext, size: CGSize, t: TimeInterval, skip: Set<Int>) {
         let image = context.resolve(Image(uiImage: run.image))
+        let frosted = run.style == .glass ? FrostedCopy.of(run.image).map { context.resolve(Image(uiImage: $0)) } : nil
         let w = size.width / CGFloat(run.cols), h = size.height / CGFloat(run.rows)
         let f = Shatter.frostColor
         let tint = Color(red: f.r, green: f.g, blue: f.b)
@@ -309,6 +311,12 @@ struct ShatterOverlay: View {
                 layer.drawLayer { piece in
                     piece.clip(to: shape)
                     piece.draw(image, in: CGRect(origin: .zero, size: size))
+                    // Glass: as a square freezes it turns into the same bright frosted look the flying glass has
+                    // (Mu 11-03: "所有的方块产生时就变白"). One pre-blurred copy, crossfaded in per square: cheap.
+                    if glassy, frost > 0, let frosted {
+                        piece.opacity = frost
+                        piece.draw(frosted, in: CGRect(origin: .zero, size: size))
+                    }
                 }
                 guard frost > 0 else { return }
                 if glassy {
@@ -391,5 +399,27 @@ private struct CrossfadeSnapshot: View {
     var body: some View {
         Image(uiImage: image).resizable().opacity(shown ? 1 : 0)
             .onAppear { withAnimation(.easeInOut(duration: Shatter.reduceDuration)) { shown = false } }
+    }
+}
+
+
+/// The snapshot blurred and brightened once per shatter, matching the flying glass pieces' content.
+enum FrostedCopy {
+    nonisolated(unsafe) private static var cache: (ObjectIdentifier, UIImage)?
+    static func of(_ image: UIImage) -> UIImage? {
+        let key = ObjectIdentifier(image)
+        if let c = cache, c.0 == key { return c.1 }
+        guard let cg = image.cgImage else { return nil }
+        let input = CIImage(cgImage: cg)
+        let scale = image.scale
+        let out = input.clampedToExtent()
+            .applyingGaussianBlur(sigma: 10 * scale)
+            .applyingFilter("CIColorControls", parameters: [kCIInputBrightnessKey: 0.2])
+            .cropped(to: input.extent)
+        let ctx = CIContext()
+        guard let res = ctx.createCGImage(out, from: input.extent) else { return nil }
+        let ui = UIImage(cgImage: res, scale: scale, orientation: image.imageOrientation)
+        cache = (key, ui)
+        return ui
     }
 }
