@@ -332,12 +332,7 @@ struct ShatterOverlay: View {
                                                           .init(color: .white.opacity(0.02 * g), location: 0.5),
                                                           .init(color: .white.opacity(sheen * 0.5 * g), location: 1)]),
                                          startPoint: tl, endPoint: br))
-        let rim = flying ? Path(roundedRect: rect.insetBy(dx: 0.4, dy: 0.4), cornerRadius: Shatter.glassCornerRadius)
-                         : perimeter(rect.insetBy(dx: 0.4, dy: 0.4), from: corner).trimmedPath(from: 0, to: g)
-        layer.stroke(rim, with: .linearGradient(Gradient(colors: [.white.opacity(0.9 * g), .white.opacity(0.2 * g),
-                                                                  .white.opacity(0.55 * g)]),
-                                                startPoint: tl, endPoint: br),
-                     lineWidth: 0.5 + 0.7 * g)
+        // No drawn rim (Mu 11-03: "不加白边"); real glass pieces keep Apple's own edge highlight.
     }
 
     /// The square's outline, clockwise, starting at corner `c` (0 TL, 1 TR, 2 BR, 3 BL).
