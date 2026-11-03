@@ -294,11 +294,11 @@ import UIKit
         #expect(ShatterDemo.launchDelay == 3 && ShatterDemo.pause == 4)
     }
 
-    @MainActor @Test func theScheduledShatterIsFrostAndGlassCarriesOneCropPerSquare() {
+    @MainActor @Test func frostHasNoCropsAndGlassCarriesOneCropPerSquare() {
         let size = CGSize(width: 375, height: 812)
         let image = UIGraphicsImageRenderer(size: size).image { $0.fill(CGRect(origin: .zero, size: size)) }
         let plain = ShatterDirector()
-        plain.trigger(size: size, reduce: false, snapshot: { image }, step: {})
+        plain.trigger(size: size, reduce: false, style: .frost, snapshot: { image }, step: {})
         #expect(plain.run?.style == .frost && plain.run?.crops.isEmpty == true)
         let glass = ShatterDirector()
         glass.trigger(size: size, reduce: false, style: .glass, glassAvailable: true, snapshot: { image }, step: {})

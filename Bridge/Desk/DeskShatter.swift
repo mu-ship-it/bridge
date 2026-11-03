@@ -6,7 +6,7 @@ import UIKit
 /// squares; frost spreads from one or two seeds (a tint fades in and a crack line grows round each square), then
 /// the squares let go one by one and drift down like leaves. Pure timing here, so it is tested without a screen.
 ///
-/// Two looks on the same timeline (ShatterStyle): `.frost` (the approved one, used by the quarter-hourly step) and
+/// Two looks on the same timeline (ShatterStyle): `.glass` (Mu 11-03 定稿, used by the quarter-hourly step) and `.frost` (fallback below iOS 26) —
 /// `.glass`, where the freeze grows a glass rim instead of the crack and the squares in flight are real Liquid Glass.
 enum ShatterStyle: Equatable, Sendable {
     case frost, glass
@@ -183,7 +183,7 @@ final class ShatterDirector {
 
     /// Snapshot first, then `step` (the layout moves to its next offset with no animation), then the overlay.
     /// Mid-shatter the step still happens but the running overlay stays. `.glass` plays as `.frost` below iOS 26.
-    func trigger(size: CGSize, reduce: Bool, style: ShatterStyle = .frost,
+    func trigger(size: CGSize, reduce: Bool, style: ShatterStyle = .glass,
                  glassAvailable: Bool = ShatterStyle.glassAvailable,
                  snapshot: () -> UIImage?, step: () -> Void) {
         guard run == nil, let image = snapshot() else { step(); return }

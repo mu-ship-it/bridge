@@ -47,8 +47,8 @@ struct DeskView: View {
             .modifier(ShakeEffect(progress: shatter.shake))
             .onChange(of: shatterTick) { runShatter(size: geo.size) }
             .background(FingerTap(touches: 2) { desk.toggleLightsOut() })
-            // Three-finger tap: the shatter demo (frost, then Liquid Glass), so the two can be compared.
-            .background(FingerTap(touches: 3) { Task { await runDemo(size: geo.size) } })
+            // Three-finger tap: run the shatter now (Liquid Glass, Mu 11-03 "定稿"). DESK_SHATTER_DEMO=1 still shows frost vs glass.
+            .background(FingerTap(touches: 3) { runShatter(size: geo.size) })
             // DESK_SHATTER_DEMO=1 at launch: the same demo ~3 s after the Desk appears.
             .task {
                 guard ShatterDemo.enabled(ProcessInfo.processInfo.environment) else { return }
